@@ -1,6 +1,7 @@
 using System.Text;
 using System.Xml.Linq;
 using Shapeshift.Core;
+using Shapeshift.Engine.Tweaks;
 using static Shapeshift.Engine.AnswerFiles.AnswerFileBuilder;
 
 namespace Shapeshift.Engine.AnswerFiles;
@@ -17,11 +18,14 @@ public static class AnswerFileGenerator
     const string NoProductKey = "00000-00000-00000-00000-00000";
 
     /// <param name="profile">Выборы пользователя; <see cref="Problems"/> для него должен быть пуст.</param>
+    /// <param name="catalog">Каталог, в котором ищутся твики профиля.</param>
     /// <param name="image">Образ, для которого файл ответов; без него редакцию и язык установщика задать нельзя.</param>
-    public static XDocument Generate(Profile profile, ImageInfo? image = null)
+    public static XDocument Generate(Profile profile, TweakCatalog catalog, ImageInfo? image = null)
     {
         var file = new AnswerFileBuilder(image?.Architecture ?? profile.Architecture);
-        AddBypass(file, profile.Bypass);
+        // Твики — первыми: обход ограничений должен выполниться в установщике до проверки требований,
+        // а команды первого входа — до выхода из сеанса ради смены пароля.
+        AddTweaks(file, TweakSelection.Resolve(profile.Tweaks, catalog, image?.Release).Tweaks);
         AddSetupLanguage(file, profile, image);
         AddEdition(file, profile.Setup, image);
         if (profile.Setup.WipeDisk0)
@@ -35,8 +39,11 @@ public static class AnswerFileGenerator
     }
 
     /// <summary>Почему по профилю нельзя построить файл ответов для этого образа (пусто — можно).</summary>
-    public static IEnumerable<string> Problems(Profile profile, ImageInfo? image)
+    public static IEnumerable<string> Problems(Profile profile, TweakCatalog catalog, ImageInfo? image)
     {
+        foreach (var problem in TweakSelection.Resolve(profile.Tweaks, catalog, image?.Release).Problems)
+            yield return problem;
+
         if (profile.Setup.Edition is not { } edition)
             yield break;
 
@@ -126,18 +133,37 @@ public static class AnswerFileGenerator
             file.Component(OobeSystem, ShellSetup).Add(new XElement(Unattend + "TimeZone", timeZone));
     }
 
-    // Установщик Windows 11 пропускает проверку требований, если в среде установки
-    // заданы эти значения LabConfig. Команды выполняются в windowsPE до проверки.
-    static void AddBypass(AnswerFileBuilder file, BypassOptions bypass)
+    // Действия твиков по этапам, в порядке каталога. HKCU на этапе установки пишется в профиль
+    // пользователя по умолчанию — одним блоком между его загрузкой и выгрузкой.
+    static void AddTweaks(AnswerFileBuilder file, IReadOnlyList<Tweak> tweaks)
     {
-        if (bypass.Tpm) file.RunSynchronous(WindowsPe, LabConfig("BypassTPMCheck"));
-        if (bypass.SecureBoot) file.RunSynchronous(WindowsPe, LabConfig("BypassSecureBootCheck"));
-        if (bypass.Ram) file.RunSynchronous(WindowsPe, LabConfig("BypassRAMCheck"));
-        if (bypass.Cpu) file.RunSynchronous(WindowsPe, LabConfig("BypassCPUCheck"));
+        var actions = tweaks.SelectMany(t => t.Actions.Select(a => (Tweak: t, Action: a))).ToList();
+
+        foreach (var (_, action) in actions.Where(x => x.Action.Stage == Stage.Installer))
+            file.RunSynchronous(WindowsPe, Render(action));
+
+        var setup = actions.Where(x => x.Action.Stage == Stage.Setup).Select(x => x.Action).ToList();
+        bool IsDefaultUser(TweakAction a) => a is RegistryAction { Hive: RegistryHive.HKCU };
+        foreach (var action in setup.Where(a => !IsDefaultUser(a)))
+            file.RunSynchronous(Specialize, Render(action));
+        if (setup.Any(IsDefaultUser))
+        {
+            file.RunSynchronous(Specialize, RegistryCommand.LoadDefaultUser);
+            foreach (var action in setup.Where(IsDefaultUser))
+                file.RunSynchronous(Specialize, Render(action));
+            file.RunSynchronous(Specialize, RegistryCommand.UnloadDefaultUser);
+        }
+
+        foreach (var (tweak, action) in actions.Where(x => x.Action.Stage == Stage.FirstLogon))
+            file.FirstLogonCommand(Render(action), tweak.Id);
     }
 
-    static string LabConfig(string valueName) =>
-        $"reg.exe add \"HKLM\\SYSTEM\\Setup\\LabConfig\" /v {valueName} /t REG_DWORD /d 1 /f";
+    static string Render(TweakAction action) => action switch
+    {
+        RegistryAction registry => RegistryCommand.Add(registry),
+        CommandAction command => command.Command,
+        _ => throw new ArgumentOutOfRangeException(nameof(action), action, null),
+    };
 
     // Раскладка диска 0 по образцу Microsoft для UEFI/GPT: WinRE, EFI, MSR, Windows на всё остальное.
     static void AddDiskLayout(AnswerFileBuilder file)

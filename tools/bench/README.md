@@ -29,4 +29,4 @@
 Папка `scenarios\<имя>\`:
 
 - `profile.json` — профиль без `source`/`output` (их подставляет стенд). Пользователь обязателен, пароль в режиме `store`: стенд входит под ним.
-- `expect.json` — что проверить: `computerName`, `editionId`, `userLocale`, `keyboardLayouts` (KLID в порядке, первая — по умолчанию), `timeZone`, `userIsAdministrator`. Отсутствие TPM проверяется всегда. Новые проверки добавляются в `Invoke-Bench.ps1` (блок `switch`).
+- `expect.json` — что проверить: `computerName`, `editionId`, `userLocale`, `keyboardLayouts` (KLID в порядке, первая — по умолчанию), `timeZone`, `userIsAdministrator`, `registry` (список `{ path, name, value }`; `path` в виде `HKLM:\…` или `HKCU:\…` — HKCU пользователя профиля, `name` = `(default)` для значения по умолчанию). Отсутствие TPM проверяется всегда. Новые проверки добавляются в `Invoke-Bench.ps1` (блок `switch`).

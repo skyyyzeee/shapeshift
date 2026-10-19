@@ -14,7 +14,7 @@ public sealed class AnswerFileCommandTests : IDisposable
         {
           "formatVersion": 1,
           "architecture": "x64",
-          "bypass": { "tpm": true, "secureBoot": true, "ram": true, "cpu": true }
+          "tweaks": ["bypass.tpm", "bypass.secure-boot", "bypass.ram", "bypass.cpu"]
         }
         """);
 
@@ -22,7 +22,7 @@ public sealed class AnswerFileCommandTests : IDisposable
     public Task Bypasses_come_in_canonical_order() => SnapshotOf("""
         {
           "formatVersion": 1,
-          "bypass": { "ram": true, "tpm": true }
+          "tweaks": ["bypass.ram", "bypass.tpm"]
         }
         """);
 
@@ -37,7 +37,7 @@ public sealed class AnswerFileCommandTests : IDisposable
         var xml = await GenerateValid("""
             {
               "formatVersion": 1,
-              "bypass": { "tpm": true, "secureBoot": false }
+              "tweaks": ["bypass.tpm"]
             }
             """);
 
@@ -56,7 +56,9 @@ public sealed class AnswerFileCommandTests : IDisposable
     [InlineData("""{ "formatVersion": 1, "architecture": "arm64" }""", "'arm64' is not supported")]
     [InlineData("""{ "formatVersion": 1, "architecture": "x86" }""", "Unknown architecture 'x86'")]
     [InlineData("""{ "formatVersion": 1, "bypas": {} }""", "bypas")]
-    [InlineData("""{ "formatVersion": 1, "bypass": { "tpm": "yes" } }""", "Profile is invalid")]
+    [InlineData("""{ "formatVersion": 1, "tweaks": "bypass.tpm" }""", "Profile is invalid")]
+    [InlineData("""{ "formatVersion": 1, "tweaks": ["bypass.tpm", "bypass.tpm"] }""", "same tweak twice")]
+    [InlineData("""{ "formatVersion": 1, "tweaks": ["bypass.nope"] }""", "unknown tweak 'bypass.nope'")]
     public async Task Invalid_profile_is_rejected(string json, string expectedError)
     {
         var profile = _dir.Write("profile.json", json);

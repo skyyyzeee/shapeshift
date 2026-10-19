@@ -1,0 +1,240 @@
+{
+  // Каталог твиков Shapeshift (ADR-0004). Проверка: `catalog validate <файл>`.
+  // Порядок твиков задаёт порядок их действий в файле ответов.
+  "formatVersion": 1,
+  "categories": [
+    { "id": "bypass", "name": { "en": "Bypass requirements", "ru": "Обход ограничений" } },
+    { "id": "privacy", "name": { "en": "Privacy", "ru": "Приватность" } },
+    { "id": "interface", "name": { "en": "Interface", "ru": "Интерфейс" } },
+    { "id": "system", "name": { "en": "System", "ru": "Система" } }
+  ],
+  "tweaks": [
+    {
+      "id": "bypass.tpm",
+      "category": "bypass",
+      "name": { "en": "Skip the TPM check", "ru": "Пропустить проверку TPM" },
+      "description": {
+        "en": "Lets Windows 11 install on computers without TPM 2.0.",
+        "ru": "Позволяет установить Windows 11 на компьютер без TPM 2.0."
+      },
+      "releases": { "products": ["windows11"] },
+      "actions": [
+        { "type": "registry", "stage": "installer", "hive": "HKLM", "key": "SYSTEM\\Setup\\LabConfig", "name": "BypassTPMCheck", "valueType": "dword", "value": 1 }
+      ]
+    },
+    {
+      "id": "bypass.secure-boot",
+      "category": "bypass",
+      "name": { "en": "Skip the Secure Boot check", "ru": "Пропустить проверку Secure Boot" },
+      "description": {
+        "en": "Lets Windows 11 install on computers without Secure Boot.",
+        "ru": "Позволяет установить Windows 11 на компьютер без Secure Boot."
+      },
+      "releases": { "products": ["windows11"] },
+      "actions": [
+        { "type": "registry", "stage": "installer", "hive": "HKLM", "key": "SYSTEM\\Setup\\LabConfig", "name": "BypassSecureBootCheck", "valueType": "dword", "value": 1 }
+      ]
+    },
+    {
+      "id": "bypass.ram",
+      "category": "bypass",
+      "name": { "en": "Skip the memory check", "ru": "Пропустить проверку памяти" },
+      "description": {
+        "en": "Lets Windows 11 install with less than 4 GB of RAM.",
+        "ru": "Позволяет установить Windows 11, если оперативной памяти меньше 4 ГБ."
+      },
+      "releases": { "products": ["windows11"] },
+      "actions": [
+        { "type": "registry", "stage": "installer", "hive": "HKLM", "key": "SYSTEM\\Setup\\LabConfig", "name": "BypassRAMCheck", "valueType": "dword", "value": 1 }
+      ]
+    },
+    {
+      "id": "bypass.cpu",
+      "category": "bypass",
+      "name": { "en": "Skip the processor check", "ru": "Пропустить проверку процессора" },
+      "description": {
+        "en": "Lets Windows 11 install on processors that are not on the supported list.",
+        "ru": "Позволяет установить Windows 11 на процессор, которого нет в списке поддерживаемых."
+      },
+      "releases": { "products": ["windows11"] },
+      "actions": [
+        { "type": "registry", "stage": "installer", "hive": "HKLM", "key": "SYSTEM\\Setup\\LabConfig", "name": "BypassCPUCheck", "valueType": "dword", "value": 1 }
+      ]
+    },
+
+    {
+      "id": "privacy.telemetry",
+      "category": "privacy",
+      "name": { "en": "Minimal diagnostic data", "ru": "Минимум диагностических данных" },
+      "description": {
+        "en": "Sends only the required diagnostic data. Enterprise and Education turn it off completely.",
+        "ru": "Отправляются только обязательные диагностические данные. В Enterprise и Education — полностью отключено."
+      },
+      "actions": [
+        { "type": "registry", "stage": "setup", "hive": "HKLM", "key": "SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection", "name": "AllowTelemetry", "valueType": "dword", "value": 0 }
+      ]
+    },
+    {
+      "id": "privacy.advertising-id",
+      "category": "privacy",
+      "name": { "en": "No advertising ID", "ru": "Без рекламного идентификатора" },
+      "description": {
+        "en": "Apps cannot use an advertising ID to show personalized ads.",
+        "ru": "Приложения не получают рекламный идентификатор для персонализированной рекламы."
+      },
+      "actions": [
+        { "type": "registry", "stage": "setup", "hive": "HKLM", "key": "SOFTWARE\\Policies\\Microsoft\\Windows\\AdvertisingInfo", "name": "DisabledByGroupPolicy", "valueType": "dword", "value": 1 }
+      ]
+    },
+    {
+      "id": "privacy.activity-history",
+      "category": "privacy",
+      "name": { "en": "No activity history", "ru": "Без журнала действий" },
+      "description": {
+        "en": "Windows does not collect or upload the history of apps and files you use.",
+        "ru": "Windows не собирает и не отправляет историю используемых приложений и файлов."
+      },
+      "actions": [
+        { "type": "registry", "stage": "setup", "hive": "HKLM", "key": "SOFTWARE\\Policies\\Microsoft\\Windows\\System", "name": "PublishUserActivities", "valueType": "dword", "value": 0 },
+        { "type": "registry", "stage": "setup", "hive": "HKLM", "key": "SOFTWARE\\Policies\\Microsoft\\Windows\\System", "name": "UploadUserActivities", "valueType": "dword", "value": 0 }
+      ]
+    },
+    {
+      "id": "privacy.suggestions",
+      "category": "privacy",
+      "name": { "en": "No suggestions and promoted apps", "ru": "Без рекомендаций и продвигаемых приложений" },
+      "description": {
+        "en": "Turns off suggestions in Start and Settings, tips and silent installation of promoted apps.",
+        "ru": "Отключает рекомендации в «Пуске» и «Параметрах», советы и тихую установку продвигаемых приложений."
+      },
+      "actions": [
+        { "type": "registry", "stage": "setup", "hive": "HKCU", "key": "Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager", "name": "SilentInstalledAppsEnabled", "valueType": "dword", "value": 0 },
+        { "type": "registry", "stage": "setup", "hive": "HKCU", "key": "Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager", "name": "SystemPaneSuggestionsEnabled", "valueType": "dword", "value": 0 },
+        { "type": "registry", "stage": "setup", "hive": "HKCU", "key": "Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager", "name": "SoftLandingEnabled", "valueType": "dword", "value": 0 },
+        { "type": "registry", "stage": "setup", "hive": "HKCU", "key": "Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager", "name": "SubscribedContent-338388Enabled", "valueType": "dword", "value": 0 },
+        { "type": "registry", "stage": "setup", "hive": "HKCU", "key": "Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager", "name": "SubscribedContent-338389Enabled", "valueType": "dword", "value": 0 },
+        { "type": "registry", "stage": "setup", "hive": "HKCU", "key": "Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager", "name": "SubscribedContent-353694Enabled", "valueType": "dword", "value": 0 },
+        { "type": "registry", "stage": "setup", "hive": "HKCU", "key": "Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager", "name": "SubscribedContent-353696Enabled", "valueType": "dword", "value": 0 }
+      ]
+    },
+    {
+      "id": "privacy.web-search",
+      "category": "privacy",
+      "name": { "en": "No web results in search", "ru": "Без интернет-результатов в поиске" },
+      "description": {
+        "en": "Searching from Start and the taskbar shows only results from this computer.",
+        "ru": "Поиск из «Пуска» и панели задач показывает только результаты с этого компьютера."
+      },
+      "actions": [
+        { "type": "registry", "stage": "setup", "hive": "HKCU", "key": "Software\\Policies\\Microsoft\\Windows\\Explorer", "name": "DisableSearchBoxSuggestions", "valueType": "dword", "value": 1 }
+      ]
+    },
+    {
+      "id": "privacy.recall",
+      "category": "privacy",
+      "name": { "en": "Turn off Recall", "ru": "Отключить Recall" },
+      "description": {
+        "en": "Windows does not save snapshots of the screen for Recall.",
+        "ru": "Windows не сохраняет снимки экрана для Recall."
+      },
+      "releases": { "products": ["windows11"], "minBuild": 26100 },
+      "actions": [
+        { "type": "registry", "stage": "setup", "hive": "HKLM", "key": "SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsAI", "name": "DisableAIDataAnalysis", "valueType": "dword", "value": 1 },
+        { "type": "registry", "stage": "setup", "hive": "HKLM", "key": "SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsAI", "name": "AllowRecallEnablement", "valueType": "dword", "value": 0 }
+      ]
+    },
+
+    {
+      "id": "interface.classic-context-menu",
+      "category": "interface",
+      "name": { "en": "Classic context menu", "ru": "Классическое контекстное меню" },
+      "description": {
+        "en": "Right-click shows the full menu right away, without “Show more options”.",
+        "ru": "По правому щелчку сразу открывается полное меню, без «Показать дополнительные параметры»."
+      },
+      "releases": { "products": ["windows11"] },
+      "actions": [
+        // HKCU\Software\Classes — это UsrClass.dat, а не NTUSER.DAT: профиль по умолчанию его не передаёт.
+        { "type": "registry", "stage": "firstLogon", "hive": "HKCU", "key": "Software\\Classes\\CLSID\\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\\InprocServer32", "valueType": "string", "value": "" }
+      ]
+    },
+    {
+      "id": "interface.taskbar-left",
+      "category": "interface",
+      "name": { "en": "Taskbar on the left", "ru": "Панель задач слева" },
+      "description": {
+        "en": "Start and taskbar icons are aligned to the left, as in Windows 10.",
+        "ru": "«Пуск» и значки панели задач выровнены по левому краю, как в Windows 10."
+      },
+      "releases": { "products": ["windows11"] },
+      "actions": [
+        { "type": "registry", "stage": "setup", "hive": "HKCU", "key": "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", "name": "TaskbarAl", "valueType": "dword", "value": 0 }
+      ]
+    },
+    {
+      "id": "interface.no-widgets",
+      "category": "interface",
+      "name": { "en": "No widgets", "ru": "Без виджетов" },
+      "description": {
+        "en": "Removes the widgets board and its taskbar button.",
+        "ru": "Убирает панель виджетов и её кнопку на панели задач."
+      },
+      "releases": { "products": ["windows11"] },
+      "actions": [
+        { "type": "registry", "stage": "setup", "hive": "HKLM", "key": "SOFTWARE\\Policies\\Microsoft\\Dsh", "name": "AllowNewsAndInterests", "valueType": "dword", "value": 0 }
+      ]
+    },
+    {
+      "id": "interface.file-extensions",
+      "category": "interface",
+      "name": { "en": "Show file extensions", "ru": "Показывать расширения файлов" },
+      "description": {
+        "en": "File Explorer shows extensions such as .exe and .pdf.",
+        "ru": "Проводник показывает расширения файлов, например .exe и .pdf."
+      },
+      "actions": [
+        { "type": "registry", "stage": "setup", "hive": "HKCU", "key": "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", "name": "HideFileExt", "valueType": "dword", "value": 0 }
+      ]
+    },
+    {
+      "id": "interface.dark-theme",
+      "category": "interface",
+      "name": { "en": "Dark theme", "ru": "Тёмная тема" },
+      "description": {
+        "en": "Windows and apps use the dark theme.",
+        "ru": "Windows и приложения используют тёмную тему."
+      },
+      "actions": [
+        // При первом входе Windows применяет стандартную тему и перезаписывает значения из профиля по умолчанию.
+        { "type": "registry", "stage": "firstLogon", "hive": "HKCU", "key": "Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", "name": "AppsUseLightTheme", "valueType": "dword", "value": 0 },
+        { "type": "registry", "stage": "firstLogon", "hive": "HKCU", "key": "Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", "name": "SystemUsesLightTheme", "valueType": "dword", "value": 0 }
+      ]
+    },
+
+    {
+      "id": "system.no-device-encryption",
+      "category": "system",
+      "name": { "en": "No automatic device encryption", "ru": "Без автоматического шифрования диска" },
+      "description": {
+        "en": "Windows does not turn on BitLocker device encryption by itself, so data is not lost if the recovery key was never saved.",
+        "ru": "Windows не включает шифрование BitLocker сама — данные не потеряются из-за ключа восстановления, о котором вы не знали."
+      },
+      "actions": [
+        { "type": "registry", "stage": "setup", "hive": "HKLM", "key": "SYSTEM\\CurrentControlSet\\Control\\BitLocker", "name": "PreventDeviceEncryption", "valueType": "dword", "value": 1 }
+      ]
+    },
+    {
+      "id": "system.no-hibernation",
+      "category": "system",
+      "name": { "en": "Turn off hibernation", "ru": "Отключить гибернацию" },
+      "description": {
+        "en": "Frees the disk space taken by the hibernation file. Fast startup is turned off too.",
+        "ru": "Освобождает место, занятое файлом гибернации. Быстрый запуск тоже отключается."
+      },
+      "advanced": true,
+      "actions": [
+        { "type": "command", "stage": "setup", "command": "powercfg.exe /hibernate off" }
+      ]
+    }
+  ]
+}

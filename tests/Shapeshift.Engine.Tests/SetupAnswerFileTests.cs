@@ -18,7 +18,7 @@ public sealed class SetupAnswerFileTests : IDisposable
     public Task Fully_unattended_setup() => SnapshotOf("""
         {
           "formatVersion": 1,
-          "bypass": { "tpm": true, "secureBoot": true, "ram": true, "cpu": true },
+          "tweaks": ["bypass.tpm", "bypass.secure-boot", "bypass.ram", "bypass.cpu"],
           "setup": {
             "user": { "name": "Alex", "password": { "mode": "store", "value": "s3cret!" }, "autoLogon": true },
             "computerName": "ALEX-PC",

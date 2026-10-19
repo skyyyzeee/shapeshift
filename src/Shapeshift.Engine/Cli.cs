@@ -4,6 +4,7 @@ using Shapeshift.Core;
 using Shapeshift.Engine.AnswerFiles;
 using Shapeshift.Engine.Builds;
 using Shapeshift.Engine.Images;
+using Shapeshift.Engine.Tweaks;
 
 namespace Shapeshift.Engine;
 
@@ -30,6 +31,7 @@ public static class Cli
             AnswerFileCommand(context),
             InspectCommand(context),
             BuildCommand(context),
+            CatalogCommand(context),
         };
 
         return root.Parse(args).InvokeAsync(new InvocationConfiguration { Output = output, Error = error }, ct);
@@ -52,17 +54,24 @@ public static class Cli
                 "Needed to choose an edition and to skip the installer's language page.",
         };
 
+        var catalogOption = CatalogOption();
+
         var command = new Command("answerfile", "Generate an answer file from a profile.")
         {
             profileOption,
             outOption,
             isoOption,
+            catalogOption,
         };
 
         command.SetAction(async (parseResult, ct) =>
         {
             var profile = await TryReadProfileAsync(parseResult.GetRequiredValue(profileOption), context, ct);
             if (profile is null)
+                return ExitCodes.InvalidInput;
+
+            var catalog = await TryLoadCatalogAsync(parseResult.GetValue(catalogOption), context, ct);
+            if (catalog is null)
                 return ExitCodes.InvalidInput;
 
             ImageInfo? image = null;
@@ -74,11 +83,11 @@ public static class Cli
                 image = source.Info;
             }
 
-            if (!await CheckAnswerFileAsync(profile, image, context))
+            if (!await CheckAnswerFileAsync(profile, catalog, image, context))
                 return ExitCodes.InvalidInput;
 
             await AnswerFileWriter.WriteAsync(
-                AnswerFileGenerator.Generate(profile, image), parseResult.GetRequiredValue(outOption).FullName, ct);
+                AnswerFileGenerator.Generate(profile, catalog, image), parseResult.GetRequiredValue(outOption).FullName, ct);
             return ExitCodes.Success;
         });
 
@@ -123,17 +132,24 @@ public static class Cli
             Description = "Print the plan and the space it needs without building anything.",
         };
 
+        var catalogOption = CatalogOption();
+
         var command = new Command("build", "Build an image from a profile.")
         {
             profileOption,
             workspaceOption,
             dryRunOption,
+            catalogOption,
         };
 
         command.SetAction(async (parseResult, ct) =>
         {
             var profile = await TryReadProfileAsync(parseResult.GetRequiredValue(profileOption), context, ct);
             if (profile is null)
+                return ExitCodes.InvalidInput;
+
+            var catalog = await TryLoadCatalogAsync(parseResult.GetValue(catalogOption), context, ct);
+            if (catalog is null)
                 return ExitCodes.InvalidInput;
 
             if (profile.Source.IsoPath is not { } sourceIso)
@@ -148,9 +164,9 @@ public static class Cli
                 return ExitCodes.InvalidInput;
 
             var workspace = parseResult.GetValue(workspaceOption)?.FullName ?? context.Host.DefaultWorkspace;
-            var plan = BuildPlanner.Plan(profile, source, outputIso, workspace, context.Host);
+            var plan = BuildPlanner.Plan(profile, catalog, source, outputIso, workspace, context.Host);
             await WritePlanAsync(plan, context.Output);
-            if (!await CheckAnswerFileAsync(profile, source.Info, context))
+            if (!await CheckAnswerFileAsync(profile, catalog, source.Info, context))
                 return ExitCodes.InvalidInput;
 
             if (!plan.HasEnoughSpace)
@@ -181,11 +197,66 @@ public static class Cli
         return command;
     }
 
+    static Command CatalogCommand(Context context)
+    {
+        var fileArgument = new Argument<FileInfo>("file")
+        {
+            Description = "Catalog JSON file (default: the catalog shipped with the engine).",
+            Arity = ArgumentArity.ZeroOrOne,
+        };
+
+        var validate = new Command("validate", "Check a tweak catalog.") { fileArgument };
+        validate.SetAction(async (parseResult, ct) =>
+        {
+            var catalog = await TryLoadCatalogAsync(parseResult.GetValue(fileArgument), context, ct);
+            if (catalog is null)
+                return ExitCodes.InvalidInput;
+
+            await context.Output.WriteLineAsync(
+                $"ok: {catalog.Tweaks.Count} tweaks in {catalog.Categories.Count} categories.");
+            return ExitCodes.Success;
+        });
+
+        return new Command("catalog", "Work with the tweak catalog.") { validate };
+    }
+
     static Option<FileInfo> ProfileOption() => new("--profile")
     {
         Description = "Profile JSON file.",
         Required = true,
     };
+
+    static Option<FileInfo> CatalogOption() => new("--catalog")
+    {
+        Description = "Tweak catalog JSON file (default: the catalog shipped with the engine).",
+    };
+
+    /// <summary>Читает и проверяет каталог; ошибки — в поток ошибок, null — каталогом пользоваться нельзя.</summary>
+    static async Task<TweakCatalog?> TryLoadCatalogAsync(FileInfo? file, Context context, CancellationToken ct)
+    {
+        var path = file?.FullName ?? context.Host.DefaultCatalog;
+        if (!File.Exists(path))
+        {
+            await context.Error.WriteLineAsync($"error: catalog not found: {path}");
+            return null;
+        }
+
+        TweakCatalog catalog;
+        try
+        {
+            catalog = CatalogReader.Parse(await File.ReadAllTextAsync(path, ct));
+        }
+        catch (CatalogFormatException e)
+        {
+            await context.Error.WriteLineAsync($"error: {Path.GetFileName(path)}: {e.Message}");
+            return null;
+        }
+
+        var problems = CatalogValidator.Validate(catalog);
+        foreach (var problem in problems)
+            await context.Error.WriteLineAsync($"error: {Path.GetFileName(path)}: {problem}");
+        return problems.Count == 0 ? catalog : null;
+    }
 
     static async Task<Profile?> TryReadProfileAsync(FileInfo file, Context context, CancellationToken ct)
     {
@@ -220,9 +291,9 @@ public static class Cli
     }
 
     /// <summary>Пишет ошибки и предупреждения файла ответов; false — строить нельзя.</summary>
-    static async Task<bool> CheckAnswerFileAsync(Profile profile, ImageInfo? image, Context context)
+    static async Task<bool> CheckAnswerFileAsync(Profile profile, TweakCatalog catalog, ImageInfo? image, Context context)
     {
-        var problems = AnswerFileGenerator.Problems(profile, image).ToList();
+        var problems = AnswerFileGenerator.Problems(profile, catalog, image).ToList();
         foreach (var problem in problems)
             await context.Error.WriteLineAsync($"error: {problem}");
         if (problems.Count > 0)

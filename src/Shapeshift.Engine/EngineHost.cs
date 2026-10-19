@@ -16,5 +16,8 @@ public sealed class EngineHost
     public string DefaultWorkspace { get; init; } = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Shapeshift", "Workspace");
 
+    /// <summary>Каталог твиков, если не указан явно: поставляется рядом с движком.</summary>
+    public string DefaultCatalog { get; init; } = Path.Combine(AppContext.BaseDirectory, "catalog", "tweaks.json");
+
     public static string VolumeOf(string path) => Path.GetPathRoot(Path.GetFullPath(path))!.ToUpperInvariant();
 }

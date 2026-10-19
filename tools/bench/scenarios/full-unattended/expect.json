@@ -4,5 +4,22 @@
   "editionId": "Professional",
   "userLocale": "ru-RU",
   "keyboardLayouts": ["00000409", "00000419"],
-  "timeZone": "Russian Standard Time"
+  "timeZone": "Russian Standard Time",
+  "registry": [
+    { "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection", "name": "AllowTelemetry", "value": 0 },
+    { "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\AdvertisingInfo", "name": "DisabledByGroupPolicy", "value": 1 },
+    { "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\System", "name": "PublishUserActivities", "value": 0 },
+    { "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsAI", "name": "DisableAIDataAnalysis", "value": 1 },
+    { "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Dsh", "name": "AllowNewsAndInterests", "value": 0 },
+    { "path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\BitLocker", "name": "PreventDeviceEncryption", "value": 1 },
+    { "path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power", "name": "HibernateEnabled", "value": 0 },
+    { "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager", "name": "SubscribedContent-338388Enabled", "value": 0 },
+    { "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager", "name": "SilentInstalledAppsEnabled", "value": 0 },
+    { "path": "HKCU:\\Software\\Policies\\Microsoft\\Windows\\Explorer", "name": "DisableSearchBoxSuggestions", "value": 1 },
+    { "path": "HKCU:\\Software\\Classes\\CLSID\\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\\InprocServer32", "name": "(default)", "value": "" },
+    { "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", "name": "TaskbarAl", "value": 0 },
+    { "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", "name": "HideFileExt", "value": 0 },
+    { "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", "name": "AppsUseLightTheme", "value": 0 },
+    { "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", "name": "SystemUsesLightTheme", "value": 0 }
+  ]
 }

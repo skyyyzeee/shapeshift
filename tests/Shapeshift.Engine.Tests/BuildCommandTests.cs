@@ -170,7 +170,7 @@ public sealed class BuildCommandTests : IDisposable
     string WriteProfile() => _dir.Write("profile.json", JsonSerializer.Serialize(new
     {
         formatVersion = 1,
-        bypass = new { tpm = true, secureBoot = true, ram = true, cpu = true },
+        tweaks = new[] { "bypass.tpm", "bypass.secure-boot", "bypass.ram", "bypass.cpu" },
         source = new { iso = _source },
         output = new { iso = _output },
     }));

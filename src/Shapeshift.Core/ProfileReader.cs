@@ -45,13 +45,23 @@ public static partial class ProfileReader
 
         return new Profile(
             ParseArchitecture(dto.Architecture),
-            dto.Bypass is { } b
-                ? new BypassOptions(b.Tpm ?? false, b.SecureBoot ?? false, b.Ram ?? false, b.Cpu ?? false)
-                : BypassOptions.None,
+            ParseTweaks(dto.Tweaks),
             ParseSetup(dto.Setup),
             ParseRegional(dto.Regional),
             new SourceOptions(ResolvePath(dto.Source?.Iso, baseDirectory)),
             new OutputOptions(ResolvePath(dto.Output?.Iso, baseDirectory)));
+    }
+
+    // Существование твиков в каталоге проверяет движок: профиль читается и без каталога.
+    static IReadOnlyList<string> ParseTweaks(List<string>? tweaks)
+    {
+        if (tweaks is null)
+            return [];
+        if (tweaks.Any(string.IsNullOrWhiteSpace))
+            throw new ProfileFormatException("'tweaks' contains an empty id.");
+        if (tweaks.Distinct(StringComparer.Ordinal).Count() != tweaks.Count)
+            throw new ProfileFormatException("'tweaks' lists the same tweak twice.");
+        return tweaks;
     }
 
     static SetupOptions ParseSetup(SetupV1? setup)
@@ -190,9 +200,7 @@ public static partial class ProfileReader
     };
 
     sealed record ProfileV1(
-        int FormatVersion, string? Architecture, BypassV1? Bypass, SetupV1? Setup, RegionalV1? Regional, IsoV1? Source, IsoV1? Output);
-
-    sealed record BypassV1(bool? Tpm, bool? SecureBoot, bool? Ram, bool? Cpu);
+        int FormatVersion, string? Architecture, List<string>? Tweaks, SetupV1? Setup, RegionalV1? Regional, IsoV1? Source, IsoV1? Output);
 
     sealed record SetupV1(
         UserV1? User, string? ComputerName, bool? SkipOobe, bool? BypassOnlineAccount, bool? WipeDisk0,

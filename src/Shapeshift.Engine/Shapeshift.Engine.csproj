@@ -15,4 +15,8 @@
     <ProjectReference Include="..\Shapeshift.Core\Shapeshift.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="catalog\tweaks.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

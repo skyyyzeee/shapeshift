@@ -37,7 +37,7 @@ public sealed class RealImageTests : IDisposable
         var profile = _dir.Write("profile.json", JsonSerializer.Serialize(new
         {
             formatVersion = 1,
-            bypass = new { tpm = true, secureBoot = true, ram = true, cpu = true },
+            tweaks = new[] { "bypass.tpm", "bypass.secure-boot", "bypass.ram", "bypass.cpu" },
             source = new { iso },
             output = new { iso = output },
         }));

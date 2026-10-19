@@ -22,6 +22,7 @@ public sealed record SpaceRequirement(string Volume, long RequiredBytes, long Av
 /// <summary>Что и в каком порядке сделает сборка. Строится без побочных эффектов.</summary>
 public sealed record BuildPlan(
     Profile Profile,
+    TweakCatalog Catalog,
     SourceImage Source,
     string OutputIso,
     string BuildDirectory,
@@ -49,7 +50,7 @@ public static class BuildPlanner
     const long Headroom = 512L * 1024 * 1024;
     const long PerFileSlack = 4096;
 
-    public static BuildPlan Plan(Profile profile, SourceImage source, string outputIso, string workspace, EngineHost host)
+    public static BuildPlan Plan(Profile profile, TweakCatalog catalog, SourceImage source, string outputIso, string workspace, EngineHost host)
     {
         var buildDirectory = Path.Combine(Path.GetFullPath(workspace), Guid.NewGuid().ToString("N")[..8]);
 
@@ -72,6 +73,6 @@ public static class BuildPlanner
             .Select(g => new SpaceRequirement(g.Key, g.Sum(s => s.Bytes) + Headroom, host.AvailableFreeSpace(g.Key)))
             .ToList();
 
-        return new BuildPlan(profile, source, Path.GetFullPath(outputIso), buildDirectory, steps, space);
+        return new BuildPlan(profile, catalog, source, Path.GetFullPath(outputIso), buildDirectory, steps, space);
     }
 }

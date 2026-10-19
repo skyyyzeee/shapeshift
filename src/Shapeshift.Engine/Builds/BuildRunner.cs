@@ -29,7 +29,7 @@ public static class BuildRunner
     {
         BuildStepKind.ExtractImage => Task.Run(() => Extract(plan, ct), ct),
         BuildStepKind.WriteAnswerFile => AnswerFileWriter.WriteAsync(
-            AnswerFileGenerator.Generate(plan.Profile, plan.Source.Info),
+            AnswerFileGenerator.Generate(plan.Profile, plan.Catalog, plan.Source.Info),
             Path.Combine(plan.MediaDirectory, AnswerFileWriter.FileName),
             ct),
         BuildStepKind.PackIso => Task.Run(() => Pack(plan, log, ct), ct),

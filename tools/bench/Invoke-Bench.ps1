@@ -53,18 +53,41 @@ function Read-JsonWithComments([string] $Path) {
     ((Get-Content -Path $Path -Raw -Encoding UTF8) -replace '(?m)^\s*//.*$', '') | ConvertFrom-Json
 }
 
-# Снимок экрана ВМ (RGB565 от Hyper-V) в PNG — главное средство разбора зависшей установки.
+# Снимок экрана ВМ от Hyper-V: пиксели RGB565, строка за строкой.
+function Get-VmThumbnail([string] $VmName, [int] $Width, [int] $Height) {
+    $ns = 'root\virtualization\v2'
+    $vm = Get-CimInstance -Namespace $ns -ClassName Msvm_ComputerSystem -Filter "ElementName='$VmName'"
+    $settings = Get-CimAssociatedInstance -InputObject $vm -ResultClassName Msvm_VirtualSystemSettingData |
+        Where-Object VirtualSystemType -eq 'Microsoft:Hyper-V:System:Realized'
+    $service = Get-CimInstance -Namespace $ns -ClassName Msvm_VirtualSystemManagementService
+    $result = Invoke-CimMethod -InputObject $service -MethodName GetVirtualSystemThumbnailImage -Arguments @{
+        TargetSystem = $settings; WidthPixels = [uint16]$Width; HeightPixels = [uint16]$Height
+    }
+    , [byte[]]$result.ImageData
+}
+
+# Средняя яркость экрана ВМ, 0..1; -1 — снимок недоступен.
+function Get-VmScreenBrightness([string] $VmName) {
+    try {
+        $bytes = Get-VmThumbnail $VmName 80 60
+        if (-not $bytes -or $bytes.Length -lt 2) { return -1 }
+        $sum = 0.0
+        for ($i = 0; $i -lt $bytes.Length - 1; $i += 2) {
+            $pixel = [int]$bytes[$i] -bor ([int]$bytes[$i + 1] -shl 8)
+            $sum += 0.3 * (($pixel -shr 11) -band 31) / 31 + 0.59 * (($pixel -shr 5) -band 63) / 63 + 0.11 * ($pixel -band 31) / 31
+        }
+        return $sum / ($bytes.Length / 2)
+    }
+    catch {
+        return -1
+    }
+}
+
+# Снимок экрана ВМ в PNG — главное средство разбора зависшей установки.
 function Save-VmScreenshot([string] $VmName, [string] $Path) {
     try {
-        $ns = 'root\virtualization\v2'
-        $vm = Get-CimInstance -Namespace $ns -ClassName Msvm_ComputerSystem -Filter "ElementName='$VmName'"
-        $settings = Get-CimAssociatedInstance -InputObject $vm -ResultClassName Msvm_VirtualSystemSettingData |
-            Where-Object VirtualSystemType -eq 'Microsoft:Hyper-V:System:Realized'
-        $service = Get-CimInstance -Namespace $ns -ClassName Msvm_VirtualSystemManagementService
         $width = 1024; $height = 768
-        $result = Invoke-CimMethod -InputObject $service -MethodName GetVirtualSystemThumbnailImage -Arguments @{
-            TargetSystem = $settings; WidthPixels = [uint16]$width; HeightPixels = [uint16]$height
-        }
+        $result = @{ ImageData = (Get-VmThumbnail $VmName $width $height) }
         Add-Type -AssemblyName System.Drawing
         $bitmap = New-Object System.Drawing.Bitmap $width, $height, ([System.Drawing.Imaging.PixelFormat]::Format16bppRgb565)
         $rect = New-Object System.Drawing.Rectangle 0, 0, $width, $height
@@ -130,9 +153,16 @@ try {
 
     Write-Step 'Starting VM'
     Start-VM -VM $vm
+    # Enter нажимается, только пока экран тёмный («Press any key», логотип загрузки). Как только
+    # появился интерфейс установщика (светлый), нажатия прекращаются: иначе Enter нажмёт «Отмена».
     $vmId = $vm.Id.ToString().ToUpperInvariant()
     $pressUntil = (Get-Date).AddSeconds(60)
     while ((Get-Date) -lt $pressUntil) {
+        $brightness = Get-VmScreenBrightness $vmName
+        if ($brightness -gt 0.15) {
+            Write-Step ('Installer is on screen (brightness {0:N2}); no more key presses' -f $brightness)
+            break
+        }
         Send-VmEnter $vmId
         Start-Sleep -Milliseconds 700
     }
@@ -151,9 +181,12 @@ try {
             $nextScreenshot = (Get-Date).AddMinutes(2)
         }
         try {
-            # Проводник в интерактивном сеансе (не 0) бывает только у вошедшего пользователя.
+            # Проводник в интерактивном сеансе (не 0) бывает только у вошедшего пользователя. Команды первого
+            # входа выполняются, пока идёт анимация первого входа, а Проводник стартует одновременно с ней —
+            # поэтому ждём ещё и её окончания.
             $desktop = Invoke-Command -VMName $vmName -Credential $credential -ErrorAction Stop -ScriptBlock {
-                [bool](Get-Process explorer -ErrorAction SilentlyContinue | Where-Object SessionId -gt 0)
+                [bool](Get-Process explorer -ErrorAction SilentlyContinue | Where-Object SessionId -gt 0) -and
+                    -not (Get-Process FirstLogonAnim -ErrorAction SilentlyContinue)
             }
             if ($desktop) { $ready = $true; break }
         }
@@ -170,7 +203,9 @@ try {
 
     # 5. Факты об установленной системе. Культуру читаем из реестра пользователя: Get-Culture
     #    в удалённом сеансе возвращает культуру хоста.
-    $facts = Invoke-Command -VMName $vmName -Credential $credential -ErrorAction Stop -ScriptBlock {
+    $registryChecks = @(if ($expect.PSObject.Properties['registry']) { $expect.registry })
+    $facts = Invoke-Command -VMName $vmName -Credential $credential -ErrorAction Stop -ArgumentList (, $registryChecks) -ScriptBlock {
+        param($registryChecks)
         $version = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
         $preload = Get-ItemProperty 'HKCU:\Keyboard Layout\Preload' -ErrorAction SilentlyContinue
         $layouts = @()
@@ -187,6 +222,12 @@ try {
             TimeZone = (Get-TimeZone).Id
             Administrators = @(Get-LocalGroupMember -SID S-1-5-32-544 | ForEach-Object { ($_.Name -split '\\')[-1] })
             Tpm = [bool](Get-CimInstance -Namespace root\cimv2\Security\MicrosoftTpm -ClassName Win32_Tpm -ErrorAction SilentlyContinue)
+            Registry = @(foreach ($check in $registryChecks) {
+                $item = Get-ItemProperty -Path $check.path -ErrorAction SilentlyContinue
+                if ($null -eq $item) { '<no key>' }
+                elseif ($item.PSObject.Properties[$check.name]) { [string]$item.PSObject.Properties[$check.name].Value }
+                else { '<no value>' }
+            })
         }
     }
     Write-Step ("Installed system: build {0}, edition {1}, TPM present: {2}" -f $facts.Build, $facts.EditionId, $facts.Tpm)
@@ -207,11 +248,21 @@ try {
             'keyboardLayouts' { Add-Check 'keyboard layouts' $property.Value $facts.KeyboardLayouts }
             'timeZone' { Add-Check 'time zone' $property.Value $facts.TimeZone }
             'userIsAdministrator' { Add-Check 'user is administrator' $true ($facts.Administrators -contains $property.Value) }
+            'registry' {
+                for ($i = 0; $i -lt $registryChecks.Count; $i++) {
+                    $check = $registryChecks[$i]
+                    Add-Check "$($check.path)\$($check.name)" ([string]$check.value) @($facts.Registry)[$i]
+                }
+            }
             default { throw "Unknown expectation '$($property.Name)' in expect.json." }
         }
     }
 
-    $checks | Format-Table -AutoSize | Out-String | ForEach-Object { Write-Host $_; Add-Content -Path $log -Value $_ -Encoding UTF8 }
+    # Построчно, а не таблицей: таблица обрезается по ширине консоли.
+    foreach ($check in $checks) {
+        $mark = if ($check.Ok) { 'OK  ' } else { 'FAIL' }
+        Write-Step ("{0} {1}: expected '{2}', actual '{3}'" -f $mark, $check.Check, $check.Expected, $check.Actual)
+    }
     $passed = -not ($checks | Where-Object { -not $_.Ok })
     Write-Step ($(if ($passed) { 'PASSED' } else { 'FAILED' }))
 }

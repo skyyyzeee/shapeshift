@@ -1,7 +1,15 @@
 {
   // Полностью автоматическая установка: стенд подставит source.iso и output.iso сам.
   "formatVersion": 1,
-  "bypass": { "tpm": true, "secureBoot": true, "ram": true, "cpu": true },
+  // Все твики каталога — стенд проверяет, что они дошли до установленной системы.
+  "tweaks": [
+    "bypass.tpm", "bypass.secure-boot", "bypass.ram", "bypass.cpu",
+    "privacy.telemetry", "privacy.advertising-id", "privacy.activity-history", "privacy.suggestions",
+    "privacy.web-search", "privacy.recall",
+    "interface.classic-context-menu", "interface.taskbar-left", "interface.no-widgets",
+    "interface.file-extensions", "interface.dark-theme",
+    "system.no-device-encryption", "system.no-hibernation"
+  ],
   "setup": {
     // Тестовая учётная запись одноразовой ВМ. Пароль хранится, чтобы стенд мог войти через PowerShell Direct.
     "user": { "name": "Bench", "password": { "mode": "store", "value": "Bench-Pass-1" }, "autoLogon": true },
