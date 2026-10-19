@@ -1,0 +1,19 @@
+{
+  // Полностью автоматическая установка: стенд подставит source.iso и output.iso сам.
+  "formatVersion": 1,
+  "bypass": { "tpm": true, "secureBoot": true, "ram": true, "cpu": true },
+  "setup": {
+    // Тестовая учётная запись одноразовой ВМ. Пароль хранится, чтобы стенд мог войти через PowerShell Direct.
+    "user": { "name": "Bench", "password": { "mode": "store", "value": "Bench-Pass-1" }, "autoLogon": true },
+    "computerName": "SHAPESHIFT-VM",
+    "skipOobe": true,
+    "bypassOnlineAccount": true,
+    "wipeDisk0": true,
+    "edition": "Professional"
+  },
+  "regional": {
+    "formats": "ru-RU",
+    "keyboards": ["en-US", "ru-RU"],
+    "timeZone": "Russian Standard Time"
+  }
+}
