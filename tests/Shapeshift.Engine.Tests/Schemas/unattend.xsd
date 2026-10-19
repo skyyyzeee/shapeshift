@@ -229,11 +229,91 @@
                 </xs:complexType>
               </xs:element>
               <xs:element name="WillShowUI" type="WillShowUI" minOccurs="0" />
+              <xs:element name="InstallFrom" minOccurs="0">
+                <xs:complexType>
+                  <xs:all>
+                    <xs:element name="MetaData">
+                      <xs:complexType>
+                        <xs:all>
+                          <xs:element name="Key">
+                            <xs:simpleType>
+                              <xs:restriction base="xs:string">
+                                <xs:enumeration value="/IMAGE/INDEX" />
+                                <xs:enumeration value="/IMAGE/NAME" />
+                                <xs:enumeration value="/IMAGE/DESCRIPTION" />
+                              </xs:restriction>
+                            </xs:simpleType>
+                          </xs:element>
+                          <xs:element name="Value" type="xs:string" />
+                        </xs:all>
+                        <xs:attribute ref="wcm:action" use="required" />
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:all>
+                </xs:complexType>
+              </xs:element>
             </xs:all>
           </xs:complexType>
         </xs:element>
       </xs:all>
     </xs:complexType>
+  </xs:element>
+
+  <xs:element name="UserData">
+    <xs:complexType>
+      <xs:all>
+        <xs:element name="AcceptEula" type="xs:boolean" minOccurs="0" />
+        <xs:element name="ProductKey" minOccurs="0">
+          <xs:complexType>
+            <xs:all>
+              <xs:element name="Key">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:pattern value="[A-Z0-9]{5}(-[A-Z0-9]{5}){4}" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="WillShowUI" type="WillShowUI" minOccurs="0" />
+            </xs:all>
+          </xs:complexType>
+        </xs:element>
+      </xs:all>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- Microsoft-Windows-International-Core(-WinPE) -->
+  <xs:simpleType name="Culture">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[a-z]{2,3}(-[A-Za-z0-9]{2,8})+" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:element name="SetupUILanguage">
+    <xs:complexType>
+      <xs:all>
+        <xs:element name="UILanguage" type="Culture" />
+      </xs:all>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="UILanguage" type="Culture" />
+  <xs:element name="SystemLocale" type="Culture" />
+  <xs:element name="UserLocale" type="Culture" />
+
+  <xs:element name="InputLocale">
+    <xs:simpleType>
+      <xs:restriction base="xs:string">
+        <xs:pattern value="([a-z]{2,3}(-[A-Za-z0-9]{2,8})+|[0-9A-Fa-f]{4}:[0-9A-Fa-f]{8})(;([a-z]{2,3}(-[A-Za-z0-9]{2,8})+|[0-9A-Fa-f]{4}:[0-9A-Fa-f]{8}))*" />
+      </xs:restriction>
+    </xs:simpleType>
+  </xs:element>
+
+  <xs:element name="TimeZone">
+    <xs:simpleType>
+      <xs:restriction base="xs:string">
+        <xs:minLength value="1" />
+      </xs:restriction>
+    </xs:simpleType>
   </xs:element>
 
   <!-- Microsoft-Windows-Shell-Setup (specialize) -->

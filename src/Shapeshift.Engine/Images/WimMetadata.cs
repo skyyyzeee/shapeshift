@@ -13,7 +13,8 @@ public sealed record WimImage(
     string? InstallationType,
     int? Major,
     int? Build,
-    int? SpBuild);
+    int? SpBuild,
+    string? DefaultLanguage);
 
 /// <summary>
 /// Читает XML-метаданные из заголовка WIM/ESD без распаковки и без внешних библиотек.
@@ -73,6 +74,7 @@ public static class WimMetadata
             InstallationType: (string?)windows?.Element("INSTALLATIONTYPE"),
             Major: (int?)version?.Element("MAJOR"),
             Build: (int?)version?.Element("BUILD"),
-            SpBuild: (int?)version?.Element("SPBUILD"));
+            SpBuild: (int?)version?.Element("SPBUILD"),
+            DefaultLanguage: (string?)windows?.Element("LANGUAGES")?.Element("DEFAULT"));
     }
 }

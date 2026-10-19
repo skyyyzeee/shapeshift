@@ -16,6 +16,7 @@ public sealed record FakeWindowsIso
     public int Build { get; init; } = 26100;
     public int SpBuild { get; init; } = 1742;
     public string InstallationType { get; init; } = "Client";
+    public string Language { get; init; } = "en-US";
     public IReadOnlyList<(string EditionId, string Name)> Editions { get; init; } =
         [("Core", "Windows 11 Home"), ("Professional", "Windows 11 Pro")];
 
@@ -68,6 +69,7 @@ public sealed record FakeWindowsIso
                 <ARCH>{Arch}</ARCH>
                 <EDITIONID>{e.EditionId}</EDITIONID>
                 <INSTALLATIONTYPE>{InstallationType}</INSTALLATIONTYPE>
+                <LANGUAGES><LANGUAGE>{Language}</LANGUAGE><DEFAULT>{Language}</DEFAULT></LANGUAGES>
                 <VERSION><MAJOR>{Major}</MAJOR><MINOR>0</MINOR><BUILD>{Build}</BUILD><SPBUILD>{SpBuild}</SPBUILD></VERSION>
               </WINDOWS>
             </IMAGE>

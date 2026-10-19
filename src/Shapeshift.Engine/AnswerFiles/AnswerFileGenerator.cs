@@ -13,26 +13,117 @@ public static class AnswerFileGenerator
 {
     const string ShellSetup = "Microsoft-Windows-Shell-Setup";
 
-    public static XDocument Generate(Profile profile)
+    /// <summary>Нулевой ключ: установщик не спрашивает ключ, редакция берётся из InstallFrom. Ничего не активирует.</summary>
+    const string NoProductKey = "00000-00000-00000-00000-00000";
+
+    /// <param name="profile">Выборы пользователя; <see cref="Problems"/> для него должен быть пуст.</param>
+    /// <param name="image">Образ, для которого файл ответов; без него редакцию и язык установщика задать нельзя.</param>
+    public static XDocument Generate(Profile profile, ImageInfo? image = null)
     {
-        var file = new AnswerFileBuilder(profile.Architecture);
+        var file = new AnswerFileBuilder(image?.Architecture ?? profile.Architecture);
         AddBypass(file, profile.Bypass);
+        AddSetupLanguage(file, profile, image);
+        AddEdition(file, profile.Setup, image);
         if (profile.Setup.WipeDisk0)
             AddDiskLayout(file);
         AddComputerName(file, profile.Setup);
         AddOobe(file, profile.Setup);
+        AddRegional(file, profile.Regional);
         if (profile.Setup.User is { } user)
             AddUser(file, user);
         return file.ToDocument();
     }
 
+    /// <summary>Почему по профилю нельзя построить файл ответов для этого образа (пусто — можно).</summary>
+    public static IEnumerable<string> Problems(Profile profile, ImageInfo? image)
+    {
+        if (profile.Setup.Edition is not { } edition)
+            yield break;
+
+        if (image is null)
+        {
+            yield return "choosing an edition ('setup.edition') needs the image: pass --iso.";
+        }
+        else if (FindEdition(image, edition) is null)
+        {
+            var available = string.Join(", ", image.Editions.Select(e => e.EditionId));
+            yield return $"edition '{edition}' is not in the image; available: {available}.";
+        }
+    }
+
     /// <summary>Предупреждения о небезопасных выборах профиля — движок пишет их в лог.</summary>
-    public static IEnumerable<string> Warnings(Profile profile)
+    public static IEnumerable<string> Warnings(Profile profile, ImageInfo? image = null)
     {
         if (profile.Setup.User is { PasswordMode: PasswordMode.Store })
             yield return "the user's password is stored in the answer file; anyone with the image can read it.";
         if (profile.Setup.WipeDisk0)
             yield return "the installation will erase disk 0 without asking.";
+        if (NeedsSetupLanguage(profile) && image?.Language is null)
+            yield return "the image language is unknown, so the installer will still ask for its language (pass --iso).";
+    }
+
+    static Edition? FindEdition(ImageInfo image, string editionId) =>
+        image.Editions.FirstOrDefault(e => string.Equals(e.EditionId, editionId, StringComparison.OrdinalIgnoreCase));
+
+    static bool NeedsSetupLanguage(Profile profile) => profile.Setup.SkipOobe || !profile.Regional.IsEmpty;
+
+    // Первый экран установщика (язык, форматы, раскладка) пропускается, только если задан язык установщика,
+    // а он должен быть в образе — поэтому берётся из самого образа.
+    static void AddSetupLanguage(AnswerFileBuilder file, Profile profile, ImageInfo? image)
+    {
+        if (!NeedsSetupLanguage(profile) || image?.Language is not { } language)
+            return;
+
+        var regional = profile.Regional;
+        var formats = regional.Formats ?? language;
+        file.Component(WindowsPe, "Microsoft-Windows-International-Core-WinPE").Add(
+            new XElement(Unattend + "SetupUILanguage", new XElement(Unattend + "UILanguage", language)),
+            new XElement(Unattend + "InputLocale", regional.Keyboards.Count > 0 ? string.Join(";", regional.Keyboards) : language),
+            new XElement(Unattend + "SystemLocale", formats),
+            new XElement(Unattend + "UILanguage", language),
+            new XElement(Unattend + "UserLocale", formats));
+    }
+
+    // Редакция выбирается номером в образе; ключ — свой ключ пользователя или нулевой (без запроса ключа).
+    static void AddEdition(AnswerFileBuilder file, SetupOptions setup, ImageInfo? image)
+    {
+        var edition = setup.Edition is { } id && image is not null ? FindEdition(image, id) : null;
+        if (edition is null && setup.ProductKey is null)
+            return;
+
+        var windowsSetup = file.Component(WindowsPe, "Microsoft-Windows-Setup");
+        file.Child(windowsSetup, "UserData").Add(new XElement(Unattend + "ProductKey",
+            new XElement(Unattend + "Key", setup.ProductKey ?? NoProductKey),
+            new XElement(Unattend + "WillShowUI", setup.ProductKey is null ? "Never" : "OnError")));
+
+        if (edition is not null)
+        {
+            var osImage = file.Child(file.Child(windowsSetup, "ImageInstall"), "OSImage");
+            osImage.Add(new XElement(Unattend + "InstallFrom",
+                new XElement(Unattend + "MetaData",
+                    new XAttribute(Wcm + "action", "add"),
+                    new XElement(Unattend + "Key", "/IMAGE/INDEX"),
+                    new XElement(Unattend + "Value", edition.Index))));
+        }
+    }
+
+    static void AddRegional(AnswerFileBuilder file, RegionalOptions regional)
+    {
+        if (regional.Keyboards.Count > 0 || regional.Formats is not null)
+        {
+            var international = file.Component(OobeSystem, "Microsoft-Windows-International-Core");
+            if (regional.Keyboards.Count > 0)
+                international.Add(new XElement(Unattend + "InputLocale", string.Join(";", regional.Keyboards)));
+            if (regional.Formats is { } formats)
+            {
+                international.Add(
+                    new XElement(Unattend + "SystemLocale", formats),
+                    new XElement(Unattend + "UserLocale", formats));
+            }
+        }
+
+        if (regional.TimeZone is { } timeZone)
+            file.Component(OobeSystem, ShellSetup).Add(new XElement(Unattend + "TimeZone", timeZone));
     }
 
     // Установщик Windows 11 пропускает проверку требований, если в среде установки
@@ -92,12 +183,11 @@ public static class AnswerFileGenerator
                         new XElement(Unattend + "Format", "NTFS")))),
             new XElement(Unattend + "WillShowUI", "OnError")));
 
-        setup.Add(new XElement(Unattend + "ImageInstall",
-            new XElement(Unattend + "OSImage",
-                new XElement(Unattend + "InstallTo",
-                    new XElement(Unattend + "DiskID", 0),
-                    new XElement(Unattend + "PartitionID", 4)),
-                new XElement(Unattend + "WillShowUI", "OnError"))));
+        file.Child(file.Child(setup, "ImageInstall"), "OSImage").Add(
+            new XElement(Unattend + "InstallTo",
+                new XElement(Unattend + "DiskID", 0),
+                new XElement(Unattend + "PartitionID", 4)),
+            new XElement(Unattend + "WillShowUI", "OnError"));
     }
 
     static void AddComputerName(AnswerFileBuilder file, SetupOptions setup)
@@ -118,6 +208,9 @@ public static class AnswerFileGenerator
         var settings = new List<XElement>();
         if (setup.SkipOobe)
         {
+            // Лицензию показывает и установщик (windowsPE), и OOBE — принимаем в обоих местах.
+            file.Child(file.Component(WindowsPe, "Microsoft-Windows-Setup"), "UserData")
+                .Add(new XElement(Unattend + "AcceptEula", "true"));
             settings.Add(new XElement(Unattend + "HideEULAPage", "true"));
             settings.Add(new XElement(Unattend + "HideOEMRegistrationScreen", "true"));
             // 3 — не отправлять дополнительные данные: экран параметров конфиденциальности не показывается.

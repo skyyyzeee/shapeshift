@@ -44,5 +44,5 @@ public sealed record Release(int Build, int Revision)
 /// <summary>Вариант Windows внутри образа.</summary>
 public sealed record Edition(int Index, string EditionId, string Name);
 
-/// <summary>Что лежит в образе: выпуск, архитектура, редакции.</summary>
-public sealed record ImageInfo(Release Release, Architecture Architecture, IReadOnlyList<Edition> Editions);
+/// <summary>Что лежит в образе: выпуск, архитектура, язык по умолчанию, редакции.</summary>
+public sealed record ImageInfo(Release Release, Architecture Architecture, string? Language, IReadOnlyList<Edition> Editions);

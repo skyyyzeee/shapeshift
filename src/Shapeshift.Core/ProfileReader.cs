@@ -7,7 +7,7 @@ namespace Shapeshift.Core;
 public sealed class ProfileFormatException(string message, Exception? inner = null) : Exception(message, inner);
 
 /// <summary>Читает профиль из JSON. Формат версионирован полем <c>formatVersion</c>.</summary>
-public static class ProfileReader
+public static partial class ProfileReader
 {
     public const int CurrentFormatVersion = 1;
 
@@ -49,6 +49,7 @@ public static class ProfileReader
                 ? new BypassOptions(b.Tpm ?? false, b.SecureBoot ?? false, b.Ram ?? false, b.Cpu ?? false)
                 : BypassOptions.None,
             ParseSetup(dto.Setup),
+            ParseRegional(dto.Regional),
             new SourceOptions(ResolvePath(dto.Source?.Iso, baseDirectory)),
             new OutputOptions(ResolvePath(dto.Output?.Iso, baseDirectory)));
     }
@@ -61,13 +62,52 @@ public static class ProfileReader
         if (setup.ComputerName is { } computerName && NameRules.CheckComputerName(computerName) is { } nameError)
             throw new ProfileFormatException($"'setup.computerName': {nameError}.");
 
+        if (setup.Edition is { } edition && string.IsNullOrWhiteSpace(edition))
+            throw new ProfileFormatException("'setup.edition' is empty.");
+
+        string? productKey = null;
+        if (setup.ProductKey is { } key)
+        {
+            productKey = key.Trim().ToUpperInvariant();
+            if (!ProductKeyPattern().IsMatch(productKey))
+                throw new ProfileFormatException("'setup.productKey' must look like XXXXX-XXXXX-XXXXX-XXXXX-XXXXX.");
+        }
+
         return new SetupOptions(
             ParseUser(setup.User),
             setup.ComputerName,
             setup.SkipOobe ?? false,
             setup.BypassOnlineAccount ?? false,
-            setup.WipeDisk0 ?? false);
+            setup.WipeDisk0 ?? false,
+            setup.Edition,
+            productKey);
     }
+
+    static RegionalOptions ParseRegional(RegionalV1? regional)
+    {
+        if (regional is null)
+            return RegionalOptions.None;
+
+        if (regional.Formats is { } formats && RegionalRules.CheckCulture(formats) is { } formatsError)
+            throw new ProfileFormatException($"'regional.formats': {formatsError}.");
+
+        var keyboards = regional.Keyboards ?? [];
+        foreach (var keyboard in keyboards)
+        {
+            if (RegionalRules.CheckKeyboard(keyboard) is { } keyboardError)
+                throw new ProfileFormatException($"'regional.keyboards': {keyboardError}.");
+        }
+        if (keyboards.Distinct(StringComparer.OrdinalIgnoreCase).Count() != keyboards.Count)
+            throw new ProfileFormatException("'regional.keyboards' lists the same keyboard twice.");
+
+        if (regional.TimeZone is { } timeZone && RegionalRules.CheckTimeZone(timeZone) is { } timeZoneError)
+            throw new ProfileFormatException($"'regional.timeZone': {timeZoneError}.");
+
+        return new RegionalOptions(regional.Formats, keyboards, regional.TimeZone);
+    }
+
+    [System.Text.RegularExpressions.GeneratedRegex("^[A-Z0-9]{5}(-[A-Z0-9]{5}){4}$")]
+    private static partial System.Text.RegularExpressions.Regex ProductKeyPattern();
 
     static UserAccount? ParseUser(UserV1? user)
     {
@@ -150,11 +190,15 @@ public static class ProfileReader
     };
 
     sealed record ProfileV1(
-        int FormatVersion, string? Architecture, BypassV1? Bypass, SetupV1? Setup, IsoV1? Source, IsoV1? Output);
+        int FormatVersion, string? Architecture, BypassV1? Bypass, SetupV1? Setup, RegionalV1? Regional, IsoV1? Source, IsoV1? Output);
 
     sealed record BypassV1(bool? Tpm, bool? SecureBoot, bool? Ram, bool? Cpu);
 
-    sealed record SetupV1(UserV1? User, string? ComputerName, bool? SkipOobe, bool? BypassOnlineAccount, bool? WipeDisk0);
+    sealed record SetupV1(
+        UserV1? User, string? ComputerName, bool? SkipOobe, bool? BypassOnlineAccount, bool? WipeDisk0,
+        string? Edition, string? ProductKey);
+
+    sealed record RegionalV1(string? Formats, List<string>? Keyboards, string? TimeZone);
 
     sealed record UserV1(string? Name, PasswordV1? Password, bool? AutoLogon);
 

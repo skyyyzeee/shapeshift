@@ -113,6 +113,6 @@ public static class ImageInspector
             .Select(i => new Edition(i.Index, i.EditionId ?? "", i.Name))
             .ToList();
 
-        return new ImageInfo(release, architecture, editions);
+        return new ImageInfo(release, architecture, first.DefaultLanguage, editions);
     }
 }

@@ -46,10 +46,17 @@ public static class Cli
             Required = true,
         };
 
+        var isoOption = new Option<FileInfo>("--iso")
+        {
+            Description = "Image the answer file is for (default: the profile's 'source.iso'). " +
+                "Needed to choose an edition and to skip the installer's language page.",
+        };
+
         var command = new Command("answerfile", "Generate an answer file from a profile.")
         {
             profileOption,
             outOption,
+            isoOption,
         };
 
         command.SetAction(async (parseResult, ct) =>
@@ -58,9 +65,20 @@ public static class Cli
             if (profile is null)
                 return ExitCodes.InvalidInput;
 
-            await WriteWarningsAsync(profile, context);
+            ImageInfo? image = null;
+            if ((parseResult.GetValue(isoOption)?.FullName ?? profile.Source.IsoPath) is { } iso)
+            {
+                var source = await TryInspectAsync(iso, context);
+                if (source is null)
+                    return ExitCodes.InvalidInput;
+                image = source.Info;
+            }
+
+            if (!await CheckAnswerFileAsync(profile, image, context))
+                return ExitCodes.InvalidInput;
+
             await AnswerFileWriter.WriteAsync(
-                AnswerFileGenerator.Generate(profile), parseResult.GetRequiredValue(outOption).FullName, ct);
+                AnswerFileGenerator.Generate(profile, image), parseResult.GetRequiredValue(outOption).FullName, ct);
             return ExitCodes.Success;
         });
 
@@ -132,7 +150,8 @@ public static class Cli
             var workspace = parseResult.GetValue(workspaceOption)?.FullName ?? context.Host.DefaultWorkspace;
             var plan = BuildPlanner.Plan(profile, source, outputIso, workspace, context.Host);
             await WritePlanAsync(plan, context.Output);
-            await WriteWarningsAsync(profile, context);
+            if (!await CheckAnswerFileAsync(profile, source.Info, context))
+                return ExitCodes.InvalidInput;
 
             if (!plan.HasEnoughSpace)
             {
@@ -200,10 +219,18 @@ public static class Cli
         }
     }
 
-    static async Task WriteWarningsAsync(Profile profile, Context context)
+    /// <summary>Пишет ошибки и предупреждения файла ответов; false — строить нельзя.</summary>
+    static async Task<bool> CheckAnswerFileAsync(Profile profile, ImageInfo? image, Context context)
     {
-        foreach (var warning in AnswerFileGenerator.Warnings(profile))
+        var problems = AnswerFileGenerator.Problems(profile, image).ToList();
+        foreach (var problem in problems)
+            await context.Error.WriteLineAsync($"error: {problem}");
+        if (problems.Count > 0)
+            return false;
+
+        foreach (var warning in AnswerFileGenerator.Warnings(profile, image))
             await context.Error.WriteLineAsync($"warning: {warning}");
+        return true;
     }
 
     static async Task<int> FailAsync(Context context, int exitCode, string message)

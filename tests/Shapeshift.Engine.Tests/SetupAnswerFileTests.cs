@@ -76,7 +76,7 @@ public sealed class SetupAnswerFileTests : IDisposable
     public async Task Disk_is_left_alone_unless_wiping_is_asked_for()
     {
         var (untouched, quiet) = await Generate("""
-            { "formatVersion": 1, "setup": { "skipOobe": true } }
+            { "formatVersion": 1, "setup": { "computerName": "OFFICE-7" } }
             """);
         var (wiped, warned) = await Generate("""
             { "formatVersion": 1, "setup": { "wipeDisk0": true } }

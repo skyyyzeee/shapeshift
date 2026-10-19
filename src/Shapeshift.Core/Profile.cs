@@ -5,6 +5,7 @@ public sealed record Profile(
     Architecture Architecture,
     BypassOptions Bypass,
     SetupOptions Setup,
+    RegionalOptions Regional,
     SourceOptions Source,
     OutputOptions Output);
 

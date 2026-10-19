@@ -84,6 +84,9 @@
           <WillShowUI>OnError</WillShowUI>
         </OSImage>
       </ImageInstall>
+      <UserData>
+        <AcceptEula>true</AcceptEula>
+      </UserData>
     </component>
   </settings>
   <settings pass="specialize">
