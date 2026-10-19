@@ -6,3 +6,6 @@ TestResults/
 
 # Verify: непринятые снимки
 *.received.*
+
+# Стенд Hyper-V: образы, диски ВМ, логи
+.bench/

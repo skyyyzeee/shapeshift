@@ -20,6 +20,9 @@ param(
     [string] $Scenario = 'full-unattended',
     [string] $Iso = $env:SHAPESHIFT_TEST_ISO,
     [int] $TimeoutMinutes = 60,
+    # Где держать образ, диск ВМ и логи. Не %LOCALAPPDATA%: у упакованных (MSIX) приложений запись туда
+    # перенаправляется в папку пакета, и служба Hyper-V таких файлов не видит.
+    [string] $WorkRoot,
     # Не удалять ВМ, диск и образ после прогона (для ручного разбора).
     [switch] $KeepVm
 )
@@ -34,7 +37,8 @@ if (-not $Iso) { throw 'Pass -Iso or set SHAPESHIFT_TEST_ISO.' }
 $Iso = (Resolve-Path $Iso).Path
 
 $runId = 'shapeshift-bench-' + (Get-Date -Format 'yyyyMMdd-HHmmss')
-$work = Join-Path $env:LOCALAPPDATA "Shapeshift\Bench\$runId"
+if (-not $WorkRoot) { $WorkRoot = Join-Path $repo '.bench' }
+$work = Join-Path $WorkRoot $runId
 New-Item -ItemType Directory -Force -Path $work | Out-Null
 $log = Join-Path $work 'bench.log'
 
