@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Схема того подмножества файла ответов Windows, которое генерирует Shapeshift.
+  Конверт (unattend / settings / component) проверяется строго; содержимое компонентов —
+  в режиме lax: элементы, объявленные здесь глобально, проверяются, остальные пропускаются.
+  Новые элементы, которые начинает выдавать генератор, нужно объявлять здесь же.
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns="urn:schemas-microsoft-com:unattend"
+           xmlns:u="urn:schemas-microsoft-com:unattend"
+           xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+           targetNamespace="urn:schemas-microsoft-com:unattend"
+           elementFormDefault="qualified">
+
+  <xs:import namespace="http://schemas.microsoft.com/WMIConfig/2002/State" schemaLocation="wcm.xsd" />
+
+  <xs:element name="unattend">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="settings" type="Settings" minOccurs="0" maxOccurs="unbounded" />
+      </xs:sequence>
+    </xs:complexType>
+    <xs:unique name="OnePassOnce">
+      <xs:selector xpath="u:settings" />
+      <xs:field xpath="@pass" />
+    </xs:unique>
+  </xs:element>
+
+  <xs:complexType name="Settings">
+    <xs:sequence>
+      <xs:element name="component" type="Component" maxOccurs="unbounded" />
+    </xs:sequence>
+    <xs:attribute name="pass" use="required">
+      <xs:simpleType>
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="windowsPE" />
+          <xs:enumeration value="offlineServicing" />
+          <xs:enumeration value="generalize" />
+          <xs:enumeration value="specialize" />
+          <xs:enumeration value="auditSystem" />
+          <xs:enumeration value="auditUser" />
+          <xs:enumeration value="oobeSystem" />
+        </xs:restriction>
+      </xs:simpleType>
+    </xs:attribute>
+  </xs:complexType>
+
+  <xs:complexType name="Component">
+    <xs:sequence>
+      <xs:any namespace="##targetNamespace" processContents="lax" minOccurs="0" maxOccurs="unbounded" />
+    </xs:sequence>
+    <xs:attribute name="name" type="xs:string" use="required" />
+    <xs:attribute name="processorArchitecture" use="required">
+      <xs:simpleType>
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="x86" />
+          <xs:enumeration value="amd64" />
+          <xs:enumeration value="arm64" />
+        </xs:restriction>
+      </xs:simpleType>
+    </xs:attribute>
+    <xs:attribute name="publicKeyToken" type="xs:string" use="required" fixed="31bf3856ad364e35" />
+    <xs:attribute name="language" type="xs:string" use="required" />
+    <xs:attribute name="versionScope" use="required">
+      <xs:simpleType>
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="nonSxS" />
+          <xs:enumeration value="SxS" />
+        </xs:restriction>
+      </xs:simpleType>
+    </xs:attribute>
+  </xs:complexType>
+
+  <!-- Microsoft-Windows-Setup / RunSynchronous (windowsPE) -->
+  <xs:element name="RunSynchronous">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="RunSynchronousCommand" maxOccurs="500" />
+      </xs:sequence>
+    </xs:complexType>
+    <xs:unique name="RunSynchronousOrderUnique">
+      <xs:selector xpath="u:RunSynchronousCommand" />
+      <xs:field xpath="u:Order" />
+    </xs:unique>
+  </xs:element>
+
+  <xs:element name="RunSynchronousCommand">
+    <xs:complexType>
+      <xs:all>
+        <xs:element name="Order">
+          <xs:simpleType>
+            <xs:restriction base="xs:positiveInteger">
+              <xs:maxInclusive value="500" />
+            </xs:restriction>
+          </xs:simpleType>
+        </xs:element>
+        <xs:element name="Path">
+          <xs:simpleType>
+            <xs:restriction base="xs:string">
+              <xs:minLength value="1" />
+              <xs:maxLength value="259" />
+            </xs:restriction>
+          </xs:simpleType>
+        </xs:element>
+        <xs:element name="Description" type="xs:string" minOccurs="0" />
+      </xs:all>
+      <xs:attribute ref="wcm:action" use="required" />
+    </xs:complexType>
+  </xs:element>
+
+</xs:schema>

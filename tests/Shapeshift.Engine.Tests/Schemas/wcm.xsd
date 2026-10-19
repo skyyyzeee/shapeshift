@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           targetNamespace="http://schemas.microsoft.com/WMIConfig/2002/State">
+
+  <xs:attribute name="action">
+    <xs:simpleType>
+      <xs:restriction base="xs:string">
+        <xs:enumeration value="add" />
+        <xs:enumeration value="modify" />
+        <xs:enumeration value="remove" />
+      </xs:restriction>
+    </xs:simpleType>
+  </xs:attribute>
+
+  <xs:attribute name="keyValue" type="xs:string" />
+
+</xs:schema>

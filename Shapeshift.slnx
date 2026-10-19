@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Shapeshift.Core/Shapeshift.Core.csproj" />
+    <Project Path="src/Shapeshift.Engine/Shapeshift.Engine.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Shapeshift.Engine.Tests/Shapeshift.Engine.Tests.csproj" />
+  </Folder>
+</Solution>
