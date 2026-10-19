@@ -5,11 +5,13 @@ public sealed record CliResult(int ExitCode, string Output, string Error);
 
 public static class CliRun
 {
-    public static async Task<CliResult> RunAsync(params string[] args)
+    public static Task<CliResult> RunAsync(params string[] args) => RunAsync(null, args);
+
+    public static async Task<CliResult> RunAsync(EngineHost? host, params string[] args)
     {
         var output = new StringWriter();
         var error = new StringWriter();
-        var exitCode = await Cli.RunAsync(args, output, error, TestContext.Current.CancellationToken);
+        var exitCode = await Cli.RunAsync(args, output, error, host, TestContext.Current.CancellationToken);
         return new CliResult(exitCode, output.ToString(), error.ToString());
     }
 }
@@ -18,7 +20,7 @@ public static class CliRun
 public sealed class TempDir : IDisposable
 {
     public string Path { get; } = System.IO.Path.Combine(
-        System.IO.Path.GetTempPath(), "shapeshift-tests", Guid.NewGuid().ToString("N"));
+        System.IO.Path.GetTempPath(), "shapeshift-tests", Guid.NewGuid().ToString("N")[..8]);
 
     public TempDir() => Directory.CreateDirectory(Path);
 
@@ -27,6 +29,7 @@ public sealed class TempDir : IDisposable
     public string Write(string name, string content)
     {
         var path = File(name);
+        Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path)!);
         System.IO.File.WriteAllText(path, content);
         return path;
     }

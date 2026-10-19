@@ -7,6 +7,7 @@
 - `dotnet build` / `dotnet test` из корня (.NET 10 SDK; если `dotnet` нет в PATH — `C:\Program Files\dotnet\dotnet.exe`).
 - Единственный шов тестирования — команды CLI движка: тесты вызывают `Cli.RunAsync` внутри процесса. Новое поведение тестируется через команду, а не через внутренние классы.
 - Снимки: `tests/*/Snapshots/*.verified.*`. При расхождении рядом появляется `.received.*` — просмотреть и переименовать, либо прогнать с `SHAPESHIFT_ACCEPT_SNAPSHOTS=1`.
+- Тесты на настоящем ISO Windows пропускаются, пока не задан `SHAPESHIFT_TEST_ISO=<путь к ISO>` (около минуты и ~17 ГБ на диске); быстрые тесты используют синтетический образ `FakeWindowsIso`.
 - Новый элемент файла ответов нужно объявить в `tests/Shapeshift.Engine.Tests/Schemas/unattend.xsd`, иначе схема его не проверит.
 
 ## Agent skills

@@ -19,7 +19,9 @@ public static class ProfileReader
         AllowTrailingCommas = true,
     };
 
-    public static Profile Parse(string json)
+    /// <param name="json">Текст профиля.</param>
+    /// <param name="baseDirectory">Относительно чего разрешать относительные пути в профиле (обычно папка профиля).</param>
+    public static Profile Parse(string json, string? baseDirectory = null)
     {
         // Версию читаем отдельно и первой: профиль из будущей версии должен давать ошибку
         // про версию, а не про незнакомые поля.
@@ -45,7 +47,16 @@ public static class ProfileReader
             ParseArchitecture(dto.Architecture),
             dto.Bypass is { } b
                 ? new BypassOptions(b.Tpm ?? false, b.SecureBoot ?? false, b.Ram ?? false, b.Cpu ?? false)
-                : BypassOptions.None);
+                : BypassOptions.None,
+            new SourceOptions(ResolvePath(dto.Source?.Iso, baseDirectory)),
+            new OutputOptions(ResolvePath(dto.Output?.Iso, baseDirectory)));
+    }
+
+    static string? ResolvePath(string? path, string? baseDirectory)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            return null;
+        return Path.GetFullPath(Environment.ExpandEnvironmentVariables(path), baseDirectory ?? Environment.CurrentDirectory);
     }
 
     static int ReadFormatVersion(string json)
@@ -86,7 +97,9 @@ public static class ProfileReader
         _ => throw new ProfileFormatException($"Unknown architecture '{value}'; expected 'x64'."),
     };
 
-    sealed record ProfileV1(int FormatVersion, string? Architecture, BypassV1? Bypass);
+    sealed record ProfileV1(int FormatVersion, string? Architecture, BypassV1? Bypass, IsoV1? Source, IsoV1? Output);
 
     sealed record BypassV1(bool? Tpm, bool? SecureBoot, bool? Ram, bool? Cpu);
+
+    sealed record IsoV1(string? Iso);
 }
