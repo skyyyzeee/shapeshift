@@ -48,8 +48,60 @@ public static class ProfileReader
             dto.Bypass is { } b
                 ? new BypassOptions(b.Tpm ?? false, b.SecureBoot ?? false, b.Ram ?? false, b.Cpu ?? false)
                 : BypassOptions.None,
+            ParseSetup(dto.Setup),
             new SourceOptions(ResolvePath(dto.Source?.Iso, baseDirectory)),
             new OutputOptions(ResolvePath(dto.Output?.Iso, baseDirectory)));
+    }
+
+    static SetupOptions ParseSetup(SetupV1? setup)
+    {
+        if (setup is null)
+            return SetupOptions.None;
+
+        if (setup.ComputerName is { } computerName && NameRules.CheckComputerName(computerName) is { } nameError)
+            throw new ProfileFormatException($"'setup.computerName': {nameError}.");
+
+        return new SetupOptions(
+            ParseUser(setup.User),
+            setup.ComputerName,
+            setup.SkipOobe ?? false,
+            setup.BypassOnlineAccount ?? false,
+            setup.WipeDisk0 ?? false);
+    }
+
+    static UserAccount? ParseUser(UserV1? user)
+    {
+        if (user is null)
+            return null;
+
+        if (NameRules.CheckUserName(user.Name) is { } nameError)
+            throw new ProfileFormatException($"'setup.user.name': {nameError}.");
+
+        var mode = user.Password?.Mode switch
+        {
+            null or "changeAtFirstLogon" => PasswordMode.ChangeAtFirstLogon,
+            "store" => PasswordMode.Store,
+            var other => throw new ProfileFormatException(
+                $"'setup.user.password.mode': unknown mode '{other}'; expected 'changeAtFirstLogon' or 'store'."),
+        };
+        var password = user.Password?.Value;
+
+        if (mode == PasswordMode.ChangeAtFirstLogon && password is not null)
+        {
+            throw new ProfileFormatException(
+                "'setup.user.password.value' is only used with mode 'store'; with 'changeAtFirstLogon' the password is set at first sign-in.");
+        }
+        if (mode == PasswordMode.Store && NameRules.CheckPassword(password) is { } passwordError)
+            throw new ProfileFormatException($"'setup.user.password.value': {passwordError}.");
+
+        var autoLogon = user.AutoLogon ?? false;
+        if (autoLogon && mode != PasswordMode.Store)
+        {
+            throw new ProfileFormatException(
+                "'setup.user.autoLogon' needs password mode 'store': automatic sign-in cannot work while the password must be changed.");
+        }
+
+        return new UserAccount(user.Name!, mode, password, autoLogon);
     }
 
     static string? ResolvePath(string? path, string? baseDirectory)
@@ -97,9 +149,16 @@ public static class ProfileReader
         _ => throw new ProfileFormatException($"Unknown architecture '{value}'; expected 'x64'."),
     };
 
-    sealed record ProfileV1(int FormatVersion, string? Architecture, BypassV1? Bypass, IsoV1? Source, IsoV1? Output);
+    sealed record ProfileV1(
+        int FormatVersion, string? Architecture, BypassV1? Bypass, SetupV1? Setup, IsoV1? Source, IsoV1? Output);
 
     sealed record BypassV1(bool? Tpm, bool? SecureBoot, bool? Ram, bool? Cpu);
+
+    sealed record SetupV1(UserV1? User, string? ComputerName, bool? SkipOobe, bool? BypassOnlineAccount, bool? WipeDisk0);
+
+    sealed record UserV1(string? Name, PasswordV1? Password, bool? AutoLogon);
+
+    sealed record PasswordV1(string? Mode, string? Value);
 
     sealed record IsoV1(string? Iso);
 }

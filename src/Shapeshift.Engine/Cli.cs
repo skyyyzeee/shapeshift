@@ -58,6 +58,7 @@ public static class Cli
             if (profile is null)
                 return ExitCodes.InvalidInput;
 
+            await WriteWarningsAsync(profile, context);
             await AnswerFileWriter.WriteAsync(
                 AnswerFileGenerator.Generate(profile), parseResult.GetRequiredValue(outOption).FullName, ct);
             return ExitCodes.Success;
@@ -131,6 +132,7 @@ public static class Cli
             var workspace = parseResult.GetValue(workspaceOption)?.FullName ?? context.Host.DefaultWorkspace;
             var plan = BuildPlanner.Plan(profile, source, outputIso, workspace, context.Host);
             await WritePlanAsync(plan, context.Output);
+            await WriteWarningsAsync(profile, context);
 
             if (!plan.HasEnoughSpace)
             {
@@ -196,6 +198,12 @@ public static class Cli
             await context.Error.WriteLineAsync($"error: {e.Message}");
             return null;
         }
+    }
+
+    static async Task WriteWarningsAsync(Profile profile, Context context)
+    {
+        foreach (var warning in AnswerFileGenerator.Warnings(profile))
+            await context.Error.WriteLineAsync($"warning: {warning}");
     }
 
     static async Task<int> FailAsync(Context context, int exitCode, string message)

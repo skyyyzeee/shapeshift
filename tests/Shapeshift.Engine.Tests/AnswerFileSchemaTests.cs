@@ -25,6 +25,22 @@ public sealed class AnswerFileSchemaTests : IDisposable
         <RunSynchronousCommand wcm:action="add"><Order>{0}</Order><Path>cmd.exe</Path></RunSynchronousCommand>
         """;
 
+    [Fact]
+    public void Rejects_undeclared_elements()
+    {
+        var path = _dir.Write("autounattend.xml", """
+            <unattend xmlns="urn:schemas-microsoft-com:unattend">
+              <settings pass="oobeSystem">
+                <component name="Microsoft-Windows-Shell-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+                  <OOBE><HideEulaPage>true</HideEulaPage></OOBE>
+                </component>
+              </settings>
+            </unattend>
+            """);
+
+        Assert.NotEmpty(AnswerFileSchema.Validate(path));
+    }
+
     [Theory]
     [InlineData("windowsPE", "1", "2", true)]
     [InlineData("windowsPe", "1", "2", false)]

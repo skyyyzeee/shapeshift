@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   Схема того подмножества файла ответов Windows, которое генерирует Shapeshift.
-  Конверт (unattend / settings / component) проверяется строго; содержимое компонентов —
-  в режиме lax: элементы, объявленные здесь глобально, проверяются, остальные пропускаются.
-  Новые элементы, которые начинает выдавать генератор, нужно объявлять здесь же.
+  Всё проверяется строго: элемент, не объявленный здесь (в том числе опечатка в генераторе),
+  делает файл недействительным. Новые элементы, которые начинает выдавать генератор, нужно объявлять здесь же.
+  Содержимое компонентов не привязано к имени компонента — XSD 1.0 этого не умеет.
 -->
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
            xmlns="urn:schemas-microsoft-com:unattend"
@@ -47,7 +47,7 @@
 
   <xs:complexType name="Component">
     <xs:sequence>
-      <xs:any namespace="##targetNamespace" processContents="lax" minOccurs="0" maxOccurs="unbounded" />
+      <xs:any namespace="##targetNamespace" processContents="strict" minOccurs="0" maxOccurs="unbounded" />
     </xs:sequence>
     <xs:attribute name="name" type="xs:string" use="required" />
     <xs:attribute name="processorArchitecture" use="required">
@@ -106,6 +106,241 @@
       </xs:all>
       <xs:attribute ref="wcm:action" use="required" />
     </xs:complexType>
+  </xs:element>
+
+  <!-- Microsoft-Windows-Setup / DiskConfiguration, ImageInstall (windowsPE) -->
+  <xs:element name="DiskConfiguration">
+    <xs:complexType>
+      <xs:choice maxOccurs="unbounded">
+        <xs:element name="Disk" type="Disk" />
+        <xs:element name="WillShowUI" type="WillShowUI" />
+      </xs:choice>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:complexType name="Disk">
+    <xs:all>
+      <xs:element name="DiskID" type="xs:nonNegativeInteger" />
+      <xs:element name="WillWipeDisk" type="xs:boolean" minOccurs="0" />
+      <xs:element name="CreatePartitions" minOccurs="0">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="CreatePartition" type="CreatePartition" maxOccurs="unbounded" />
+          </xs:sequence>
+        </xs:complexType>
+        <xs:unique name="CreatePartitionOrderUnique">
+          <xs:selector xpath="u:CreatePartition" />
+          <xs:field xpath="u:Order" />
+        </xs:unique>
+      </xs:element>
+      <xs:element name="ModifyPartitions" minOccurs="0">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="ModifyPartition" type="ModifyPartition" maxOccurs="unbounded" />
+          </xs:sequence>
+        </xs:complexType>
+        <xs:unique name="ModifyPartitionOrderUnique">
+          <xs:selector xpath="u:ModifyPartition" />
+          <xs:field xpath="u:Order" />
+        </xs:unique>
+      </xs:element>
+    </xs:all>
+    <xs:attribute ref="wcm:action" use="required" />
+  </xs:complexType>
+
+  <xs:complexType name="CreatePartition">
+    <xs:all>
+      <xs:element name="Order" type="xs:positiveInteger" />
+      <xs:element name="Type">
+        <xs:simpleType>
+          <xs:restriction base="xs:string">
+            <xs:enumeration value="Primary" />
+            <xs:enumeration value="EFI" />
+            <xs:enumeration value="MSR" />
+            <xs:enumeration value="Extended" />
+            <xs:enumeration value="Logical" />
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:element>
+      <xs:element name="Size" type="xs:positiveInteger" minOccurs="0" />
+      <xs:element name="Extend" type="xs:boolean" minOccurs="0" />
+    </xs:all>
+    <xs:attribute ref="wcm:action" use="required" />
+  </xs:complexType>
+
+  <xs:complexType name="ModifyPartition">
+    <xs:all>
+      <xs:element name="Order" type="xs:positiveInteger" />
+      <xs:element name="PartitionID" type="xs:positiveInteger" />
+      <xs:element name="Label" minOccurs="0">
+        <xs:simpleType>
+          <xs:restriction base="xs:string">
+            <xs:maxLength value="32" />
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:element>
+      <xs:element name="Letter" minOccurs="0">
+        <xs:simpleType>
+          <xs:restriction base="xs:string">
+            <xs:pattern value="[A-Z]" />
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:element>
+      <xs:element name="Format" minOccurs="0">
+        <xs:simpleType>
+          <xs:restriction base="xs:string">
+            <xs:enumeration value="NTFS" />
+            <xs:enumeration value="FAT32" />
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:element>
+      <xs:element name="TypeID" minOccurs="0">
+        <xs:simpleType>
+          <xs:restriction base="xs:string">
+            <xs:pattern value="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}|0x[0-9a-fA-F]{2}" />
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:element>
+      <xs:element name="Active" type="xs:boolean" minOccurs="0" />
+    </xs:all>
+    <xs:attribute ref="wcm:action" use="required" />
+  </xs:complexType>
+
+  <xs:simpleType name="WillShowUI">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="Always" />
+      <xs:enumeration value="OnError" />
+      <xs:enumeration value="Never" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:element name="ImageInstall">
+    <xs:complexType>
+      <xs:all>
+        <xs:element name="OSImage">
+          <xs:complexType>
+            <xs:all>
+              <xs:element name="InstallTo" minOccurs="0">
+                <xs:complexType>
+                  <xs:all>
+                    <xs:element name="DiskID" type="xs:nonNegativeInteger" />
+                    <xs:element name="PartitionID" type="xs:positiveInteger" />
+                  </xs:all>
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="WillShowUI" type="WillShowUI" minOccurs="0" />
+            </xs:all>
+          </xs:complexType>
+        </xs:element>
+      </xs:all>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- Microsoft-Windows-Shell-Setup (specialize) -->
+  <xs:element name="ComputerName">
+    <xs:simpleType>
+      <xs:restriction base="xs:string">
+        <xs:pattern value="[A-Za-z0-9\-]{1,15}|\*" />
+      </xs:restriction>
+    </xs:simpleType>
+  </xs:element>
+
+  <!-- Microsoft-Windows-Shell-Setup (oobeSystem) -->
+  <xs:element name="OOBE">
+    <xs:complexType>
+      <xs:all>
+        <xs:element name="HideEULAPage" type="xs:boolean" minOccurs="0" />
+        <xs:element name="HideOEMRegistrationScreen" type="xs:boolean" minOccurs="0" />
+        <xs:element name="HideOnlineAccountScreens" type="xs:boolean" minOccurs="0" />
+        <xs:element name="HideWirelessSetupInOOBE" type="xs:boolean" minOccurs="0" />
+        <xs:element name="HideLocalAccountScreen" type="xs:boolean" minOccurs="0" />
+        <xs:element name="ProtectYourPC" minOccurs="0">
+          <xs:simpleType>
+            <xs:restriction base="xs:positiveInteger">
+              <xs:maxInclusive value="3" />
+            </xs:restriction>
+          </xs:simpleType>
+        </xs:element>
+      </xs:all>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:complexType name="Password">
+    <xs:all>
+      <xs:element name="Value" type="xs:string" />
+      <xs:element name="PlainText" type="xs:boolean" />
+    </xs:all>
+  </xs:complexType>
+
+  <xs:element name="UserAccounts">
+    <xs:complexType>
+      <xs:all>
+        <xs:element name="LocalAccounts">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="LocalAccount" maxOccurs="unbounded">
+                <xs:complexType>
+                  <xs:all>
+                    <xs:element name="Name">
+                      <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                          <xs:minLength value="1" />
+                          <xs:maxLength value="20" />
+                        </xs:restriction>
+                      </xs:simpleType>
+                    </xs:element>
+                    <xs:element name="DisplayName" type="xs:string" minOccurs="0" />
+                    <xs:element name="Group" type="xs:string" minOccurs="0" />
+                    <xs:element name="Password" type="Password" minOccurs="0" />
+                  </xs:all>
+                  <xs:attribute ref="wcm:action" use="required" />
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+      </xs:all>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="AutoLogon">
+    <xs:complexType>
+      <xs:all>
+        <xs:element name="Enabled" type="xs:boolean" />
+        <xs:element name="LogonCount" type="xs:positiveInteger" minOccurs="0" />
+        <xs:element name="Username" type="xs:string" />
+        <xs:element name="Password" type="Password" minOccurs="0" />
+      </xs:all>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="FirstLogonCommands">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="SynchronousCommand" maxOccurs="unbounded">
+          <xs:complexType>
+            <xs:all>
+              <xs:element name="Order" type="xs:positiveInteger" />
+              <xs:element name="CommandLine">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:minLength value="1" />
+                    <xs:maxLength value="1024" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="Description" type="xs:string" minOccurs="0" />
+              <xs:element name="RequiresUserInput" type="xs:boolean" minOccurs="0" />
+            </xs:all>
+            <xs:attribute ref="wcm:action" use="required" />
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+    </xs:complexType>
+    <xs:unique name="FirstLogonOrderUnique">
+      <xs:selector xpath="u:SynchronousCommand" />
+      <xs:field xpath="u:Order" />
+    </xs:unique>
   </xs:element>
 
 </xs:schema>

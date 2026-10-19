@@ -4,6 +4,7 @@ namespace Shapeshift.Core;
 public sealed record Profile(
     Architecture Architecture,
     BypassOptions Bypass,
+    SetupOptions Setup,
     SourceOptions Source,
     OutputOptions Output);
 
