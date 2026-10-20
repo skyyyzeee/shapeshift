@@ -94,34 +94,34 @@ public sealed class UupDownloadTests : IDisposable
     [Fact]
     public async Task Resumes_after_the_connection_drops()
     {
-        var wu = await Listed(new FakeWindowsUpdate { Release = _release, DropOnceAfter = { ["professional_ru-ru.esd"] = 1 << 20 } });
+        var wu = await Listed(new FakeWindowsUpdate { Release = _release, DropOnceAfter = { [FakeUupRelease.Big] = 1 << 20 } });
 
         var result = await CliRun.RunAsync(wu.Host(Workspace), Select("download", "Professional"));
 
         Assert.True(result.ExitCode == Cli.ExitCodes.Success, result.Error);
-        Assert.Equal(_release.Files["professional_ru-ru.esd"], File.ReadAllBytes(CachedPath("professional_ru-ru.esd")));
-        var requests = wu.Downloads.Where(d => d.File == "professional_ru-ru.esd").Select(d => d.From).ToList();
+        Assert.Equal(_release.Files[FakeUupRelease.Big], File.ReadAllBytes(CachedPath(FakeUupRelease.Big)));
+        var requests = wu.Downloads.Where(d => d.File == FakeUupRelease.Big).Select(d => d.From).ToList();
         Assert.Equal([null, 1 << 20], requests);
     }
 
     [Fact]
     public async Task A_silent_server_is_reconnected_and_the_file_resumed()
     {
-        var wu = await Listed(new FakeWindowsUpdate { Release = _release, StallOnceAfter = { ["professional_ru-ru.esd"] = 1 << 20 } });
+        var wu = await Listed(new FakeWindowsUpdate { Release = _release, StallOnceAfter = { [FakeUupRelease.Big] = 1 << 20 } });
         var host = new EngineHost { HttpHandler = () => wu, DefaultWorkspace = Workspace, DownloadStallTimeout = TimeSpan.FromMilliseconds(500) };
 
         var result = await CliRun.RunAsync(host, Select("download", "Professional"));
 
         Assert.True(result.ExitCode == Cli.ExitCodes.Success, result.Error);
-        Assert.Equal(_release.Files["professional_ru-ru.esd"], File.ReadAllBytes(CachedPath("professional_ru-ru.esd")));
-        Assert.Equal([null, 1 << 20], wu.Downloads.Where(d => d.File == "professional_ru-ru.esd").Select(d => d.From));
+        Assert.Equal(_release.Files[FakeUupRelease.Big], File.ReadAllBytes(CachedPath(FakeUupRelease.Big)));
+        Assert.Equal([null, 1 << 20], wu.Downloads.Where(d => d.File == FakeUupRelease.Big).Select(d => d.From));
     }
 
     [Fact]
     public async Task Continues_a_download_left_from_a_previous_run()
     {
         var wu = await Listed();
-        var name = "professional_ru-ru.esd";
+        var name = FakeUupRelease.Big;
         Directory.CreateDirectory(Path.GetDirectoryName(CachedPath(name))!);
         File.WriteAllBytes(CachedPath(name) + ".part", _release.Files[name][..12345]);
 
@@ -137,7 +137,7 @@ public sealed class UupDownloadTests : IDisposable
     public async Task A_server_without_resume_sends_the_whole_file_again()
     {
         var wu = await Listed(new FakeWindowsUpdate { Release = _release, IgnoresRange = true });
-        var name = "professional_ru-ru.esd";
+        var name = FakeUupRelease.Big;
         Directory.CreateDirectory(Path.GetDirectoryName(CachedPath(name))!);
         File.WriteAllBytes(CachedPath(name) + ".part", _release.Files[name][..12345]);
 

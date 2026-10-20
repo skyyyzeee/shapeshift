@@ -51,7 +51,7 @@ public static partial class ProfileReader
             ParsePrograms(dto.Programs, baseDirectory),
             ParseSetup(dto.Setup),
             ParseRegional(dto.Regional),
-            new SourceOptions(ResolvePath(dto.Source?.Iso, baseDirectory)),
+            ParseSource(dto.Source, baseDirectory),
             new OutputOptions(ResolvePath(dto.Output?.Iso, baseDirectory)));
     }
 
@@ -232,6 +232,22 @@ public static partial class ProfileReader
         return new UserAccount(user.Name!, mode, password, autoLogon);
     }
 
+    // Свой ISO или выпуск UUP — что-то одно. Существование канала и языка проверяет движок (по Windows Update).
+    static SourceOptions ParseSource(SourceV1? source, string? baseDirectory)
+    {
+        if (source?.Uup is not { } uup)
+            return new SourceOptions(ResolvePath(source?.Iso, baseDirectory));
+        if (!string.IsNullOrWhiteSpace(source.Iso))
+            throw new ProfileFormatException("'source' needs either 'iso' or 'uup', not both.");
+        if (string.IsNullOrWhiteSpace(uup.Channel))
+            throw new ProfileFormatException("'source.uup.channel' is empty; for example, windows11.");
+        if (string.IsNullOrWhiteSpace(uup.Language) || RegionalRules.CheckCulture(uup.Language) is not null)
+            throw new ProfileFormatException("'source.uup.language' must be a Windows language like ru-RU.");
+        if (uup.UpdateId is { } id && !Guid.TryParse(id, out _))
+            throw new ProfileFormatException("'source.uup.updateId' must be an update id (GUID) from 'uup releases'.");
+        return new SourceOptions(null, new UupSourceOptions(uup.Channel, uup.Language, uup.UpdateId));
+    }
+
     static string? ResolvePath(string? path, string? baseDirectory)
     {
         if (string.IsNullOrWhiteSpace(path))
@@ -278,7 +294,7 @@ public static partial class ProfileReader
     };
 
     sealed record ProfileV1(
-        int FormatVersion, string? Architecture, List<string>? Tweaks, List<string>? Editions, List<string>? RemoveApps, List<ProgramV1?>? Programs, SetupV1? Setup, RegionalV1? Regional, IsoV1? Source, IsoV1? Output);
+        int FormatVersion, string? Architecture, List<string>? Tweaks, List<string>? Editions, List<string>? RemoveApps, List<ProgramV1?>? Programs, SetupV1? Setup, RegionalV1? Regional, SourceV1? Source, IsoV1? Output);
 
     sealed record ProgramV1(string? Winget, string? Path, string? Run, string? Args, string? Name);
 
@@ -293,4 +309,8 @@ public static partial class ProfileReader
     sealed record PasswordV1(string? Mode, string? Value);
 
     sealed record IsoV1(string? Iso);
+
+    sealed record SourceV1(string? Iso, UupV1? Uup);
+
+    sealed record UupV1(string? Channel, string? Language, string? UpdateId);
 }

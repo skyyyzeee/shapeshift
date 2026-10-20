@@ -3,6 +3,10 @@ using System.Xml.Linq;
 
 namespace Shapeshift.Engine.Uup;
 
+/// <summary>Файлы для языка и редакций и версия, которую дают образы редакций (без обновлений).</summary>
+/// <param name="BaseVersion">Например, 10.0.26100.1 — из CompDB редакции; null — не указана.</param>
+public sealed record UupSelection(IReadOnlyList<UupFile> Files, IReadOnlyList<string> Problems, string? BaseVersion);
+
 /// <summary>
 /// Какие файлы выпуска нужны для языка и редакций. Источник — описания CompDB из
 /// <c>&lt;UpdateId&gt;.AggregatedMetadata.cab</c>: для каждой пары «редакция + язык» — свой список пакетов
@@ -18,7 +22,7 @@ public static partial class UupFileSet
         release.Files.FirstOrDefault(f => f.Name.EndsWith(".AggregatedMetadata.cab", StringComparison.OrdinalIgnoreCase));
 
     /// <param name="compDbs">Папка с распакованным AggregatedMetadata.cab (вложенные *.xml.cab).</param>
-    public static (IReadOnlyList<UupFile> Files, IReadOnlyList<string> Problems) Resolve(
+    public static UupSelection Resolve(
         UupRelease release, string compDbs, string language, IReadOnlyList<string> editions)
     {
         var problems = new List<string>();
@@ -43,6 +47,7 @@ public static partial class UupFileSet
         }
 
         var appFeatures = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        string? baseVersion = null;
         foreach (var edition in editions)
         {
             var compDb = reader.Load($"DesktopTargetCompDB_{edition}_{language}");
@@ -51,6 +56,7 @@ public static partial class UupFileSet
                 problems.Add($"edition {edition} is not available in {language} in this release.");
                 continue;
             }
+            baseVersion ??= (string?)compDb.Attribute("OSVersion");
             foreach (var package in compDb.Descendants(Ns + "Packages").Elements(Ns + "Package"))
                 AddPayload(package);
             foreach (var dependency in compDb.Descendants(Ns + "Feature").Where(f => (string?)f.Attribute("Group") == "PreinstalledApps"))
@@ -63,7 +69,21 @@ public static partial class UupFileSet
         foreach (var update in Updates(release.Files))
             chosen.TryAdd(update.Name, update);
 
-        return (chosen.Values.OrderBy(f => f.Name, StringComparer.OrdinalIgnoreCase).ToList(), problems.Distinct().ToList());
+        return new UupSelection(chosen.Values.OrderBy(f => f.Name, StringComparer.OrdinalIgnoreCase).ToList(), problems.Distinct().ToList(), baseVersion);
+    }
+
+    /// <summary>Образ редакции (<c>professional_ru-ru.esd</c>) среди файлов выпуска.</summary>
+    public static UupFile? EditionImage(IReadOnlyList<UupFile> files, string edition, string language) =>
+        files.FirstOrDefault(f => string.Equals(f.Name, $"{edition}_{language}.esd", StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>
+    /// Что нужно для носителя (wimlib): образы редакций и пакеты с данными Windows (ESD, WIM, CAB).
+    /// Приложения и обновления ставятся отдельно — при офлайн-обслуживании.
+    /// </summary>
+    public static IReadOnlyList<UupFile> MediaFiles(IReadOnlyList<UupFile> files)
+    {
+        var updates = Updates(files).Select(f => f.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        return files.Where(f => !updates.Contains(f.Name) && MediaPattern().IsMatch(f.Name)).ToList();
     }
 
     // Приложения редакции и всё, без чего они не ставятся (VCLibs, UI.Xaml…). Ресурсы на других языках не нужны.
@@ -109,6 +129,9 @@ public static partial class UupFileSet
 
     [GeneratedRegex(@"^(Windows1[01]\.0-KB.*\.(cab|msu|wim)|.*AggregatedMetadata.*\.cab|DesktopDeployment.*\.cab)$", RegexOptions.IgnoreCase)]
     private static partial Regex UpdatePattern();
+
+    [GeneratedRegex(@"\.(esd|wim|cab)$", RegexOptions.IgnoreCase)]
+    private static partial Regex MediaPattern();
 
     [GeneratedRegex(@"-baseless|-express|_Diffs_|_Forward_CompDB_", RegexOptions.IgnoreCase)]
     private static partial Regex SkippedUpdatePattern();

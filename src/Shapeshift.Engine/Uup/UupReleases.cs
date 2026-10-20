@@ -50,24 +50,7 @@ public static partial class UupChannels
     {
         var channels = All.Where(c => advanced || !c.Advanced).ToList();
         await client.ConnectAsync(ct);
-        var tasks = channels.Select(async channel =>
-        {
-            var offers = await Task.WhenAll(channel.Queries.Select(async query =>
-            {
-                try
-                {
-                    return (Query: query, Found: await client.FindReleaseAsync(query, ct), Problem: (string?)null);
-                }
-                catch (WindowsUpdateException e)
-                {
-                    return (Query: query, Found: (FoundRelease?)null, Problem: e.Message);
-                }
-            }));
-            var best = offers.Where(o => o.Found is not null).OrderByDescending(o => WindowsUpdateClient.BuildKey(o.Found!.Build)).FirstOrDefault();
-            var problem = best.Found is not null ? null : offers.Select(o => o.Problem).FirstOrDefault(p => p is not null) ?? "Windows Update offered nothing";
-            return (Channel: channel, best.Query, best.Found, Problem: problem);
-        }).ToList();
-        var results = await Task.WhenAll(tasks);
+        var results = await Task.WhenAll(channels.Select(channel => AskAsync(client, channel, ct)));
 
         var releases = new List<UupRelease>();
         foreach (var (channel, query, found, _) in results)
@@ -79,6 +62,34 @@ public static partial class UupChannels
         }
         var problems = results.Where(r => r.Problem is not null).Select(r => (r.Channel.Id, r.Problem!)).ToList();
         return (releases, problems);
+    }
+
+    /// <summary>Самый новый выпуск одного канала; null — канал ничего не предложил (причина — в Problem).</summary>
+    public static async Task<(UupRelease? Release, string? Problem)> FindOneAsync(WindowsUpdateClient client, UupChannel channel, CancellationToken ct)
+    {
+        var (_, query, found, problem) = await AskAsync(client, channel, ct);
+        return found is null
+            ? (null, problem)
+            : (new UupRelease(channel.Id, query, found.UpdateId, found.Revision, ReleaseTitle(found, channel.Advanced), found.Build, found.Files), null);
+    }
+
+    static async Task<(UupChannel Channel, UpdateQuery Query, FoundRelease? Found, string? Problem)> AskAsync(
+        WindowsUpdateClient client, UupChannel channel, CancellationToken ct)
+    {
+        var offers = await Task.WhenAll(channel.Queries.Select(async query =>
+        {
+            try
+            {
+                return (Query: query, Found: await client.FindReleaseAsync(query, ct), Problem: (string?)null);
+            }
+            catch (WindowsUpdateException e)
+            {
+                return (Query: query, Found: (FoundRelease?)null, Problem: e.Message);
+            }
+        }));
+        var best = offers.Where(o => o.Found is not null).OrderByDescending(o => WindowsUpdateClient.BuildKey(o.Found!.Build)).FirstOrDefault();
+        var problem = best.Found is not null ? null : offers.Select(o => o.Problem).FirstOrDefault(p => p is not null) ?? "Windows Update offered nothing";
+        return (channel, best.Found is not null ? best.Query : channel.Queries[0], best.Found, problem);
     }
 
     // Версии по сборкам: Windows Update называет выпуски непоследовательно (24H2 приходит как «Cumulative Update

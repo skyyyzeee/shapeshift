@@ -8,6 +8,7 @@ public enum BuildStepKind
 {
     DownloadMetadata,
     DownloadFiles,
+    AssembleImage,
     ExtractImage,
     KeepEditions,
     RemoveApps,
@@ -34,7 +35,8 @@ public sealed record BuildPlan(
     string OutputIso,
     string BuildDirectory,
     IReadOnlyList<BuildStep> Steps,
-    IReadOnlyList<SpaceRequirement> Space)
+    IReadOnlyList<SpaceRequirement> Space,
+    Uup.UupBuildSource? Uup = null)
 {
     /// <summary>IMAPI работает только с путями короче MAX_PATH, поэтому распакованное дерево должно в него влезать.</summary>
     public const int MaxPath = 259;
@@ -63,8 +65,10 @@ public static class BuildPlanner
     const long Headroom = 512L * 1024 * 1024;
     const long PerFileSlack = 4096;
 
+    /// <param name="uup">Источник — выпуск UUP: вместо распаковки ISO — скачивание и сборка носителя.</param>
     public static BuildPlan Plan(
-        Profile profile, TweakCatalog catalog, SourceImage source, ProgramPayload programs, string outputIso, string workspace, EngineHost host)
+        Profile profile, TweakCatalog catalog, SourceImage source, ProgramPayload programs, string outputIso, string workspace, EngineHost host,
+        Uup.UupBuildSource? uup = null)
     {
         var buildDirectory = Path.Combine(Path.GetFullPath(workspace), Guid.NewGuid().ToString("N")[..8]);
 
@@ -75,15 +79,25 @@ public static class BuildPlanner
         var workspaceVolume = EngineHost.VolumeOf(buildDirectory);
         var outputVolume = EngineHost.VolumeOf(outputIso);
 
-        var steps = new List<BuildStep> { new(BuildStepKind.ExtractImage, "Extract image", workspaceVolume, mediaBytes) };
+        var steps = new List<BuildStep>();
+        if (uup is not null)
+        {
+            // Кэш скачанного — в рабочей папке; носитель собирается из него, перепакованные CAB — во временной папке.
+            steps.Add(new(BuildStepKind.DownloadFiles, "Download files", workspaceVolume, uup.BytesToDownload));
+            steps.Add(new(BuildStepKind.AssembleImage, "Assemble image", workspaceVolume, mediaBytes + (1L << 30)));
+        }
+        else
+        {
+            steps.Add(new(BuildStepKind.ExtractImage, "Extract image", workspaceVolume, mediaBytes));
 
-        // Новый install.wim пишется рядом со старым — на время шага нужно ещё столько же места.
-        if (profile.Editions.Count > 0 && source.Info.KeepEditions(profile.Editions).Editions.Count < source.Info.Editions.Count)
-            steps.Add(new(BuildStepKind.KeepEditions, "Keep selected editions", workspaceVolume, source.InstallImageBytes));
+            // Новый install.wim пишется рядом со старым — на время шага нужно ещё столько же места.
+            if (profile.Editions.Count > 0 && source.Info.KeepEditions(profile.Editions).Editions.Count < source.Info.Editions.Count)
+                steps.Add(new(BuildStepKind.KeepEditions, "Keep selected editions", workspaceVolume, source.InstallImageBytes));
 
-        // DISM монтирует образ без копирования, а при сохранении дописывает в WIM только изменения — с запасом 1 ГБ.
-        if (profile.RemoveApps.Count > 0)
-            steps.Add(new(BuildStepKind.RemoveApps, "Remove built-in apps", workspaceVolume, 1L << 30));
+            // DISM монтирует образ без копирования, а при сохранении дописывает в WIM только изменения — с запасом 1 ГБ.
+            if (profile.RemoveApps.Count > 0)
+                steps.Add(new(BuildStepKind.RemoveApps, "Remove built-in apps", workspaceVolume, 1L << 30));
+        }
 
         // Установщики своих программ копируются в образ; winget ставит из интернета при первом входе.
         if (!programs.IsEmpty)
@@ -98,6 +112,6 @@ public static class BuildPlanner
             .Select(g => new SpaceRequirement(g.Key, g.Sum(s => s.Bytes) + Headroom, host.AvailableFreeSpace(g.Key)))
             .ToList();
 
-        return new BuildPlan(profile, catalog, source, programs, Path.GetFullPath(outputIso), buildDirectory, steps, space);
+        return new BuildPlan(profile, catalog, source, programs, Path.GetFullPath(outputIso), buildDirectory, steps, space, uup);
     }
 }

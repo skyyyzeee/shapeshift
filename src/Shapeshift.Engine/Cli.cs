@@ -299,16 +299,34 @@ public static partial class Cli
             if (catalog is null)
                 return (ExitCodes.InvalidInput, null);
 
-            if (profile.Source.IsoPath is not { } sourceIso)
-                return (await FailAsync(context, ExitCodes.InvalidInput, "profile has no 'source.iso'."), null);
+            if (profile.Source.IsoPath is null && profile.Source.Uup is null)
+                return (await FailAsync(context, ExitCodes.InvalidInput, "profile has no 'source.iso' or 'source.uup'."), null);
             if (profile.Output.IsoPath is not { } outputIso)
                 return (await FailAsync(context, ExitCodes.InvalidInput, "profile has no 'output.iso'."), null);
-            if (string.Equals(Path.GetFullPath(sourceIso), Path.GetFullPath(outputIso), StringComparison.OrdinalIgnoreCase))
-                return (await FailAsync(context, ExitCodes.InvalidInput, "'output.iso' must differ from 'source.iso'."), null);
 
-            var source = await TryInspectAsync(sourceIso, context);
-            if (source is null)
-                return (ExitCodes.InvalidInput, null);
+            var workspace = options.Workspace ?? context.Host.DefaultWorkspace;
+            using var http = context.Host.CreateHttpClient();
+            SourceImage? source;
+            Uup.UupBuildSource? uup = null;
+            if (profile.Source.Uup is { } uupOptions)
+            {
+                int uupExit;
+                (uupExit, uup) = await PrepareUupBuildAsync(profile, uupOptions, workspace, context, http, ct);
+                if (uup is null)
+                    return (uupExit, null);
+                source = uup.Image();
+                if (profile.RemoveApps.Count > 0)
+                    await context.Error.WriteLineAsync("warning: images built from UUP have no built-in apps yet, so 'removeApps' has nothing to remove.");
+            }
+            else
+            {
+                var sourceIso = profile.Source.IsoPath!;
+                if (string.Equals(Path.GetFullPath(sourceIso), Path.GetFullPath(outputIso), StringComparison.OrdinalIgnoreCase))
+                    return (await FailAsync(context, ExitCodes.InvalidInput, "'output.iso' must differ from 'source.iso'."), null);
+                source = await TryInspectAsync(sourceIso, context);
+                if (source is null)
+                    return (ExitCodes.InvalidInput, null);
+            }
 
             var (programs, programProblems) = ProgramPayload.Inspect(profile.Programs);
             foreach (var problem in programProblems)
@@ -316,8 +334,7 @@ public static partial class Cli
             if (programProblems.Count > 0)
                 return (ExitCodes.InvalidInput, null);
 
-            var workspace = options.Workspace ?? context.Host.DefaultWorkspace;
-            var plan = BuildPlanner.Plan(profile, catalog, source, programs, outputIso, workspace, context.Host);
+            var plan = BuildPlanner.Plan(profile, catalog, source, programs, outputIso, workspace, context.Host, uup);
             await WritePlanAsync(plan, context.Output);
             if (!await CheckAnswerFileAsync(profile, catalog, source.Info, context))
                 return (ExitCodes.InvalidInput, plan);

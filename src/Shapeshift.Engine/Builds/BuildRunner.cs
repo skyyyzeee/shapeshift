@@ -29,6 +29,8 @@ public static class BuildRunner
 
     static Task RunStepAsync(BuildPlan plan, BuildStep step, IBuildReporter reporter, CancellationToken ct) => step.Kind switch
     {
+        BuildStepKind.DownloadFiles => plan.Uup!.Downloader.DownloadAsync(plan.Uup.MediaFiles, plan.Uup.Links, reporter.Transfer, ct),
+        BuildStepKind.AssembleImage => Task.Run(() => Assemble(plan, reporter, ct), ct),
         BuildStepKind.ExtractImage => Task.Run(() => Extract(plan, reporter, ct), ct),
         BuildStepKind.KeepEditions => Task.Run(() => KeepEditions(plan, reporter, ct), ct),
         BuildStepKind.RemoveApps => Task.Run(() => RemoveApps(plan, reporter, ct), ct),
@@ -68,6 +70,20 @@ public static class BuildRunner
                 reporter.Progress((double)copied / total);
             }
         }
+    }
+
+    // Носитель из скачанных файлов UUP (ADR-0010).
+    static void Assemble(BuildPlan plan, IBuildReporter reporter, CancellationToken ct)
+    {
+        var uup = plan.Uup!;
+        Uup.UupImageBuilder.Build(
+            uup.EditionImages.Select(uup.Downloader.PathOf).ToList(),
+            uup.Packages.Select(uup.Downloader.PathOf).ToList(),
+            plan.MediaDirectory,
+            Path.Combine(plan.BuildDirectory, "u"),
+            reporter.Log,
+            reporter.Progress,
+            ct);
     }
 
     // Только выбранные редакции: экспорт в новый WIM рядом и замена старого. Без DISM и монтирования.

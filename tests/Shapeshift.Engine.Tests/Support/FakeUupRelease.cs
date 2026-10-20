@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using ManagedWimLib;
+using Shapeshift.Engine.Images;
 using System.Security;
 using System.Security.Cryptography;
 using System.Text;
@@ -6,9 +8,10 @@ using System.Text;
 namespace Shapeshift.Engine.Tests.Support;
 
 /// <summary>
-/// Маленький выпуск UUP для тестов скачивания: файлы с настоящими хешами и <c>AggregatedMetadata.cab</c>
+/// Маленький выпуск UUP для тестов: файлы с настоящими хешами и <c>AggregatedMetadata.cab</c>
 /// (CompDB редакций и приложений), упакованный системным <c>makecab</c> так же, как у Microsoft: каждый CompDB —
-/// отдельный CAB внутри общего CAB.
+/// отдельный CAB внутри общего CAB. Образы редакций — настоящие WIM из трёх образов (установщик, среда восстановления,
+/// Windows); данные Windows в них не лежат, а берутся по ссылкам из пакетов (WIM и CAB) — как у Microsoft.
 /// </summary>
 public sealed class FakeUupRelease
 {
@@ -25,6 +28,7 @@ public sealed class FakeUupRelease
         "Microsoft-Windows-Foundation-Package.ESD",
         "Microsoft-Windows-EditionSpecific-Professional-Package.ESD",
         "Microsoft-Windows-Client-LanguagePack-Package~31bf3856ad364e35~amd64~ru-RU~.esd",
+        "Microsoft-Windows-Fake-FOD-Package~31bf3856ad364e35~amd64~~.cab",
         "Microsoft.BingNews_neutral.msixbundle",
         "Microsoft.BingNews_split.language-ru.appx",
         "Microsoft.VCLibs.140.00_x64.appx",
@@ -34,24 +38,41 @@ public sealed class FakeUupRelease
         $"{UpdateId}.AggregatedMetadata.cab",
     ];
 
+    /// <summary>Большой файл — чтобы скачивание можно было оборвать посередине.</summary>
+    public const string Big = "Windows11.0-KB5000001-x64.msu";
+
+    /// <summary>Содержимое файлов Windows в образах редакций: путь в образе → данные.</summary>
+    public static readonly Dictionary<string, string> WindowsFiles = new()
+    {
+        [@"Windows\System32\kernel.dll"] = "foundation",
+        [@"Windows\System32\fod.dll"] = "feature on demand from a CAB",
+    };
+
     public FakeUupRelease(string scratch)
     {
-        // Образ редакции — побольше, чтобы его можно было оборвать посередине.
-        Add("professional_ru-ru.esd", 3 << 20);
-        Add("core_ru-ru.esd", 4096);
-        Add("professional_en-us.esd", 4096);
-        Add("Microsoft-Windows-Foundation-Package.ESD", 2048);
-        Add("Microsoft-Windows-EditionSpecific-Professional-Package.ESD", 2048);
-        Add("Microsoft-Windows-EditionSpecific-Core-Package.ESD", 2048);
-        Add("Microsoft-Windows-Client-LanguagePack-Package~31bf3856ad364e35~amd64~ru-RU~.esd", 2048);
-        Add("Microsoft-Windows-Client-LanguagePack-Package~31bf3856ad364e35~amd64~en-US~.esd", 2048);
-        Add("Microsoft-Windows-Client-LanguagePack-Package~31bf3856ad364e35~amd64~de-DE~.esd", 2048);
+        WimLib.EnsureInitialized();
+        var wims = Path.Combine(scratch, "fake-uup-wims");
+        Package("Microsoft-Windows-Foundation-Package.ESD", wims, (@"Windows\System32\kernel.dll", WindowsFiles[@"Windows\System32\kernel.dll"]));
+        Package("Microsoft-Windows-EditionSpecific-Professional-Package.ESD", wims, (@"Windows\System32\professional.dll", "pro"));
+        Package("Microsoft-Windows-EditionSpecific-Core-Package.ESD", wims, (@"Windows\System32\core.dll", "home"));
+        foreach (var language in new[] { "ru-RU", "en-US", "de-DE" })
+            Package($"Microsoft-Windows-Client-LanguagePack-Package~31bf3856ad364e35~amd64~{language}~.esd", wims, ($@"Windows\System32\{language}\shell.mui", $"shell {language}"));
+        var fod = Path.Combine(wims, "fod");
+        Directory.CreateDirectory(fod);
+        File.WriteAllText(Path.Combine(fod, "fod.dll"), WindowsFiles[@"Windows\System32\fod.dll"]);
+        MakeCab([Path.Combine(fod, "fod.dll")], Path.Combine(wims, "fod.cab"));
+        Files["Microsoft-Windows-Fake-FOD-Package~31bf3856ad364e35~amd64~~.cab"] = Retry(() => File.ReadAllBytes(Path.Combine(wims, "fod.cab")));
+        var fodWim = WimOf(fod, Path.Combine(wims, "fod-ref.wim"));
+
+        EditionImage("professional", "ru-RU", wims, fodWim);
+        EditionImage("core", "ru-RU", wims, fodWim);
+        EditionImage("professional", "en-US", wims, fodWim);
         Add("Microsoft.BingNews_neutral.msixbundle", 2048);
         Add("Microsoft.BingNews_split.language-ru.appx", 512);
         Add("Microsoft.BingNews_split.language-de.appx", 512);
         Add("Microsoft.VCLibs.140.00_x64.appx", 1024);
         Add("Microsoft.Paint_neutral.msixbundle", 1024);
-        Add("Windows11.0-KB5000001-x64.msu", 8192);
+        Add(Big, 3 << 20);
         Add("Windows11.0-KB5000002-x64.cab", 4096);
         Add("Windows11.0-KB5000002-x64.msu", 4096);
         Add("Windows11.0-KB5000002-x64-baseless.psf", 1024);
@@ -60,6 +81,87 @@ public sealed class FakeUupRelease
         Add("DesktopDeployment.cab", 1024);
         Files[$"{UpdateId}.AggregatedMetadata.cab"] = Metadata(scratch);
     }
+
+    // Пакет с данными Windows: WIM с этими файлами.
+    void Package(string name, string folder, params (string Path, string Content)[] files)
+    {
+        var dir = Path.Combine(folder, "pkg-" + Files.Count);
+        foreach (var (path, content) in files)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(Path.Combine(dir, path))!);
+            File.WriteAllText(Path.Combine(dir, path), content);
+        }
+        Files[name] = Retry(() => File.ReadAllBytes(WimOf(dir, Path.Combine(folder, $"pkg-{Files.Count}.wim"))));
+    }
+
+    static string WimOf(string dir, string path)
+    {
+        using var wim = Wim.CreateNewWim(CompressionType.XPRESS);
+        wim.AddImage(dir, "package", null!, AddFlags.NoAcls);
+        Retry(() => wim.Write(path, Wim.AllImages, WriteFlags.None, 1));
+        return path;
+    }
+
+    // Образ редакции: установщик, среда восстановления и Windows, чьи данные остаются в пакетах (SkipExternalWims).
+    void EditionImage(string edition, string language, string folder, string fodWim)
+    {
+        var root = Path.Combine(folder, $"edition-{edition}-{language}");
+        void Write(string file, string content)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(Path.Combine(root, file))!);
+            File.WriteAllText(Path.Combine(root, file), content);
+        }
+
+        Write(@"setup\setup.exe", "setup");
+        Write(@"setup\bootmgr", "bootmgr");
+        Write(@"setup\boot\etfsboot.com", new string('b', 4096));
+        Write(@"setup\efi\microsoft\boot\efisys.bin", new string('e', 16384));
+        Write(@"setup\sources\setup.dll", "setup engine");
+        Write(@"setup\sources\background_cli.png", "background");
+        Write(@"setup\sources\inf\setup.cfg", "[setup]");
+        Write($@"setup\sources\{language.ToLowerInvariant()}\setup.exe.mui", $"setup {language}");
+        Write(@"winre\Windows\System32\winpeshl.ini", "[LaunchApps]");
+        Write(@"winre\Windows\System32\winre.txt", "recovery");
+        foreach (var (file, content) in WindowsFiles)
+            Write($@"windows\{file}", content);
+        Write($@"windows\Windows\System32\{edition}.dll", edition == "professional" ? "pro" : "home");
+        Write($@"windows\Windows\System32\{language}\shell.mui", $"shell {language}");
+        Write(@"windows\Windows\edition.txt", edition);
+
+        var path = Path.Combine(folder, $"{edition}_{language}.esd");
+        using (var wim = Wim.CreateNewWim(CompressionType.XPRESS))
+        {
+            wim.AddImage(Path.Combine(root, "setup"), "Windows Setup Media", null!, AddFlags.NoAcls);
+            wim.AddImage(Path.Combine(root, "winre"), "Microsoft Windows Recovery Environment (amd64)", null!, AddFlags.NoAcls);
+            wim.AddImage(Path.Combine(root, "windows"), edition == "professional" ? "Windows 11 Pro" : "Windows 11 Home", null!, AddFlags.NoAcls);
+            wim.SetImageProperty(3, "WINDOWS/EDITIONID", edition == "professional" ? "Professional" : "Core");
+            // Данные Windows — в пакетах: образ редакции на них только ссылается.
+            var packages = Files.Where(f => f.Key.EndsWith(".esd", StringComparison.OrdinalIgnoreCase) && f.Key.StartsWith("Microsoft-Windows-"))
+                .Select((f, i) => { var p = Path.Combine(folder, $"ref-{edition}-{language}-{i}.wim"); Retry(() => File.WriteAllBytes(p, f.Value)); return p; })
+                .Append(fodWim).ToList();
+            wim.ReferenceResourceFiles(packages, RefFlags.None, OpenFlags.None);
+            Retry(() => wim.Write(path, Wim.AllImages, WriteFlags.SkipExternalWims, 1));
+        }
+        Files[$"{edition}_{language.ToLowerInvariant()}.esd"] = Retry(() => File.ReadAllBytes(path));
+    }
+
+    // Антивирус ненадолго держит только что записанные файлы — несколько попыток.
+    static T Retry<T>(Func<T> action)
+    {
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                return action();
+            }
+            catch (Exception e) when (e is IOException or WimLibException && attempt < 10)
+            {
+                Thread.Sleep(100 * attempt);
+            }
+        }
+    }
+
+    static void Retry(Action action) => Retry(() => { action(); return 0; });
 
     void Add(string name, int size)
     {
@@ -80,7 +182,7 @@ public sealed class FakeUupRelease
         string Payload(string name) => $"""<Package ID="{name}"><Payload><PayloadItem PayloadHash="{Base64Sha256(Files[name])}" PayloadSize="{Files[name].Length}" Path="UUP\{name}" /></Payload></Package>""";
         string Edition(string edition, string language, string specific, string languagePack) => $"""
             <?xml version="1.0" encoding="utf-8"?>
-            <CompDB xmlns="http://schemas.microsoft.com/embedded/2004/10/ImageUpdate" Name="Build~amd64~Desktop~{edition}~{language}">
+            <CompDB xmlns="http://schemas.microsoft.com/embedded/2004/10/ImageUpdate" Name="Build~amd64~Desktop~{edition}~{language}" OSVersion="10.0.26100.1">
               <Features><Feature Type="DesktopMedia" FeatureID="{edition}_{language}"><Dependencies>
                 <Feature FeatureID="Microsoft.BingNews_8wekyb3d8bbwe" Group="PreinstalledApps" Type="Optional" />
               </Dependencies></Feature></Features>
@@ -89,6 +191,7 @@ public sealed class FakeUupRelease
                 {Payload("Microsoft-Windows-Foundation-Package.ESD")}
                 {Payload(specific)}
                 {Payload(languagePack)}
+                {Payload("Microsoft-Windows-Fake-FOD-Package~31bf3856ad364e35~amd64~~.cab")}
               </Packages>
             </CompDB>
             """;

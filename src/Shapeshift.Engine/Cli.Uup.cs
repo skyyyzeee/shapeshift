@@ -8,7 +8,7 @@ namespace Shapeshift.Engine;
 // Скачивание выпуска UUP: какие файлы нужны (uup files) и само скачивание в кэш (uup download).
 public static partial class Cli
 {
-    sealed record UupSelection(string UpdateId, string Language, IReadOnlyList<string> Editions, string Workspace);
+    sealed record UupChoice(string UpdateId, string Language, IReadOnlyList<string> Editions, string Workspace);
 
     sealed class UupOptions
     {
@@ -25,7 +25,7 @@ public static partial class Cli
             command.Options.Add(Workspace);
         }
 
-        public UupSelection Read(ParseResult parseResult, Context context) => new(
+        public UupChoice Read(ParseResult parseResult, Context context) => new(
             parseResult.GetRequiredValue(Update),
             parseResult.GetRequiredValue(Language),
             parseResult.GetRequiredValue(Editions),
@@ -85,7 +85,7 @@ public static partial class Cli
         return command;
     }
 
-    static async Task<int> DownloadUupAsync(UupSelection selection, Context context, IBuildReporter reporter, CancellationToken ct)
+    static async Task<int> DownloadUupAsync(UupChoice selection, Context context, IBuildReporter reporter, CancellationToken ct)
     {
         using var http = context.Host.CreateHttpClient();
         try
@@ -110,14 +110,16 @@ public static partial class Cli
         }
     }
 
-    sealed record UupPlan(UupRelease Release, IReadOnlyList<UupFile> Files, UupDownloader Downloader, UupLinks Urls);
+    sealed record UupPlan(
+        UupRelease Release, string Language, IReadOnlyList<string> Editions, IReadOnlyList<UupFile> Files,
+        UupDownloader Downloader, UupLinks Urls, string? BaseVersion);
 
     /// <summary>
     /// Выпуск из кэша → проверка языка и редакций → метаданные (скачиваются, если их ещё нет) → список файлов.
     /// План — null, если дальше идти нельзя; причина уже в потоке ошибок.
     /// </summary>
     static async Task<(int ExitCode, UupPlan? Plan)> PlanUupAsync(
-        UupSelection selection, Context context, HttpClient http, IBuildReporter reporter, CancellationToken ct)
+        UupChoice selection, Context context, HttpClient http, IBuildReporter? reporter, CancellationToken ct)
     {
         if (UupReleaseCache.Load(selection.Workspace, selection.UpdateId) is not { } release)
             return (await FailAsync(context, ExitCodes.InvalidInput, $"release {selection.UpdateId} is not known; run 'uup releases' first."), null);
@@ -152,21 +154,65 @@ public static partial class Cli
 
         try
         {
-            reporter.StepStarted(0, 2, new BuildStep(BuildStepKind.DownloadMetadata, "Download metadata"));
-            await downloader.DownloadAsync([metadata], urls, reporter.Transfer, ct);
+            reporter?.StepStarted(0, 2, new BuildStep(BuildStepKind.DownloadMetadata, "Download metadata"));
+            await downloader.DownloadAsync([metadata], urls, p => reporter?.Transfer(p), ct);
             var compDbs = Path.Combine(selection.Workspace, "cache", "uup", "meta", release.UpdateId);
             if (!Directory.Exists(compDbs) || !Directory.EnumerateFiles(compDbs, "*.xml.cab").Any())
                 Cabinet.Extract(downloader.PathOf(metadata), compDbs);
 
-            var (files, problems) = UupFileSet.Resolve(release, compDbs, language.Code, editions);
-            foreach (var problem in problems)
+            var selected = UupFileSet.Resolve(release, compDbs, language.Code, editions);
+            foreach (var problem in selected.Problems)
                 await context.Error.WriteLineAsync($"error: {problem}");
-            return problems.Count > 0 ? (ExitCodes.Failure, null) : (ExitCodes.Success, new UupPlan(release, files, downloader, urls));
+            return selected.Problems.Count > 0
+                ? (ExitCodes.Failure, null)
+                : (ExitCodes.Success, new UupPlan(release, language.Code, editions, selected.Files, downloader, urls, selected.BaseVersion));
         }
         catch (Exception e) when (e is UupDownloadException or WindowsUpdateException or InvalidDataException)
         {
             return (await FailAsync(context, ExitCodes.Failure, e.Message), null);
         }
+    }
+
+    /// <summary>
+    /// Источник сборки из профиля: выпуск (указанный или самый новый в канале), язык и редакции профиля
+    /// (по умолчанию — Pro). Метаданные скачиваются сразу — по ним видно, что и сколько качать.
+    /// </summary>
+    static async Task<(int ExitCode, UupBuildSource? Source)> PrepareUupBuildAsync(
+        Shapeshift.Core.Profile profile, Shapeshift.Core.UupSourceOptions options, string workspace, Context context, HttpClient http, CancellationToken ct)
+    {
+        var release = options.UpdateId is { } id ? UupReleaseCache.Load(workspace, id) : null;
+        if (release is null)
+        {
+            if (UupChannels.Find(options.Channel) is not { } channel)
+            {
+                return (await FailAsync(context, ExitCodes.InvalidInput,
+                    $"unknown channel '{options.Channel}'; known: {string.Join(", ", UupChannels.All.Select(c => c.Id))}."), null);
+            }
+            try
+            {
+                var (found, problem) = await UupChannels.FindOneAsync(new WindowsUpdateClient(http), channel, ct);
+                if (found is null)
+                    return (await FailAsync(context, ExitCodes.Failure, $"{problem}. Check the internet connection, or use your own ISO."), null);
+                if (options.UpdateId is { } wanted && !string.Equals(wanted, found.UpdateId, StringComparison.OrdinalIgnoreCase))
+                {
+                    return (await FailAsync(context, ExitCodes.InvalidInput,
+                        $"release {wanted} is no longer offered in channel {channel.Id} (now {found.Build}); remove 'updateId' to build the newest."), null);
+                }
+                release = found;
+                UupReleaseCache.Save(workspace, release);
+            }
+            catch (WindowsUpdateException e)
+            {
+                return (await FailAsync(context, ExitCodes.Failure, $"{e.Message} Check the internet connection, or use your own ISO."), null);
+            }
+        }
+
+        IReadOnlyList<string> editions = profile.Editions.Count > 0 ? profile.Editions : ["Professional"];
+        var (exitCode, plan) = await PlanUupAsync(new UupChoice(release.UpdateId, options.Language, editions, workspace), context, http, null, ct);
+        if (plan is null)
+            return (exitCode, null);
+        await context.Output.WriteLineAsync($"Release: {release.Title} ({release.Build}), channel {release.Channel}, {plan.Language}");
+        return (ExitCodes.Success, new UupBuildSource(plan.Release, plan.Language, plan.Editions, plan.Files, plan.Downloader, plan.Urls, plan.BaseVersion));
     }
 
     static string Problems(TextWriter errors) => string.Join("\n", errors.ToString()!

@@ -27,7 +27,7 @@ public static class Cabinet
         var output = process.StandardOutput.ReadToEndAsync();
         var error = process.StandardError.ReadToEndAsync();
         process.WaitForExit();
-        var files = Directory.GetFiles(destination);
+        var files = Directory.GetFiles(destination, "*", SearchOption.AllDirectories);
         if (process.ExitCode != 0 || files.Length == 0)
             throw new InvalidDataException($"cannot unpack {Path.GetFileName(cabPath)}: {(error.Result + output.Result).Trim()}");
         return files;

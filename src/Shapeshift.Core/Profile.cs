@@ -16,11 +16,19 @@ public sealed record Profile(
     SourceOptions Source,
     OutputOptions Output);
 
-/// <summary>Откуда берётся исходный образ. Пока — только свой ISO.</summary>
-public sealed record SourceOptions(string? IsoPath)
+/// <summary>Откуда берётся исходный образ: свой ISO или выпуск из Windows Update (UUP).</summary>
+public sealed record SourceOptions(string? IsoPath, UupSourceOptions? Uup = null)
 {
     public static SourceOptions None { get; } = new((string?)null);
 }
+
+/// <summary>
+/// Выпуск из Windows Update. Редакции — поле <c>editions</c> профиля.
+/// </summary>
+/// <param name="Channel">Канал (windows11, windows10, release-preview…): при повторной сборке берётся его самый новый выпуск.</param>
+/// <param name="Language">Язык Windows, например ru-RU.</param>
+/// <param name="UpdateId">Конкретный выпуск; null — самый новый в канале на момент сборки.</param>
+public sealed record UupSourceOptions(string Channel, string Language, string? UpdateId);
 
 /// <summary>Во что превращается сборка. Пока — только файл ISO.</summary>
 public sealed record OutputOptions(string? IsoPath)

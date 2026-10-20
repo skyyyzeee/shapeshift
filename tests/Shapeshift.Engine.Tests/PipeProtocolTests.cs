@@ -61,7 +61,7 @@ public sealed class PipeProtocolTests : IDisposable
 
         Assert.Contains(warned, m => Type(m) == "warning" && m.GetProperty("text").GetString()!.Contains("erase disk 0"));
         Assert.Equal(Cli.ExitCodes.InvalidInput, exitCode);
-        Assert.Contains(failed, m => Type(m) == "error" && m.GetProperty("text").GetString() == "profile has no 'source.iso'.");
+        Assert.Contains(failed, m => Type(m) == "error" && m.GetProperty("text").GetString() == "profile has no 'source.iso' or 'source.uup'.");
         Assert.Equal(Cli.ExitCodes.InvalidInput, failed[^1].GetProperty("code").GetInt32());
     }
 
