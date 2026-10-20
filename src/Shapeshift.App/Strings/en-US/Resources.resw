@@ -21,6 +21,8 @@
   <data name="StepComingSoon.Text" xml:space="preserve"><value>This step is coming in a future version.</value></data>
 
   <data name="AdvancedMode.Header" xml:space="preserve"><value>Advanced mode</value></data>
+  <data name="AdvancedMode.OnContent" xml:space="preserve"><value>On</value></data>
+  <data name="AdvancedMode.OffContent" xml:space="preserve"><value>Off</value></data>
   <data name="Back.Content" xml:space="preserve"><value>Back</value></data>
   <data name="Next.Content" xml:space="preserve"><value>Next</value></data>
 
@@ -145,4 +147,22 @@
   <data name="TweakConflictReplace" xml:space="preserve"><value>Turn them off and use this one</value></data>
   <data name="TweakConflictKeep" xml:space="preserve"><value>Keep as it was</value></data>
   <data name="CustomizeSummary_Tweaks" xml:space="preserve"><value>Tweaks ({0}): {1}</value></data>
+  <data name="SettingsTitle.Text" xml:space="preserve"><value>Settings</value></data>
+  <data name="LanguageHeader.Text" xml:space="preserve"><value>Display language</value></data>
+  <data name="LanguageSystem" xml:space="preserve"><value>Same as Windows</value></data>
+  <data name="RestartBar.Title" xml:space="preserve"><value>The new language applies after a restart</value></data>
+  <data name="RestartNow.Content" xml:space="preserve"><value>Restart</value></data>
+  <data name="WorkspaceHeader.Text" xml:space="preserve"><value>Workspace folder</value></data>
+  <data name="WorkspaceHint.Text" xml:space="preserve"><value>The image is unpacked here during a build — about 8–20 GB. By default it is on the drive with the most free space. A short path is better: Windows limits path length.</value></data>
+  <data name="ChangeWorkspace.Content" xml:space="preserve"><value>Change…</value></data>
+  <data name="DefaultWorkspace.Content" xml:space="preserve"><value>Default</value></data>
+  <data name="CacheTitle.Text" xml:space="preserve"><value>Cache and leftovers of interrupted builds</value></data>
+  <data name="ClearCache.Content" xml:space="preserve"><value>Clear</value></data>
+  <data name="ClearFailedBar.Title" xml:space="preserve"><value>Some files are in use</value></data>
+  <data name="ClearFailedBar.Message" xml:space="preserve"><value>Not everything could be deleted — a build may be running. Try again later.</value></data>
+  <data name="ClearCacheDialogTitle" xml:space="preserve"><value>Clear the workspace folder?</value></data>
+  <data name="ClearCacheDialogText" xml:space="preserve"><value>Everything in {0} will be deleted. Finished images are stored elsewhere and are not affected.</value></data>
+  <data name="ClearCacheDialogConfirm" xml:space="preserve"><value>Clear</value></data>
+  <data name="AboutHeader.Text" xml:space="preserve"><value>About</value></data>
+  <data name="AboutText.Text" xml:space="preserve"><value>Prepares Windows installation images. No telemetry: the app sends nothing anywhere.</value></data>
 </root>

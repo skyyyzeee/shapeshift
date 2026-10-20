@@ -71,9 +71,10 @@ public sealed class EngineClient
     }
 
     /// <summary>Пробный прогон без повышения: план, место и предупреждения — ничего не собирается.</summary>
-    public async Task<PlanResult> PlanAsync(string profilePath, CancellationToken ct = default)
+    public async Task<PlanResult> PlanAsync(string profilePath, string workspace, CancellationToken ct = default)
     {
-        var (exitCode, output, error) = await RunAsync(["build", "--profile", profilePath, "--dry-run", "--json"], ct);
+        var (exitCode, output, error) = await RunAsync(
+            ["build", "--profile", profilePath, "--workspace", workspace, "--dry-run", "--json"], ct);
 
         try
         {

@@ -35,10 +35,21 @@ public sealed partial class MainWindow : Window
         _ = ViewModel.Source.LoadAsync(path);
     }
 
+    readonly SettingsViewModel _settings = new();
+
     void Nav_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
     {
+        // Настройки — не шаг мастера: кнопки «Назад/Далее» на них не нужны.
+        if (args.IsSettingsSelected)
+        {
+            WizardButtons.Visibility = Visibility.Collapsed;
+            ContentFrame.Navigate(typeof(SettingsPage), new SettingsArgs(_settings, ViewModel.Output.IsBuilding));
+            return;
+        }
+
         if (args.SelectedItem is NavigationViewItem { Tag: string tag } && Enum.TryParse<WizardStep>(tag, out var step))
         {
+            WizardButtons.Visibility = Visibility.Visible;
             ViewModel.Current = step;
             Navigate(step);
         }

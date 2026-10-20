@@ -26,7 +26,7 @@
             Grid.Row="1"
             IsBackButtonVisible="Collapsed"
             IsPaneToggleButtonVisible="False"
-            IsSettingsVisible="False"
+            IsSettingsVisible="True"
             OpenPaneLength="232"
             PaneDisplayMode="Left"
             SelectionChanged="Nav_SelectionChanged">
@@ -74,6 +74,7 @@
                 <Frame x:Name="ContentFrame" Padding="40,28,40,0" />
 
                 <StackPanel
+                    x:Name="WizardButtons"
                     Grid.Row="1"
                     Padding="40,16,40,24"
                     HorizontalAlignment="Right"

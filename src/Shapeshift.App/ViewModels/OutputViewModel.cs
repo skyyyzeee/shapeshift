@@ -116,7 +116,7 @@ public sealed partial class OutputViewModel(
         var profile = ProfileFile.Write(Draft(source.IsoPath, OutputPath));
         try
         {
-            var result = await engine.PlanAsync(profile, planning.Token);
+            var result = await engine.PlanAsync(profile, AppSettings.Current.EffectiveWorkspace, planning.Token);
             if (planning.IsCancellationRequested)
                 return;
 
@@ -171,7 +171,7 @@ public sealed partial class OutputViewModel(
         var profile = ProfileFile.Write(Draft(source.IsoPath, OutputPath));
         try
         {
-            _session = await BuildSession.StartAsync(engine.EnginePath, profile, CancellationToken.None);
+            _session = await BuildSession.StartAsync(engine.EnginePath, profile, AppSettings.Current.EffectiveWorkspace, CancellationToken.None);
             if (_session is null)
             {
                 Finish(BuildState.Failed, Text.Get("BuildUacDenied"));

@@ -21,6 +21,8 @@
   <data name="StepComingSoon.Text" xml:space="preserve"><value>Этот шаг появится в одной из следующих версий.</value></data>
 
   <data name="AdvancedMode.Header" xml:space="preserve"><value>Продвинутый режим</value></data>
+  <data name="AdvancedMode.OnContent" xml:space="preserve"><value>Вкл.</value></data>
+  <data name="AdvancedMode.OffContent" xml:space="preserve"><value>Выкл.</value></data>
   <data name="Back.Content" xml:space="preserve"><value>Назад</value></data>
   <data name="Next.Content" xml:space="preserve"><value>Далее</value></data>
 
@@ -145,4 +147,22 @@
   <data name="TweakConflictReplace" xml:space="preserve"><value>Выключить и включить этот</value></data>
   <data name="TweakConflictKeep" xml:space="preserve"><value>Оставить как было</value></data>
   <data name="CustomizeSummary_Tweaks" xml:space="preserve"><value>Твики ({0}): {1}</value></data>
+  <data name="SettingsTitle.Text" xml:space="preserve"><value>Параметры</value></data>
+  <data name="LanguageHeader.Text" xml:space="preserve"><value>Язык интерфейса</value></data>
+  <data name="LanguageSystem" xml:space="preserve"><value>Как в Windows</value></data>
+  <data name="RestartBar.Title" xml:space="preserve"><value>Новый язык — после перезапуска</value></data>
+  <data name="RestartNow.Content" xml:space="preserve"><value>Перезапустить</value></data>
+  <data name="WorkspaceHeader.Text" xml:space="preserve"><value>Рабочая папка</value></data>
+  <data name="WorkspaceHint.Text" xml:space="preserve"><value>Здесь распаковывается образ во время сборки — нужно около 8–20 ГБ. По умолчанию — на диске с наибольшим свободным местом. Короткий путь лучше: у Windows есть предел длины пути.</value></data>
+  <data name="ChangeWorkspace.Content" xml:space="preserve"><value>Изменить…</value></data>
+  <data name="DefaultWorkspace.Content" xml:space="preserve"><value>По умолчанию</value></data>
+  <data name="CacheTitle.Text" xml:space="preserve"><value>Кэш и остатки прерванных сборок</value></data>
+  <data name="ClearCache.Content" xml:space="preserve"><value>Очистить</value></data>
+  <data name="ClearFailedBar.Title" xml:space="preserve"><value>Часть файлов занята</value></data>
+  <data name="ClearFailedBar.Message" xml:space="preserve"><value>Не всё удалось удалить — возможно, идёт сборка. Попробуйте позже.</value></data>
+  <data name="ClearCacheDialogTitle" xml:space="preserve"><value>Очистить рабочую папку?</value></data>
+  <data name="ClearCacheDialogText" xml:space="preserve"><value>Будет удалено всё содержимое папки {0}. Готовые образы лежат в другом месте и не пострадают.</value></data>
+  <data name="ClearCacheDialogConfirm" xml:space="preserve"><value>Очистить</value></data>
+  <data name="AboutHeader.Text" xml:space="preserve"><value>О программе</value></data>
+  <data name="AboutText.Text" xml:space="preserve"><value>Подготовка установочных образов Windows. Без телеметрии: программа ничего не отправляет.</value></data>
 </root>

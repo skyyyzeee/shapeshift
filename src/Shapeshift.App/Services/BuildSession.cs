@@ -29,7 +29,7 @@ public sealed class BuildSession : IAsyncDisposable
     }
 
     /// <summary>Запускает движок с повышением. null — пользователь отказал в UAC.</summary>
-    public static async Task<BuildSession?> StartAsync(string enginePath, string profilePath, CancellationToken ct)
+    public static async Task<BuildSession?> StartAsync(string enginePath, string profilePath, string workspace, CancellationToken ct)
     {
         var session = new BuildSession();
         var start = new ProcessStartInfo(enginePath)
@@ -37,7 +37,7 @@ public sealed class BuildSession : IAsyncDisposable
             UseShellExecute = true,
             Verb = "runas",
             WindowStyle = ProcessWindowStyle.Hidden,
-            Arguments = $"build --profile \"{profilePath}\" --pipe {session._pipeName}",
+            Arguments = $"build --profile {Quote(profilePath)} --workspace {Quote(workspace)} --pipe {session._pipeName}",
         };
 
         try
@@ -55,6 +55,10 @@ public sealed class BuildSession : IAsyncDisposable
         await session._pipe.WaitForConnectionAsync(timeout.Token);
         return session;
     }
+
+    // Для запуска с повышением аргументы — одна строка. Путь в кавычках не должен кончаться на «\»
+    // (например, D:\): обратный слэш перед кавычкой её экранирует.
+    static string Quote(string path) => $"\"{(path.EndsWith('\\') ? path + "." : path)}\"";
 
     /// <summary>Сообщения движка до <c>exit</c> включительно.</summary>
     public async IAsyncEnumerable<EngineMessage> ReadAsync([System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct = default)
