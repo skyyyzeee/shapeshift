@@ -285,8 +285,8 @@ Date formats, keyboards and the time zone are set separately, on the Setup step.
   <data name="UupEditionsTip.Text" xml:space="preserve"><value>These are the editions Microsoft publishes ready-made: Home and Pro (and their N versions without media features, for Europe).
 Education, Enterprise, Pro for Workstations and others are made from Pro and will come later.
 Pick the one you have a license for.</value></data>
-  <data name="UupNotYetBar.Title" xml:space="preserve"><value>Downloading comes in later versions</value></data>
-  <data name="UupNotYetBar.Message" xml:space="preserve"><value>For now you can browse releases, languages and editions here. Downloading and building an image from Windows Update comes in later versions of Shapeshift; for now, choose your own ISO.</value></data>
+  <data name="UupNotYetBar.Title" xml:space="preserve"><value>Building from the download comes in later versions</value></data>
+  <data name="UupNotYetBar.Message" xml:space="preserve"><value>The release files can already be downloaded into the cache. Building an image from them comes in later versions of Shapeshift; for now, choose your own ISO to build.</value></data>
   <data name="UupError" xml:space="preserve"><value>Couldn&apos;t get the list of releases from Windows Update. Check the internet connection, or choose your own ISO. Details: {0}</value></data>
   <data name="UupReleaseDetail" xml:space="preserve"><value>Build {0} · {1}</value></data>
   <data name="UupChannel_windows11" xml:space="preserve"><value>latest version</value></data>
@@ -301,4 +301,23 @@ Pick the one you have a license for.</value></data>
   <data name="Edition_Professional" xml:space="preserve"><value>Pro</value></data>
   <data name="Edition_ProfessionalN" xml:space="preserve"><value>Pro N</value></data>
   <data name="Edition_CoreCountrySpecific" xml:space="preserve"><value>Home China</value></data>
+  <data name="UupSize" xml:space="preserve"><value>To download: {0} of {1}</value></data>
+  <data name="UupSizeCached" xml:space="preserve"><value>Everything is downloaded ({0})</value></data>
+  <data name="UupDownloadButton.Content" xml:space="preserve"><value>Download</value></data>
+  <data name="UupCancelButton.Content" xml:space="preserve"><value>Cancel</value></data>
+  <data name="UupDownloadTip.Text" xml:space="preserve"><value>Files come straight from Microsoft servers into the workspace cache and are checked against their checksums.
+Stopped or closed the window — the next Download resumes where it stopped.
+What is downloaded once is not downloaded again, even for another edition of the same release. To free space: Settings → Clear.</value></data>
+  <data name="UupDownloadStarting" xml:space="preserve"><value>Downloading…</value></data>
+  <data name="UupDownloadMetadata" xml:space="preserve"><value>Getting the file list…</value></data>
+  <data name="UupDownloadCancelling" xml:space="preserve"><value>Stopping…</value></data>
+  <data name="UupProgressAmount" xml:space="preserve"><value>{0} of {1}</value></data>
+  <data name="UupProgressSpeed" xml:space="preserve"><value>{0}/s</value></data>
+  <data name="UupProgressLeftHours" xml:space="preserve"><value>{0} h {1} min left</value></data>
+  <data name="UupProgressLeftMinutes" xml:space="preserve"><value>{0} min left</value></data>
+  <data name="UupDoneBar.Title" xml:space="preserve"><value>Downloaded</value></data>
+  <data name="UupDoneBar.Message" xml:space="preserve"><value>The files are in the cache and verified. Building an image from them comes in the next version of Shapeshift.</value></data>
+  <data name="UupCancelledBar.Title" xml:space="preserve"><value>Download stopped</value></data>
+  <data name="UupCancelledBar.Message" xml:space="preserve"><value>Press Download to resume where it stopped.</value></data>
+  <data name="UupFailedBar.Title" xml:space="preserve"><value>Couldn&apos;t download</value></data>
 </root>

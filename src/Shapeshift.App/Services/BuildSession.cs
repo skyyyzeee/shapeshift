@@ -13,8 +13,9 @@ public sealed record EngineMessage(string Type, JsonElement Body)
 }
 
 /// <summary>
-/// Одна сборка из окна: окно поднимает именованный канал, запускает движок с повышением (один запрос UAC)
-/// и читает его сообщения. Отмена — командой по каналу; закрытие окна рвёт канал, и движок тоже отменяет сборку.
+/// Долгая работа движка для окна (сборка, скачивание): окно поднимает именованный канал, запускает движок
+/// и читает его сообщения. Сборка — с повышением (один запрос UAC), скачивание — без. Отмена — командой по каналу;
+/// закрытие окна рвёт канал, и движок тоже отменяет работу.
 /// </summary>
 public sealed class BuildSession : IAsyncDisposable
 {
@@ -28,17 +29,39 @@ public sealed class BuildSession : IAsyncDisposable
         _pipe = new NamedPipeServerStream(_pipeName, PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous);
     }
 
-    /// <summary>Запускает движок с повышением. null — пользователь отказал в UAC.</summary>
-    public static async Task<BuildSession?> StartAsync(string enginePath, string profilePath, string workspace, CancellationToken ct)
+    /// <summary>Сборка: движок с повышением. null — пользователь отказал в UAC.</summary>
+    public static Task<BuildSession?> StartBuildAsync(string enginePath, string profilePath, string workspace, CancellationToken ct) =>
+        StartAsync(enginePath, ["build", "--profile", profilePath, "--workspace", workspace], elevated: true, ct);
+
+    /// <summary>Скачивание выпуска UUP в кэш: движок без повышения.</summary>
+    public static async Task<BuildSession> StartDownloadAsync(
+        string enginePath, string updateId, string language, IReadOnlyList<string> editions, string workspace, CancellationToken ct) =>
+        (await StartAsync(enginePath,
+            ["uup", "download", "--update", updateId, "--lang", language, .. editions.SelectMany(e => new[] { "--edition", e }), "--workspace", workspace],
+            elevated: false, ct))!;
+
+    static async Task<BuildSession?> StartAsync(string enginePath, IReadOnlyList<string> arguments, bool elevated, CancellationToken ct)
     {
         var session = new BuildSession();
-        var start = new ProcessStartInfo(enginePath)
+        ProcessStartInfo start;
+        if (elevated)
         {
-            UseShellExecute = true,
-            Verb = "runas",
-            WindowStyle = ProcessWindowStyle.Hidden,
-            Arguments = $"build --profile {Quote(profilePath)} --workspace {Quote(workspace)} --pipe {session._pipeName}",
-        };
+            start = new ProcessStartInfo(enginePath)
+            {
+                UseShellExecute = true,
+                Verb = "runas",
+                WindowStyle = ProcessWindowStyle.Hidden,
+                Arguments = string.Join(" ", arguments.Select(a => a.StartsWith("--", StringComparison.Ordinal) ? a : Quote(a))) + $" --pipe {session._pipeName}",
+            };
+        }
+        else
+        {
+            start = new ProcessStartInfo(enginePath) { UseShellExecute = false, CreateNoWindow = true };
+            foreach (var argument in arguments)
+                start.ArgumentList.Add(argument);
+            start.ArgumentList.Add("--pipe");
+            start.ArgumentList.Add(session._pipeName);
+        }
 
         try
         {

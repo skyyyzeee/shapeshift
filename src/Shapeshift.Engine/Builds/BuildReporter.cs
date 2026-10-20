@@ -10,6 +10,9 @@ public interface IBuildReporter
 
     void Log(string text);
 
+    /// <summary>Скачивание: сколько из скольких байт и скорость — для полосы, скорости и оставшегося времени.</summary>
+    void Transfer(Uup.TransferProgress progress);
+
     void Done(string outputIso);
 }
 
@@ -36,5 +39,21 @@ public sealed class ConsoleBuildReporter(TextWriter output) : IBuildReporter
 
     public void Log(string text) => output.WriteLine(text);
 
+    // Каждые 5 %: сколько скачано, скорость, сколько осталось.
+    public void Transfer(Uup.TransferProgress progress)
+    {
+        var percent = progress.Total == 0 ? 100 : (int)(progress.Done * 100 / progress.Total) / 5 * 5;
+        if (percent <= _lastPercent)
+            return;
+        _lastPercent = percent;
+        var left = progress.Left is { } time ? $", {Math.Ceiling(time.TotalMinutes)} min left" : "";
+        var speed = progress.BytesPerSecond > 0 ? FormattableString.Invariant($", {progress.BytesPerSecond / (1 << 20):0.0} MB/s") : "";
+        output.WriteLine($"      {percent}%  {Amount(progress.Done, progress.Total)}{speed}{left}");
+    }
+
     public void Done(string outputIso) => output.WriteLine($"Done: {outputIso}");
+
+    static string Amount(long done, long total) => total >= 1L << 30
+        ? FormattableString.Invariant($"{done / (double)(1 << 30):0.00} of {total / (double)(1 << 30):0.00} GB")
+        : FormattableString.Invariant($"{done / (double)(1 << 20):0.0} of {total / (double)(1 << 20):0.0} MB");
 }

@@ -23,6 +23,9 @@ public sealed class EngineHost
     public Func<HttpMessageHandler> HttpHandler { get; init; } =
         () => new SocketsHttpHandler { AutomaticDecompression = System.Net.DecompressionMethods.All };
 
+    /// <summary>Сколько скачивание ждёт данных, прежде чем переподключиться (тесты делают его коротким).</summary>
+    public TimeSpan DownloadStallTimeout { get; init; } = TimeSpan.FromSeconds(30);
+
     public HttpClient CreateHttpClient() => new(HttpHandler(), disposeHandler: true) { Timeout = TimeSpan.FromSeconds(60) };
 
     public static string VolumeOf(string path) => Path.GetPathRoot(Path.GetFullPath(path))!.ToUpperInvariant();

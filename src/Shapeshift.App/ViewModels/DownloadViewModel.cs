@@ -11,6 +11,15 @@ public sealed record ReleaseChoice(UupReleaseSummary Release, string Title, stri
 /// <summary>Язык выпуска: код и название на языке интерфейса.</summary>
 public sealed record LanguageChoice(string Code, string Name, IReadOnlyList<string> Editions);
 
+public enum DownloadState
+{
+    Idle,
+    Downloading,
+    Done,
+    Failed,
+    Cancelled,
+}
+
 /// <summary>Редакция выпуска — флажок.</summary>
 public sealed partial class EditionPick : ObservableObject
 {
@@ -22,8 +31,9 @@ public sealed partial class EditionPick : ObservableObject
 }
 
 /// <summary>
-/// Шаг «Источник → Скачать»: выпуск из Windows Update → язык → редакции. Список приходит от движка
-/// (<c>uup releases</c>), напрямую из Windows Update. Скачивание и сборка образа — следующие задачи.
+/// Шаг «Источник → Скачать»: выпуск из Windows Update → язык → редакции → скачивание в кэш.
+/// Список и объём приходят от движка (<c>uup releases</c>, <c>uup files</c>), скачивает он же — без повышения,
+/// с ходом по каналу. Сборка образа из скачанного — следующая задача.
 /// </summary>
 public sealed partial class DownloadViewModel(EngineClient engine) : ObservableObject
 {
@@ -93,6 +103,7 @@ public sealed partial class DownloadViewModel(EngineClient engine) : ObservableO
 
     async partial void OnReleaseChanged(ReleaseChoice? value)
     {
+        OnPropertyChanged(nameof(CanDownload));
         var previous = Language?.Code ?? CultureInfo.CurrentUICulture.Name;
         Languages.Clear();
         Editions.Clear();
@@ -128,7 +139,170 @@ public sealed partial class DownloadViewModel(EngineClient engine) : ObservableO
         var chosen = Editions.Where(e => e.IsOn).Select(e => e.EditionId).ToHashSet();
         Editions.Clear();
         foreach (var edition in value?.Editions ?? [])
-            Editions.Add(new EditionPick { EditionId = edition, Name = EditionName(edition), IsOn = chosen.Count == 0 ? edition == "Professional" : chosen.Contains(edition) });
+        {
+            var pick = new EditionPick { EditionId = edition, Name = EditionName(edition), IsOn = chosen.Count == 0 ? edition == "Professional" : chosen.Contains(edition) };
+            pick.PropertyChanged += (_, _) => SelectionChanged();
+            Editions.Add(pick);
+        }
+        SelectionChanged();
+    }
+
+    // ---- Объём и скачивание ----
+
+    BuildSession? _session;
+    CancellationTokenSource? _measuring;
+    bool _filesStep;
+
+    [ObservableProperty]
+    public partial string? SizeText { get; private set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanDownload))]
+    public partial bool IsMeasuring { get; private set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsDownloading), nameof(CanDownload), nameof(IsDone), nameof(HasFailed), nameof(WasCancelled))]
+    public partial DownloadState State { get; private set; }
+
+    [ObservableProperty]
+    public partial double Progress { get; private set; }
+
+    [ObservableProperty]
+    public partial string ProgressText { get; private set; } = "";
+
+    [ObservableProperty]
+    public partial string? FailureText { get; private set; }
+
+    public bool IsDownloading => State == DownloadState.Downloading;
+
+    public bool IsDone => State == DownloadState.Done;
+
+    public bool HasFailed => State == DownloadState.Failed;
+
+    public bool WasCancelled => State == DownloadState.Cancelled;
+
+    public bool CanDownload => State != DownloadState.Downloading && !IsMeasuring && Release is not null && Language is not null && Editions.Any(e => e.IsOn);
+
+    IReadOnlyList<string> ChosenEditions => Editions.Where(e => e.IsOn).Select(e => e.EditionId).ToList();
+
+    void SelectionChanged()
+    {
+        if (State != DownloadState.Downloading)
+            State = DownloadState.Idle;
+        OnPropertyChanged(nameof(CanDownload));
+        _ = MeasureAsync();
+    }
+
+    /// <summary>Сколько скачать для выбранного: первый раз движок скачивает метаданные выпуска (несколько МБ).</summary>
+    async Task MeasureAsync()
+    {
+        _measuring?.Cancel();
+        var measuring = _measuring = new CancellationTokenSource();
+        if (Release is not { } release || Language is not { } language || ChosenEditions is not { Count: > 0 } editions)
+        {
+            SizeText = null;
+            return;
+        }
+
+        IsMeasuring = true;
+        try
+        {
+            var result = await engine.UupFilesAsync(release.Release.UpdateId, language.Code, editions, AppSettings.Current.EffectiveWorkspace, measuring.Token);
+            if (measuring.IsCancellationRequested)
+                return;
+            SizeText = result.Error is { } error ? Text.Format("UupError", error)
+                : result.CachedBytes >= result.Bytes ? Text.Format("UupSizeCached", Text.Size(result.Bytes))
+                : Text.Format("UupSize", Text.Size(result.Bytes - result.CachedBytes), Text.Size(result.Bytes));
+        }
+        catch (OperationCanceledException)
+        {
+            // Выбор изменился, пока считали.
+        }
+        finally
+        {
+            if (measuring == _measuring)
+                IsMeasuring = false;
+        }
+    }
+
+    public async Task DownloadAsync()
+    {
+        if (!CanDownload || Release is not { } release || Language is not { } language)
+            return;
+
+        State = DownloadState.Downloading;
+        Progress = 0;
+        ProgressText = Text.Get("UupDownloadStarting");
+        FailureText = null;
+        _filesStep = false;
+        try
+        {
+            _session = await BuildSession.StartDownloadAsync(engine.EnginePath, release.Release.UpdateId, language.Code, ChosenEditions, AppSettings.Current.EffectiveWorkspace, CancellationToken.None);
+            var errors = new List<string>();
+            var exitCode = -1;
+            await foreach (var message in _session.ReadAsync())
+            {
+                switch (message.Type)
+                {
+                    case "step":
+                        _filesStep = message.Body.GetProperty("kind").GetString() == "DownloadFiles";
+                        ProgressText = Text.Get(_filesStep ? "UupDownloadStarting" : "UupDownloadMetadata");
+                        break;
+                    case "transfer" when _filesStep:
+                        ShowTransfer(message.Body);
+                        break;
+                    case "error":
+                        errors.Add(message.Text ?? "");
+                        break;
+                    case "exit":
+                        exitCode = message.Body.GetProperty("code").GetInt32();
+                        break;
+                }
+            }
+            FailureText = errors.Count > 0 ? string.Join("\n", errors) : Text.Get("BuildFailedUnknown");
+            State = exitCode switch { 0 => DownloadState.Done, 4 => DownloadState.Cancelled, _ => DownloadState.Failed };
+        }
+        catch (Exception e) when (e is IOException or OperationCanceledException or TimeoutException or System.ComponentModel.Win32Exception)
+        {
+            FailureText = Text.Format("BuildEngineLost", e.Message);
+            State = DownloadState.Failed;
+        }
+        finally
+        {
+            if (_session is not null)
+                await _session.DisposeAsync();
+            _session = null;
+            _ = MeasureAsync();
+        }
+    }
+
+    public async Task CancelDownloadAsync()
+    {
+        if (_session is not null)
+        {
+            ProgressText = Text.Get("UupDownloadCancelling");
+            await _session.CancelAsync();
+        }
+    }
+
+    // «2,3 из 9,1 ГБ · 7,5 МБ/с · осталось 18 мин»
+    void ShowTransfer(System.Text.Json.JsonElement body)
+    {
+        var bytes = body.GetProperty("bytes").GetInt64();
+        var total = body.GetProperty("total").GetInt64();
+        var speed = body.GetProperty("bytesPerSecond").GetDouble();
+        Progress = total > 0 ? 100.0 * bytes / total : 0;
+        var parts = new List<string> { Text.Format("UupProgressAmount", Text.Size(bytes), Text.Size(total)) };
+        if (speed > 0)
+            parts.Add(Text.Format("UupProgressSpeed", Text.Size((long)speed)));
+        if (body.GetProperty("secondsLeft") is { ValueKind: System.Text.Json.JsonValueKind.Number } left)
+        {
+            var time = TimeSpan.FromSeconds(left.GetInt64());
+            parts.Add(time.TotalHours >= 1
+                ? Text.Format("UupProgressLeftHours", (int)time.TotalHours, time.Minutes)
+                : Text.Format("UupProgressLeftMinutes", Math.Max(1, (int)Math.Ceiling(time.TotalMinutes))));
+        }
+        ProgressText = string.Join("  ·  ", parts);
     }
 
     static string ChannelName(string channel) => Text.Get($"UupChannel_{channel}") is var name && name != $"UupChannel_{channel}" ? name : channel;

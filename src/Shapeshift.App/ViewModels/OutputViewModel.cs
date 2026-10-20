@@ -203,7 +203,7 @@ public sealed partial class OutputViewModel(
         var profile = ProfileFile.Write(Draft(source.IsoPath, OutputPath));
         try
         {
-            _session = await BuildSession.StartAsync(engine.EnginePath, profile, AppSettings.Current.EffectiveWorkspace, CancellationToken.None);
+            _session = await BuildSession.StartBuildAsync(engine.EnginePath, profile, AppSettings.Current.EffectiveWorkspace, CancellationToken.None);
             if (_session is null)
             {
                 Finish(BuildState.Failed, Text.Get("BuildUacDenied"));
@@ -301,7 +301,5 @@ public sealed partial class OutputViewModel(
         State = state;
     }
 
-    static string Size(long bytes) => bytes >= 1L << 30
-        ? string.Format(CultureInfo.CurrentCulture, "{0:0.0} {1}", bytes / (double)(1L << 30), Text.Get("UnitGB"))
-        : string.Format(CultureInfo.CurrentCulture, "{0:0.0} {1}", bytes / (double)(1L << 20), Text.Get("UnitMB"));
+    static string Size(long bytes) => Text.Size(bytes);
 }

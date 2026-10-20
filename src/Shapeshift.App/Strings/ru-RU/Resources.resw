@@ -286,8 +286,8 @@ Insider Beta, Dev, Canary — предварительные сборки (то�
   <data name="UupEditionsTip.Text" xml:space="preserve"><value>Здесь — редакции, которые Microsoft выкладывает готовыми: Домашняя и Pro (и их N-версии без мультимедиа — для Европы).
 Education, Enterprise, Pro для рабочих станций и другие получаются из Pro и появятся позже.
 Выбирайте ту, на которую у вас лицензия.</value></data>
-  <data name="UupNotYetBar.Title" xml:space="preserve"><value>Скачивание — в следующих версиях</value></data>
-  <data name="UupNotYetBar.Message" xml:space="preserve"><value>Пока здесь можно посмотреть выпуски, языки и редакции. Скачать образ из Windows Update и собрать его можно будет в следующих версиях Shapeshift, а сейчас выберите свой ISO.</value></data>
+  <data name="UupNotYetBar.Title" xml:space="preserve"><value>Сборка из скачанного — в следующих версиях</value></data>
+  <data name="UupNotYetBar.Message" xml:space="preserve"><value>Файлы выпуска уже можно скачать в кэш. Собрать из них образ можно будет в следующих версиях Shapeshift; пока для сборки выберите свой ISO.</value></data>
   <data name="UupError" xml:space="preserve"><value>Не удалось получить список выпусков из Windows Update. Проверьте подключение к интернету или выберите свой ISO. Подробности: {0}</value></data>
   <data name="UupReleaseDetail" xml:space="preserve"><value>Сборка {0} · {1}</value></data>
   <data name="UupChannel_windows11" xml:space="preserve"><value>последняя версия</value></data>
@@ -302,4 +302,23 @@ Education, Enterprise, Pro для рабочих станций и другие 
   <data name="Edition_Professional" xml:space="preserve"><value>Pro</value></data>
   <data name="Edition_ProfessionalN" xml:space="preserve"><value>Pro N</value></data>
   <data name="Edition_CoreCountrySpecific" xml:space="preserve"><value>Домашняя для Китая</value></data>
+  <data name="UupSize" xml:space="preserve"><value>Нужно скачать: {0} из {1}</value></data>
+  <data name="UupSizeCached" xml:space="preserve"><value>Всё уже скачано ({0})</value></data>
+  <data name="UupDownloadButton.Content" xml:space="preserve"><value>Скачать</value></data>
+  <data name="UupCancelButton.Content" xml:space="preserve"><value>Отменить</value></data>
+  <data name="UupDownloadTip.Text" xml:space="preserve"><value>Файлы скачиваются прямо с серверов Microsoft в кэш рабочей папки и проверяются по контрольным суммам.
+Прервали или закрыли окно — при следующем «Скачать» продолжится с того же места.
+Один раз скачанное повторно не скачивается — даже для другой редакции того же выпуска. Освободить место: «Параметры» → «Очистить».</value></data>
+  <data name="UupDownloadStarting" xml:space="preserve"><value>Скачиваю…</value></data>
+  <data name="UupDownloadMetadata" xml:space="preserve"><value>Получаю список файлов…</value></data>
+  <data name="UupDownloadCancelling" xml:space="preserve"><value>Останавливаю…</value></data>
+  <data name="UupProgressAmount" xml:space="preserve"><value>{0} из {1}</value></data>
+  <data name="UupProgressSpeed" xml:space="preserve"><value>{0}/с</value></data>
+  <data name="UupProgressLeftHours" xml:space="preserve"><value>осталось {0} ч {1} мин</value></data>
+  <data name="UupProgressLeftMinutes" xml:space="preserve"><value>осталось {0} мин</value></data>
+  <data name="UupDoneBar.Title" xml:space="preserve"><value>Скачано</value></data>
+  <data name="UupDoneBar.Message" xml:space="preserve"><value>Файлы в кэше и проверены. Собрать из них образ можно будет в следующей версии Shapeshift.</value></data>
+  <data name="UupCancelledBar.Title" xml:space="preserve"><value>Скачивание остановлено</value></data>
+  <data name="UupCancelledBar.Message" xml:space="preserve"><value>Нажмите «Скачать» — продолжится с того же места.</value></data>
+  <data name="UupFailedBar.Title" xml:space="preserve"><value>Не удалось скачать</value></data>
 </root>

@@ -115,6 +115,14 @@ public static class EngineJson
         }),
     }, Options);
 
+    /// <summary>Что скачать для языка и редакций (<c>uup files --json</c>): всего и сколько уже в кэше.</summary>
+    public static string UupFiles(IReadOnlyList<Uup.UupFile> files, long cachedBytes) => JsonSerializer.Serialize(new
+    {
+        files = files.Count,
+        bytes = files.Sum(f => f.Size),
+        cachedBytes,
+    }, Options);
+
     public static string Error(string code, string message) =>
         JsonSerializer.Serialize(new { error = new { code, message } }, Options);
 }

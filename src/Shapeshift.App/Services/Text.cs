@@ -14,4 +14,9 @@ public static class Text
     }
 
     public static string Format(string key, params object[] args) => string.Format(Get(key), args);
+
+    /// <summary>Размер по-человечески: «9,1 ГБ» или «350,0 МБ».</summary>
+    public static string Size(long bytes) => bytes >= 1L << 30
+        ? string.Format(System.Globalization.CultureInfo.CurrentCulture, "{0:0.0} {1}", bytes / (double)(1L << 30), Get("UnitGB"))
+        : string.Format(System.Globalization.CultureInfo.CurrentCulture, "{0:0.0} {1}", bytes / (double)(1L << 20), Get("UnitMB"));
 }

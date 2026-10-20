@@ -66,9 +66,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     {
         var path = WorkspacePath;
         var bytes = await Task.Run(() => WorkspaceFolder.Size(path));
-        CacheSize = bytes >= 1L << 30
-            ? string.Format(CultureInfo.CurrentCulture, "{0:0.0} {1}", bytes / (double)(1L << 30), Text.Get("UnitGB"))
-            : string.Format(CultureInfo.CurrentCulture, "{0:0.0} {1}", bytes / (double)(1L << 20), Text.Get("UnitMB"));
+        CacheSize = Text.Size(bytes);
     }
 
     /// <returns>false — часть файлов занята (например, идёт сборка).</returns>

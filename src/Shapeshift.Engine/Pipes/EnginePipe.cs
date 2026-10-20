@@ -126,6 +126,15 @@ public sealed class PipeBuildReporter(EnginePipe pipe) : IBuildReporter
 
     public void Log(string text) => pipe.Send("log", new { text });
 
+    // Для окна: байты, скорость (байт/с) и оставшиеся секунды (null — пока неизвестно).
+    public void Transfer(Uup.TransferProgress progress) => pipe.Send("transfer", new
+    {
+        bytes = progress.Done,
+        total = progress.Total,
+        bytesPerSecond = Math.Round(progress.BytesPerSecond),
+        secondsLeft = progress.Left is { } left ? (long?)Math.Ceiling(left.TotalSeconds) : null,
+    });
+
     public void Done(string outputIso) => pipe.Send("done", new { outputIso });
 }
 

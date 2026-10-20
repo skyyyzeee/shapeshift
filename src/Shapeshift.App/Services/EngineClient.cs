@@ -38,6 +38,9 @@ public sealed record UupReleasesResult(IReadOnlyList<UupReleaseSummary> Releases
 
 public sealed record UupLanguageSummary(string Code, IReadOnlyList<string> Editions);
 
+/// <summary>Объём скачивания или текст ошибки.</summary>
+public sealed record UupFilesResult(long Bytes, long CachedBytes, string? Error);
+
 /// <summary>
 /// Окно не работает с образами само: всё делает движок — отдельный процесс (ADR-0003).
 /// Чтение образа не требует прав администратора, поэтому движок здесь запускается без повышения.
@@ -204,6 +207,26 @@ public sealed class EngineClient
         catch (Exception e) when (e is JsonException or KeyNotFoundException or InvalidOperationException)
         {
             return null;
+        }
+    }
+
+    /// <summary>Сколько скачать для языка и редакций и сколько уже в кэше (<c>uup files --json</c>).</summary>
+    public async Task<UupFilesResult> UupFilesAsync(
+        string updateId, string language, IReadOnlyList<string> editions, string workspace, CancellationToken ct = default)
+    {
+        string[] args = ["uup", "files", "--update", updateId, "--lang", language, .. editions.SelectMany(e => new[] { "--edition", e }), "--workspace", workspace, "--json"];
+        var (exitCode, output, error) = await RunAsync(args, ct);
+        try
+        {
+            using var doc = JsonDocument.Parse(output);
+            var root = doc.RootElement;
+            if (root.TryGetProperty("error", out var problem))
+                return new UupFilesResult(0, 0, problem.GetProperty("message").GetString());
+            return new UupFilesResult(root.GetProperty("bytes").GetInt64(), root.GetProperty("cachedBytes").GetInt64(), null);
+        }
+        catch (Exception e) when (e is JsonException or KeyNotFoundException or InvalidOperationException)
+        {
+            return new UupFilesResult(0, 0, $"exit {exitCode}: {error.Trim()}");
         }
     }
 

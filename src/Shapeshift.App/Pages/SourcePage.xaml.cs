@@ -38,6 +38,10 @@ public sealed partial class SourcePage : Page
 
     async void UupRetry_Click(object sender, RoutedEventArgs e) => await Wizard.Download.LoadAsync(Wizard.AdvancedMode, force: true);
 
+    async void UupDownload_Click(object sender, RoutedEventArgs e) => await Wizard.Download.DownloadAsync();
+
+    async void UupCancel_Click(object sender, RoutedEventArgs e) => await Wizard.Download.CancelDownloadAsync();
+
     async void ChooseIso_Click(object sender, RoutedEventArgs e)
     {
         var picker = new FileOpenPicker(XamlRoot.ContentIslandEnvironment.AppWindowId);

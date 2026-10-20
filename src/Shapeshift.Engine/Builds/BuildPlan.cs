@@ -6,6 +6,8 @@ namespace Shapeshift.Engine.Builds;
 
 public enum BuildStepKind
 {
+    DownloadMetadata,
+    DownloadFiles,
     ExtractImage,
     KeepEditions,
     RemoveApps,

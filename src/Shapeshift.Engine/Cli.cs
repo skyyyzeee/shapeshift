@@ -15,7 +15,7 @@ namespace Shapeshift.Engine;
 /// Точка входа движка. Единственный шов тестирования: тесты вызывают <see cref="RunAsync"/>
 /// внутри своего процесса с теми же аргументами, что и командная строка.
 /// </summary>
-public static class Cli
+public static partial class Cli
 {
     public static class ExitCodes
     {
@@ -232,7 +232,12 @@ public static class Cli
     }
 
     /// <summary>Сборка для окна: всё — сообщениями в канал, отмена — командой окна или обрывом канала.</summary>
-    static async Task<int> BuildOverPipeAsync(BuildOptions options, string pipeName, Context context, CancellationToken ct)
+    static Task<int> BuildOverPipeAsync(BuildOptions options, string pipeName, Context context, CancellationToken ct) =>
+        OverPipeAsync(pipeName, context, ct, async (piped, reporter, token) => (await RunBuildAsync(options, piped, reporter, token)).ExitCode);
+
+    /// <summary>Работа для окна: всё — сообщениями в канал, отмена — командой окна или обрывом канала.</summary>
+    static async Task<int> OverPipeAsync(
+        string pipeName, Context context, CancellationToken ct, Func<Context, IBuildReporter, CancellationToken, Task<int>> work)
     {
         await using var pipe = await EnginePipe.ConnectAsync(pipeName, ct);
         using var cancel = CancellationTokenSource.CreateLinkedTokenSource(ct);
@@ -240,7 +245,7 @@ public static class Cli
         var listening = pipe.ListenAsync(cancel.Cancel, stopListening.Token);
 
         var piped = context with { Output = new PipeTextWriter(pipe, isErrorStream: false), Error = new PipeTextWriter(pipe, isErrorStream: true) };
-        var (exitCode, _) = await RunBuildAsync(options, piped, new PipeBuildReporter(pipe), cancel.Token);
+        var exitCode = await work(piped, new PipeBuildReporter(pipe), cancel.Token);
 
         await piped.Output.FlushAsync(CancellationToken.None);
         await piped.Error.FlushAsync(CancellationToken.None);
@@ -561,7 +566,13 @@ public static class Cli
             return ExitCodes.Success;
         });
 
-        return new Command("uup", "Windows releases straight from Windows Update (UUP).") { releases, release };
+        return new Command("uup", "Windows releases straight from Windows Update (UUP).")
+        {
+            releases,
+            release,
+            UupFilesCommand(context),
+            UupDownloadCommand(context),
+        };
     }
 
     static async Task<int> FailUupAsync(Context context, bool json, string message)

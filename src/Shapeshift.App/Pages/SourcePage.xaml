@@ -179,6 +179,26 @@
                                 </ItemsRepeater.ItemTemplate>
                             </ItemsRepeater>
                         </StackPanel>
+
+                        <!-- Объём и скачивание в кэш. -->
+                        <StackPanel Spacing="8">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <ProgressRing Width="16" Height="16" IsActive="{x:Bind Wizard.Download.IsMeasuring, Mode=OneWay}" Visibility="{x:Bind Wizard.Download.IsMeasuring, Mode=OneWay}" />
+                                <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{x:Bind Wizard.Download.SizeText, Mode=OneWay}" TextWrapping="Wrap" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button x:Uid="UupDownloadButton" Click="UupDownload_Click" IsEnabled="{x:Bind Wizard.Download.CanDownload, Mode=OneWay}" Style="{StaticResource AccentButtonStyle}" />
+                                <Button x:Uid="UupCancelButton" Click="UupCancel_Click" Visibility="{x:Bind Wizard.Download.IsDownloading, Mode=OneWay}" />
+                                <c:InfoTip x:Uid="UupDownloadTip" />
+                            </StackPanel>
+                            <StackPanel Spacing="4" Visibility="{x:Bind Wizard.Download.IsDownloading, Mode=OneWay}">
+                                <ProgressBar Maximum="100" Value="{x:Bind Wizard.Download.Progress, Mode=OneWay}" />
+                                <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" Text="{x:Bind Wizard.Download.ProgressText, Mode=OneWay}" />
+                            </StackPanel>
+                            <InfoBar x:Uid="UupDoneBar" IsClosable="False" IsOpen="{x:Bind Wizard.Download.IsDone, Mode=OneWay}" Severity="Success" />
+                            <InfoBar x:Uid="UupCancelledBar" IsClosable="False" IsOpen="{x:Bind Wizard.Download.WasCancelled, Mode=OneWay}" Severity="Informational" />
+                            <InfoBar x:Uid="UupFailedBar" IsClosable="False" IsOpen="{x:Bind Wizard.Download.HasFailed, Mode=OneWay}" Message="{x:Bind Wizard.Download.FailureText, Mode=OneWay}" Severity="Error" />
+                        </StackPanel>
                     </StackPanel>
                 </Border>
 

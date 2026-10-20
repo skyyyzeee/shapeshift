@@ -32,6 +32,10 @@ public sealed record FoundRelease(string UpdateId, int Revision, string Title, s
 public sealed class WindowsUpdateClient(HttpClient http)
 {
     public const string Endpoint = "https://fe3.delivery.mp.microsoft.com/ClientWebService/client.asmx";
+
+    /// <summary>Ссылки на файлы выдаёт защищённая точка; в заголовке адресата — то же имя, что у основной службы.</summary>
+    public const string SecuredEndpoint = "https://fe3cr.delivery.mp.microsoft.com/ClientWebService/client.asmx/secured";
+    const string SecuredAddress = "https://fe3.delivery.mp.microsoft.com/ClientWebService/client.asmx/secured";
     const string UserAgent = "Windows-Update-Agent/10.0.10011.16384 Client-Protocol/2.50";
 
     static readonly XNamespace Ws = "http://www.microsoft.com/SoftwareDistribution/Server/ClientWebService";
@@ -59,12 +63,36 @@ public sealed class WindowsUpdateClient(HttpClient http)
             ?? throw new WindowsUpdateException("Windows Update returned no session cookie.");
     }
 
-    async Task<XDocument> PostAsync(string action, string body, CancellationToken ct)
+    /// <summary>
+    /// Ссылки на скачивание файлов выпуска: SHA-1 файла (hex) → адрес. Ссылки временные (несколько часов) —
+    /// при истечении их запрашивают заново.
+    /// </summary>
+    public async Task<IReadOnlyDictionary<string, Uri>> GetFileUrlsAsync(string updateId, int revision, UpdateQuery query, CancellationToken ct)
+    {
+        var body = $"""
+            <GetExtendedUpdateInfo2 xmlns="{Ws}"><updateIDs><UpdateIdentity><UpdateID>{updateId}</UpdateID><RevisionNumber>{revision}</RevisionNumber></UpdateIdentity></updateIDs><infoTypes><XmlUpdateFragmentType>FileUrl</XmlUpdateFragmentType><XmlUpdateFragmentType>FileDecryption</XmlUpdateFragmentType><XmlUpdateFragmentType>EsrpDecryptionInformation</XmlUpdateFragmentType><XmlUpdateFragmentType>PiecesHashUrl</XmlUpdateFragmentType><XmlUpdateFragmentType>BlockMapUrl</XmlUpdateFragmentType></infoTypes><deviceAttributes>{Escape(DeviceAttributes(query))}</deviceAttributes></GetExtendedUpdateInfo2>
+            """;
+        var response = await PostAsync("GetExtendedUpdateInfo2", body, ct, SecuredEndpoint, SecuredAddress);
+        var urls = new Dictionary<string, Uri>(StringComparer.OrdinalIgnoreCase);
+        foreach (var location in response.Descendants(Ws + "FileLocation"))
+        {
+            var digest = location.Element(Ws + "FileDigest")?.Value;
+            var url = location.Element(Ws + "Url")?.Value;
+            if (digest is null || url is null || !Uri.TryCreate(url, UriKind.Absolute, out var uri))
+                continue;
+            urls.TryAdd(Hex(digest), uri);
+        }
+        if (urls.Count == 0)
+            throw new WindowsUpdateException($"Windows Update gave no download links for release {updateId}.");
+        return urls;
+    }
+
+    async Task<XDocument> PostAsync(string action, string body, CancellationToken ct, string endpoint = Endpoint, string address = Endpoint)
     {
         var envelope = $"""
-            <s:Envelope xmlns:a="http://www.w3.org/2005/08/addressing" xmlns:s="http://www.w3.org/2003/05/soap-envelope">{Header(action)}<s:Body>{body}</s:Body></s:Envelope>
+            <s:Envelope xmlns:a="http://www.w3.org/2005/08/addressing" xmlns:s="http://www.w3.org/2003/05/soap-envelope">{Header(action, address)}<s:Body>{body}</s:Body></s:Envelope>
             """;
-        using var request = new HttpRequestMessage(HttpMethod.Post, Endpoint)
+        using var request = new HttpRequestMessage(HttpMethod.Post, endpoint)
         {
             Content = new StringContent(envelope, Encoding.UTF8, "application/soap+xml"),
         };
@@ -184,11 +212,11 @@ public sealed class WindowsUpdateClient(HttpClient http)
         }
     }
 
-    static string Header(string action)
+    static string Header(string action, string address)
     {
         var now = DateTime.UtcNow;
         return $"""
-            <s:Header><a:Action s:mustUnderstand="1">http://www.microsoft.com/SoftwareDistribution/Server/ClientWebService/{action}</a:Action><a:MessageID>urn:uuid:{Guid.NewGuid()}</a:MessageID><a:To s:mustUnderstand="1">{Endpoint}</a:To><o:Security s:mustUnderstand="1" xmlns:o="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd"><Timestamp xmlns="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd"><Created>{Timestamp(now)}</Created><Expires>{Timestamp(now.AddMinutes(2))}</Expires></Timestamp><wuws:WindowsUpdateTicketsToken wsu:id="ClientMSA" xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" xmlns:wuws="http://schemas.microsoft.com/msus/2014/10/WindowsUpdateAuthorization"><TicketType Name="MSA" Version="1.0" Policy="MBI_SSL"><Device>{AnonymousDevice()}</Device></TicketType></wuws:WindowsUpdateTicketsToken></o:Security></s:Header>
+            <s:Header><a:Action s:mustUnderstand="1">http://www.microsoft.com/SoftwareDistribution/Server/ClientWebService/{action}</a:Action><a:MessageID>urn:uuid:{Guid.NewGuid()}</a:MessageID><a:To s:mustUnderstand="1">{address}</a:To><o:Security s:mustUnderstand="1" xmlns:o="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd"><Timestamp xmlns="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd"><Created>{Timestamp(now)}</Created><Expires>{Timestamp(now.AddMinutes(2))}</Expires></Timestamp><wuws:WindowsUpdateTicketsToken wsu:id="ClientMSA" xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" xmlns:wuws="http://schemas.microsoft.com/msus/2014/10/WindowsUpdateAuthorization"><TicketType Name="MSA" Version="1.0" Policy="MBI_SSL"><Device>{AnonymousDevice()}</Device></TicketType></wuws:WindowsUpdateTicketsToken></o:Security></s:Header>
             """;
     }
 
