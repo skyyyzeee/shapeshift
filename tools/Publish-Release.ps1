@@ -54,7 +54,7 @@ Get-ChildItem $build -Recurse -Include *.xbf, Shapeshift.pri | ForEach-Object {
 # Отладочные символы в портативной сборке не нужны.
 Get-ChildItem $out -Filter *.pdb | Remove-Item -Force
 
-foreach ($exe in 'Shapeshift.exe', 'Shapeshift.Engine.exe', 'catalog\tweaks.json', 'Shapeshift.pri', 'MainWindow.xbf', 'Pages\SourcePage.xbf') {
+foreach ($exe in 'Shapeshift.exe', 'Shapeshift.Engine.exe', 'catalog\tweaks.json', 'Shapeshift.pri', 'MainWindow.xbf', 'Pages\SourcePage.xbf', 'presets\privacy.json') {
     if (-not (Test-Path (Join-Path $out $exe))) { throw "missing in the package: $exe" }
 }
 $engineConfig = Get-Content (Join-Path $out 'Shapeshift.Engine.runtimeconfig.json') -Raw | ConvertFrom-Json
