@@ -75,6 +75,8 @@ public sealed partial class CustomizeViewModel(EngineClient engine) : Observable
     /// <summary>Программы для установки при первом входе; популярные приходят вместе с каталогом.</summary>
     public ProgramsViewModel Programs { get; } = new();
 
+    public WallpaperViewModel Wallpaper { get; } = new();
+
     [ObservableProperty]
     public partial bool IsLoading { get; private set; }
 

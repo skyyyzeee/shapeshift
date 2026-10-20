@@ -74,6 +74,8 @@ public sealed partial class OutputViewModel(
         var programs = customize.Programs.SelectedNames.ToList();
         if (programs.Count > 0)
             yield return Text.Format("CustomizeSummary_Programs", programs.Count, string.Join(", ", programs));
+        if (customize.Wallpaper.Summary is { } wallpaper)
+            yield return wallpaper;
     }
 
     ProfileDraft Draft(string outputIso)
@@ -84,7 +86,8 @@ public sealed partial class OutputViewModel(
         if (source.Uup is not null)
             keep ??= editions.Editions.Select(e => e.EditionId).ToList();
         return new ProfileDraft(source.Uup is null ? source.IsoPath : null, outputIso, [.. tweaks, .. customize.SelectedTweaks], keep,
-            setupDraft with { Edition = install }, regional, customize.SelectedApps, customize.Programs.ToDraft(), source.Uup);
+            setupDraft with { Edition = install }, regional, customize.SelectedApps, customize.Programs.ToDraft(), source.Uup,
+            customize.Wallpaper.ToDraft());
     }
 
     bool HasSource => source.HasSource;

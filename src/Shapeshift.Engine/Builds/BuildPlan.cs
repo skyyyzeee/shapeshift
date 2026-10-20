@@ -14,6 +14,7 @@ public enum BuildStepKind
     KeepEditions,
     RemoveApps,
     AddPrograms,
+    AddWallpaper,
     WriteAnswerFile,
     PackIso,
 }
@@ -54,6 +55,9 @@ public sealed record BuildPlan(
 
     /// <summary>Есть шаги через DISM — сборке нужны права администратора.</summary>
     public bool NeedsElevation => Steps.Any(s => s.Kind is BuildStepKind.RemoveApps or BuildStepKind.IntegrateUpdates);
+
+    /// <summary>Картинка обоев на носителе: Windows Setup перенесёт <c>$OEM$\$$</c> в папку Windows.</summary>
+    public const string WallpaperMediaFolder = @"sources\$OEM$\$$\Web\Wallpaper\Shapeshift";
 
     /// <summary>Сюда DISM монтирует образ; путь короткий — из-за того же предела длины пути.</summary>
     public string MountDirectory => Path.Combine(BuildDirectory, "mnt");
@@ -109,6 +113,9 @@ public static class BuildPlanner
         // Установщики своих программ копируются в образ; winget ставит из интернета при первом входе.
         if (!programs.IsEmpty)
             steps.Add(new(BuildStepKind.AddPrograms, "Add programs", workspaceVolume, programBytes));
+
+        if (profile.Wallpaper is { } wallpaper)
+            steps.Add(new(BuildStepKind.AddWallpaper, "Add wallpaper", workspaceVolume, File.Exists(wallpaper.Path) ? new FileInfo(wallpaper.Path).Length : 0));
 
         steps.Add(new(BuildStepKind.WriteAnswerFile, "Write answer file"));
         steps.Add(new(BuildStepKind.PackIso, "Pack ISO", outputVolume, isoBytes));

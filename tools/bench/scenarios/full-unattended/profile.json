@@ -26,6 +26,8 @@
     { "path": "programs/marker.cmd", "args": "C:\\ProgramData\\ShapeshiftBench\\marker.txt", "name": "Bench marker" },
     { "winget": "7zip.7zip" }
   ],
+  // Закреплённые обои (путь — от папки сценария): политики и запрет смены.
+  "wallpaper": { "path": "wallpaper.png", "style": "fill" },
   "regional": {
     "formats": "ru-RU",
     "keyboards": ["en-US", "ru-RU"],

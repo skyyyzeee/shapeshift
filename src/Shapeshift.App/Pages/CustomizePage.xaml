@@ -190,6 +190,57 @@
                     </ItemsRepeater>
                 </StackPanel>
             </Border>
+
+            <!-- Обои рабочего стола: картинка копируется в образ; закреплённые политиками нельзя сменить. -->
+            <Border Style="{StaticResource CardStyle}">
+                <StackPanel Spacing="8">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock x:Uid="WallpaperHeader" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                        <c:InfoTip x:Uid="WallpaperTip" />
+                    </StackPanel>
+                    <TextBlock x:Uid="WallpaperHint" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" TextWrapping="Wrap" />
+                    <Grid ColumnSpacing="16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Border
+                            Width="192"
+                            Height="108"
+                            Background="{ThemeResource ControlFillColorSecondaryBrush}"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1"
+                            CornerRadius="4">
+                            <Grid>
+                                <FontIcon FontSize="28" Foreground="{ThemeResource TextFillColorTertiaryBrush}" Glyph="&#xE91B;" />
+                                <Image x:Name="WallpaperPreview" Stretch="UniformToFill" />
+                            </Grid>
+                        </Border>
+                        <StackPanel Grid.Column="1" Spacing="8">
+                            <TextBlock Text="{x:Bind ViewModel.Wallpaper.FileName, Mode=OneWay}" TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{x:Bind ViewModel.Wallpaper.Path, Mode=OneWay}" />
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button x:Uid="WallpaperPick" Click="WallpaperPick_Click" />
+                                <Button x:Uid="WallpaperClear" Click="WallpaperClear_Click" IsEnabled="{x:Bind ViewModel.Wallpaper.HasPicture, Mode=OneWay}" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="8" Visibility="{x:Bind ViewModel.Wallpaper.HasPicture, Mode=OneWay}">
+                                <ComboBox x:Uid="WallpaperStyleBox" MinWidth="160" ItemsSource="{x:Bind ViewModel.Wallpaper.StyleChoices}" SelectedIndex="{x:Bind ViewModel.Wallpaper.StyleIndex, Mode=TwoWay}" />
+                                <c:InfoTip x:Uid="WallpaperStyleTip" VerticalAlignment="Bottom" Margin="0,0,0,8" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Grid>
+                    <Grid ColumnSpacing="16" Visibility="{x:Bind ViewModel.Wallpaper.HasPicture, Mode=OneWay}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock x:Uid="WallpaperLocked" TextWrapping="Wrap" />
+                            <TextBlock x:Uid="WallpaperLockedHint" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <ToggleSwitch Grid.Column="1" MinWidth="0" IsOn="{x:Bind ViewModel.Wallpaper.Locked, Mode=TwoWay}" OffContent="" OnContent="" />
+                    </Grid>
+                </StackPanel>
+            </Border>
         </StackPanel>
     </ScrollViewer>
 </Page>

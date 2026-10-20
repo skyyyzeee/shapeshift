@@ -32,6 +32,31 @@ public static class IsoWriter
         IProgress<double>? progress = null,
         CancellationToken ct = default)
     {
+        // Антивирус проверяет только что записанные файлы (install.wim, boot.wim), и IMAPI получает
+        // «файл занят другим процессом». Ошибка IMAPI локализована — повторяем при любой, кроме отмены.
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                WriteOnce(sourceDirectory, outputPath, volumeLabel, biosBootImage, uefiBootImage, progress, ct);
+                return;
+            }
+            catch (COMException) when (attempt < 3 && !ct.IsCancellationRequested)
+            {
+                Thread.Sleep(TimeSpan.FromSeconds(2 * attempt));
+            }
+        }
+    }
+
+    static void WriteOnce(
+        string sourceDirectory,
+        string outputPath,
+        string volumeLabel,
+        string? biosBootImage,
+        string? uefiBootImage,
+        IProgress<double>? progress,
+        CancellationToken ct)
+    {
         lock (Gate)
         {
             // IMAPI держит открытыми все файлы дерева, пока живы его COM-объекты, поэтому

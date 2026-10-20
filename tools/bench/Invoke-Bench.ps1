@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Стенд сквозной проверки: профиль сценария -> build -> ВМ Hyper-V -> автоматическая установка -> проверки -> удаление ВМ.
 
@@ -127,6 +127,9 @@ try {
         foreach ($program in $scenarioProfile.programs) {
             if ($program.PSObject.Properties['path']) { $program.path = Join-Path $scenarioDir $program.path }
         }
+    }
+    if ($scenarioProfile.PSObject.Properties['wallpaper']) {
+        $scenarioProfile.wallpaper.path = Join-Path $scenarioDir $scenarioProfile.wallpaper.path
     }
 
     $outputIso = Join-Path $work 'bench.iso'

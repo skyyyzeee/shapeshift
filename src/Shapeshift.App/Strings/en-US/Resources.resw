@@ -328,4 +328,29 @@ What is downloaded once is not downloaded again, even for another edition of the
   <data name="UupLatestUpdateTip.Text" xml:space="preserve"><value>Windows is up to date right away — no cumulative update to install afterwards.
 For 25H2 it is required: without the update you get the original build 26100.1 (essentially 24H2).
 Adds about 5 GB to the download and from 20 minutes to an hour or more to the build, depending on the computer; needs administrator rights (the app asks).</value></data>
+  <data name="StepKind_IntegrateUpdates" xml:space="preserve"><value>Integrating updates</value></data>
+  <data name="StepKind_AddWallpaper" xml:space="preserve"><value>Adding the wallpaper</value></data>
+  <data name="WallpaperHeader.Text" xml:space="preserve"><value>Desktop wallpaper</value></data>
+  <data name="WallpaperHint.Text" xml:space="preserve"><value>The picture is copied into the image (C:\Windows\Web\Wallpaper\Shapeshift) and set for every user at the first sign-in.</value></data>
+  <data name="WallpaperTip.Text" xml:space="preserve"><value>Use a .jpg, .png or .bmp, ideally at screen resolution, such as 1920×1080 or 3840×2160.
+A locked wallpaper is set by policies: in Settings the background choice is disabled with "Some of these settings are managed by your organization".
+Only an administrator of the computer can lift the lock, through the registry or group policy.</value></data>
+  <data name="WallpaperPick.Content" xml:space="preserve"><value>Choose a picture…</value></data>
+  <data name="WallpaperClear.Content" xml:space="preserve"><value>Remove</value></data>
+  <data name="WallpaperStyleBox.Header" xml:space="preserve"><value>Fit</value></data>
+  <data name="WallpaperStyleTip.Text" xml:space="preserve"><value>Fill — covers the whole screen, edges are cropped (usually the best choice).
+Fit — the whole picture, possibly with bars at the sides.
+Stretch — the whole screen, proportions distorted.
+Center and Tile — no scaling; for small pictures and patterns.
+Span — one picture across several monitors.</value></data>
+  <data name="WallpaperStyle_Fill" xml:space="preserve"><value>Fill</value></data>
+  <data name="WallpaperStyle_Fit" xml:space="preserve"><value>Fit</value></data>
+  <data name="WallpaperStyle_Stretch" xml:space="preserve"><value>Stretch</value></data>
+  <data name="WallpaperStyle_Center" xml:space="preserve"><value>Center</value></data>
+  <data name="WallpaperStyle_Tile" xml:space="preserve"><value>Tile</value></data>
+  <data name="WallpaperStyle_Span" xml:space="preserve"><value>Span</value></data>
+  <data name="WallpaperLocked.Text" xml:space="preserve"><value>Prevent changing the wallpaper</value></data>
+  <data name="WallpaperLockedHint.Text" xml:space="preserve"><value>Users can't change the desktop background. When off, it's just the default wallpaper.</value></data>
+  <data name="CustomizeSummary_Wallpaper" xml:space="preserve"><value>Wallpaper: {0} ({1})</value></data>
+  <data name="CustomizeSummary_WallpaperLocked" xml:space="preserve"><value>Wallpaper: {0} ({1}), locked</value></data>
 </root>

@@ -98,6 +98,8 @@ public static partial class Cli
                 await context.Error.WriteLineAsync(
                     "warning: programs are installed by a script that 'build' puts into the image; this answer file alone does not install them.");
             }
+            if (profile.Wallpaper is { } wallpaper)
+                await context.Error.WriteLineAsync($"warning: the wallpaper picture is copied by 'build'; with this answer file alone put it at {wallpaper.TargetPath} yourself.");
 
             await AnswerFileWriter.WriteAsync(
                 AnswerFileGenerator.Generate(profile, catalog, image), parseResult.GetRequiredValue(outOption).FullName, ct);
@@ -332,6 +334,9 @@ public static partial class Cli
                 if (source is null)
                     return (ExitCodes.InvalidInput, null);
             }
+
+            if (profile.Wallpaper is { } wallpaper && !File.Exists(wallpaper.Path))
+                return (await FailAsync(context, ExitCodes.InvalidInput, $"wallpaper '{wallpaper.Path}' does not exist."), null);
 
             var (programs, programProblems) = ProgramPayload.Inspect(profile.Programs);
             foreach (var problem in programProblems)

@@ -53,7 +53,8 @@ public static partial class ProfileReader
             ParseRegional(dto.Regional),
             ParseSource(dto.Source, baseDirectory),
             new OutputOptions(ResolvePath(dto.Output?.Iso, baseDirectory)),
-            dto.LatestUpdate);
+            dto.LatestUpdate,
+            ParseWallpaper(dto.Wallpaper, baseDirectory));
     }
 
     // Существование твиков в каталоге проверяет движок: профиль читается и без каталога.
@@ -249,6 +250,27 @@ public static partial class ProfileReader
         return new SourceOptions(null, new UupSourceOptions(uup.Channel, uup.Language, uup.UpdateId));
     }
 
+    // Есть ли файл, проверяет движок при сборке: профиль читается и на другом компьютере.
+    static WallpaperOptions? ParseWallpaper(WallpaperV1? wallpaper, string? baseDirectory)
+    {
+        if (wallpaper is null)
+            return null;
+        var path = ResolvePath(wallpaper.Path, baseDirectory) ?? throw new ProfileFormatException("'wallpaper.path' is empty.");
+        if (!WallpaperOptions.Extensions.Contains(Path.GetExtension(path).ToLowerInvariant()))
+            throw new ProfileFormatException($"'wallpaper.path' must be a picture: {string.Join(", ", WallpaperOptions.Extensions)}.");
+        var style = wallpaper.Style?.ToLowerInvariant() switch
+        {
+            null or "fill" => WallpaperStyle.Fill,
+            "fit" => WallpaperStyle.Fit,
+            "stretch" => WallpaperStyle.Stretch,
+            "center" => WallpaperStyle.Center,
+            "tile" => WallpaperStyle.Tile,
+            "span" => WallpaperStyle.Span,
+            var other => throw new ProfileFormatException($"'wallpaper.style': unknown style '{other}'; expected fill, fit, stretch, center, tile or span."),
+        };
+        return new WallpaperOptions(path, wallpaper.Locked ?? true, style);
+    }
+
     static string? ResolvePath(string? path, string? baseDirectory)
     {
         if (string.IsNullOrWhiteSpace(path))
@@ -295,7 +317,9 @@ public static partial class ProfileReader
     };
 
     sealed record ProfileV1(
-        int FormatVersion, string? Architecture, List<string>? Tweaks, List<string>? Editions, List<string>? RemoveApps, List<ProgramV1?>? Programs, SetupV1? Setup, RegionalV1? Regional, SourceV1? Source, IsoV1? Output, bool? LatestUpdate);
+        int FormatVersion, string? Architecture, List<string>? Tweaks, List<string>? Editions, List<string>? RemoveApps, List<ProgramV1?>? Programs, SetupV1? Setup, RegionalV1? Regional, SourceV1? Source, IsoV1? Output, bool? LatestUpdate, WallpaperV1? Wallpaper);
+
+    sealed record WallpaperV1(string? Path, bool? Locked, string? Style);
 
     sealed record ProgramV1(string? Winget, string? Path, string? Run, string? Args, string? Name);
 

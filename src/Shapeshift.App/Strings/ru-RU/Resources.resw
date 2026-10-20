@@ -329,4 +329,29 @@ Education, Enterprise, Pro для рабочих станций и другие 
   <data name="UupLatestUpdateTip.Text" xml:space="preserve"><value>Windows сразу будет актуальной — не придётся ставить накопительное обновление после установки.
 Для 25H2 это обязательно: без обновления получится исходная сборка 26100.1 (по сути 24H2).
 Добавляет к скачиванию около 5 ГБ, а к сборке — от 20 минут до часа и больше, в зависимости от компьютера; нужны права администратора (окно спросит).</value></data>
+  <data name="StepKind_IntegrateUpdates" xml:space="preserve"><value>Встраивание обновлений</value></data>
+  <data name="StepKind_AddWallpaper" xml:space="preserve"><value>Добавление обоев</value></data>
+  <data name="WallpaperHeader.Text" xml:space="preserve"><value>Обои рабочего стола</value></data>
+  <data name="WallpaperHint.Text" xml:space="preserve"><value>Картинка копируется в образ (C:\Windows\Web\Wallpaper\Shapeshift) и ставится всем пользователям при первом входе.</value></data>
+  <data name="WallpaperTip.Text" xml:space="preserve"><value>Подойдёт .jpg, .png или .bmp. Лучше в разрешении экрана, например 1920×1080 или 3840×2160.
+Закреплённые обои задаются политиками: в «Параметрах» выбор фона станет недоступен с пометкой «Некоторыми параметрами управляет ваша организация».
+Снять запрет сможет только администратор компьютера — через реестр или групповые политики.</value></data>
+  <data name="WallpaperPick.Content" xml:space="preserve"><value>Выбрать картинку…</value></data>
+  <data name="WallpaperClear.Content" xml:space="preserve"><value>Убрать</value></data>
+  <data name="WallpaperStyleBox.Header" xml:space="preserve"><value>Положение</value></data>
+  <data name="WallpaperStyleTip.Text" xml:space="preserve"><value>Заполнение — картинка закрывает весь экран, края обрезаются (обычно лучший выбор).
+По размеру — целиком, по бокам могут быть полосы.
+Растяжение — на весь экран с искажением пропорций.
+По центру и Замостить — без масштабирования; для небольших картинок и узоров.
+Расширение — одна картинка на несколько мониторов.</value></data>
+  <data name="WallpaperStyle_Fill" xml:space="preserve"><value>Заполнение</value></data>
+  <data name="WallpaperStyle_Fit" xml:space="preserve"><value>По размеру</value></data>
+  <data name="WallpaperStyle_Stretch" xml:space="preserve"><value>Растяжение</value></data>
+  <data name="WallpaperStyle_Center" xml:space="preserve"><value>По центру</value></data>
+  <data name="WallpaperStyle_Tile" xml:space="preserve"><value>Замостить</value></data>
+  <data name="WallpaperStyle_Span" xml:space="preserve"><value>Расширение</value></data>
+  <data name="WallpaperLocked.Text" xml:space="preserve"><value>Запретить менять обои</value></data>
+  <data name="WallpaperLockedHint.Text" xml:space="preserve"><value>Пользователи не смогут сменить фон рабочего стола. Если выключить — это просто обои по умолчанию.</value></data>
+  <data name="CustomizeSummary_Wallpaper" xml:space="preserve"><value>Обои: {0} ({1})</value></data>
+  <data name="CustomizeSummary_WallpaperLocked" xml:space="preserve"><value>Обои: {0} ({1}), менять запрещено</value></data>
 </root>

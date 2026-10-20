@@ -31,7 +31,9 @@ public static class AnswerFileGenerator
         var file = new AnswerFileBuilder(image?.Architecture ?? profile.Architecture);
         // Твики — первыми: обход ограничений должен выполниться в установщике до проверки требований,
         // а команды первого входа — до выхода из сеанса ради смены пароля.
-        AddTweaks(file, TweakSelection.Resolve(profile.Tweaks, catalog, image?.Release).Tweaks);
+        var tweakActions = TweakSelection.Resolve(profile.Tweaks, catalog, image?.Release).Tweaks
+            .SelectMany(t => t.Actions.Select(a => (Label: t.Id, Action: a)));
+        AddActions(file, [.. tweakActions, .. WallpaperActions(profile.Wallpaper)]);
         AddSetupLanguage(file, profile, image);
         AddEdition(file, profile.Setup, image);
         if (profile.Setup.WipeDisk0)
@@ -146,12 +148,10 @@ public static class AnswerFileGenerator
             file.Component(OobeSystem, ShellSetup).Add(new XElement(Unattend + "TimeZone", timeZone));
     }
 
-    // Действия твиков по этапам, в порядке каталога. HKCU на этапе установки пишется в профиль
-    // пользователя по умолчанию — одним блоком между его загрузкой и выгрузкой.
-    static void AddTweaks(AnswerFileBuilder file, IReadOnlyList<Tweak> tweaks)
+    // Действия по этапам, в порядке твиков каталога (обои — после них). HKCU на этапе установки пишется
+    // в профиль пользователя по умолчанию — одним блоком между его загрузкой и выгрузкой.
+    static void AddActions(AnswerFileBuilder file, IReadOnlyList<(string Label, TweakAction Action)> actions)
     {
-        var actions = tweaks.SelectMany(t => t.Actions.Select(a => (Tweak: t, Action: a))).ToList();
-
         foreach (var (_, action) in actions.Where(x => x.Action.Stage == Stage.Installer))
             file.RunSynchronous(WindowsPe, Render(action));
 
@@ -167,8 +167,61 @@ public static class AnswerFileGenerator
             file.RunSynchronous(Specialize, RegistryCommand.UnloadDefaultUser);
         }
 
-        foreach (var (tweak, action) in actions.Where(x => x.Action.Stage == Stage.FirstLogon))
-            file.FirstLogonCommand(Render(action), tweak.Id);
+        foreach (var (label, action) in actions.Where(x => x.Action.Stage == Stage.FirstLogon))
+            file.FirstLogonCommand(Render(action), label);
+    }
+
+    /// <summary>
+    /// Обои из своей картинки (файл кладёт сборка, см. <see cref="WallpaperOptions.TargetPath"/>).
+    /// Закреплённые — политиками: «Обои рабочего стола» и запрет смены в профиле по умолчанию (все новые
+    /// пользователи) и PersonalizationCSP для компьютера. Незакреплённые — обычные настройки первого пользователя
+    /// при первом входе: раньше их перезаписывает тема Windows.
+    /// </summary>
+    static IEnumerable<(string Label, TweakAction Action)> WallpaperActions(WallpaperOptions? wallpaper)
+    {
+        if (wallpaper is null)
+            yield break;
+        const string label = "wallpaper";
+        var path = wallpaper.TargetPath;
+        if (wallpaper.Locked)
+        {
+            const string csp = @"SOFTWARE\Microsoft\Windows\CurrentVersion\PersonalizationCSP";
+            yield return (label, new RegistryAction(Stage.Setup, RegistryHive.HKLM, csp, "DesktopImagePath", RegistryValueKind.String, path));
+            yield return (label, new RegistryAction(Stage.Setup, RegistryHive.HKLM, csp, "DesktopImageUrl", RegistryValueKind.String, path));
+            yield return (label, new RegistryAction(Stage.Setup, RegistryHive.HKLM, csp, "DesktopImageStatus", RegistryValueKind.Dword, "1"));
+            // Стиль в политике: 0 по центру, 1 замостить, 2 растянуть, 3 вписать, 4 заполнить, 5 расширить.
+            var policyStyle = wallpaper.Style switch
+            {
+                WallpaperStyle.Center => "0",
+                WallpaperStyle.Tile => "1",
+                WallpaperStyle.Stretch => "2",
+                WallpaperStyle.Fit => "3",
+                WallpaperStyle.Span => "5",
+                _ => "4",
+            };
+            const string system = @"Software\Microsoft\Windows\CurrentVersion\Policies\System";
+            yield return (label, new RegistryAction(Stage.Setup, RegistryHive.HKCU, system, "Wallpaper", RegistryValueKind.String, path));
+            yield return (label, new RegistryAction(Stage.Setup, RegistryHive.HKCU, system, "WallpaperStyle", RegistryValueKind.String, policyStyle));
+            yield return (label, new RegistryAction(Stage.Setup, RegistryHive.HKCU,
+                @"Software\Microsoft\Windows\CurrentVersion\Policies\ActiveDesktop", "NoChangingWallPaper", RegistryValueKind.Dword, "1"));
+            yield break;
+        }
+
+        // Обычные настройки: 10 заполнить, 6 вписать, 2 растянуть, 0 по центру (и замостить — с TileWallpaper), 22 расширить.
+        var style = wallpaper.Style switch
+        {
+            WallpaperStyle.Fit => "6",
+            WallpaperStyle.Stretch => "2",
+            WallpaperStyle.Center or WallpaperStyle.Tile => "0",
+            WallpaperStyle.Span => "22",
+            _ => "10",
+        };
+        const string desktop = @"Control Panel\Desktop";
+        yield return (label, new RegistryAction(Stage.FirstLogon, RegistryHive.HKCU, desktop, "Wallpaper", RegistryValueKind.String, path));
+        yield return (label, new RegistryAction(Stage.FirstLogon, RegistryHive.HKCU, desktop, "WallpaperStyle", RegistryValueKind.String, style));
+        yield return (label, new RegistryAction(Stage.FirstLogon, RegistryHive.HKCU, desktop, "TileWallpaper", RegistryValueKind.String,
+            wallpaper.Style == WallpaperStyle.Tile ? "1" : "0"));
+        yield return (label, new CommandAction(Stage.FirstLogon, "RUNDLL32.EXE user32.dll,UpdatePerUserSystemParameters"));
     }
 
     static string Render(TweakAction action) => action switch

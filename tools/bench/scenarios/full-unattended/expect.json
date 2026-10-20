@@ -21,12 +21,17 @@
     { "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", "name": "HideFileExt", "value": 0 },
     { "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", "name": "AppsUseLightTheme", "value": 0 },
     { "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", "name": "SystemUsesLightTheme", "value": 0 },
-    { "path": "HKLM:\\SOFTWARE\\ShapeshiftBench", "name": "Elevated", "value": "1" }
+    { "path": "HKLM:\\SOFTWARE\\ShapeshiftBench", "name": "Elevated", "value": "1" },
+    { "path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\PersonalizationCSP", "name": "DesktopImageStatus", "value": 1 },
+    { "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\System", "name": "Wallpaper", "value": "C:\\Windows\\Web\\Wallpaper\\Shapeshift\\wallpaper.png" },
+    { "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\System", "name": "WallpaperStyle", "value": "4" },
+    { "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\ActiveDesktop", "name": "NoChangingWallPaper", "value": 1 }
   ],
   "files": [
     { "path": "C:\\ProgramData\\ShapeshiftBench\\marker.txt", "contains": "installed" },
     { "path": "C:\\Windows\\Setup\\Shapeshift\\programs.log", "contains": "OK Bench marker" },
     { "path": "C:\\Windows\\Setup\\Shapeshift\\programs.log", "contains": "SKIPPED 7zip.7zip: no internet connection" },
-    { "path": "C:\\Windows\\Setup\\Shapeshift\\Programs", "absent": true }
+    { "path": "C:\\Windows\\Setup\\Shapeshift\\Programs", "absent": true },
+    { "path": "C:\\Windows\\Web\\Wallpaper\\Shapeshift\\wallpaper.png" }
   ]
 }

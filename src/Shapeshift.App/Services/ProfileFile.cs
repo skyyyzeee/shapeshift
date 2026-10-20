@@ -14,7 +14,11 @@ public sealed record ProfileDraft(
     RegionalDraft? Regional,
     IReadOnlyList<string>? RemoveApps = null,
     IReadOnlyList<ProgramDraft>? Programs = null,
-    UupSourceDraft? Uup = null);
+    UupSourceDraft? Uup = null,
+    WallpaperDraft? Wallpaper = null);
+
+/// <summary>Обои: картинка, закрепить политиками, стиль (fill, fit, stretch, center, tile, span).</summary>
+public sealed record WallpaperDraft(string Path, bool Locked, string Style);
 
 /// <summary>Выпуск из Windows Update: канал, язык и конкретный выпуск (null — самый новый в канале при сборке).</summary>
 /// <param name="LatestUpdate">Встроить последнее накопительное обновление выпуска.</param>
@@ -87,6 +91,7 @@ public static class ProfileFile
                 edition = s.Edition,
             }
             : null,
+        wallpaper = draft.Wallpaper is { } w ? new { path = w.Path, locked = w.Locked, style = w.Style } : null,
         regional = draft.Regional is { } r
             ? new { formats = r.Formats, keyboards = r.Keyboards, timeZone = r.TimeZone }
             : null,

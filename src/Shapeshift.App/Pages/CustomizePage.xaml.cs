@@ -23,6 +23,9 @@ public sealed partial class CustomizePage : Page
         var args = (CustomizeArgs)e.Parameter;
         ViewModel = args.ViewModel;
         base.OnNavigatedTo(e);
+        ViewModel.Wallpaper.PropertyChanged -= Wallpaper_PropertyChanged;
+        ViewModel.Wallpaper.PropertyChanged += Wallpaper_PropertyChanged;
+        ShowWallpaper();
         await ViewModel.LoadAsync(args.IsoPath);
         await ViewModel.LoadAppsAsync(args.IsoPath, args.Edition);
     }
@@ -60,6 +63,28 @@ public sealed partial class CustomizePage : Page
         if (await picker.PickSingleFolderAsync() is { } folder)
             ViewModel.Programs.AddFolder(folder.Path);
     }
+
+    async void WallpaperPick_Click(object sender, RoutedEventArgs e)
+    {
+        var picker = new FileOpenPicker(XamlRoot.ContentIslandEnvironment.AppWindowId);
+        foreach (var extension in Shapeshift.Core.WallpaperOptions.Extensions)
+            picker.FileTypeFilter.Add(extension);
+        if (await picker.PickSingleFileAsync() is { } file)
+            ViewModel.Wallpaper.Path = file.Path;
+    }
+
+    void WallpaperClear_Click(object sender, RoutedEventArgs e) => ViewModel.Wallpaper.Clear();
+
+    void Wallpaper_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(WallpaperViewModel.Path))
+            ShowWallpaper();
+    }
+
+    // Превью — уменьшенная копия: большие фотографии не держим в памяти целиком.
+    void ShowWallpaper() => WallpaperPreview.Source = ViewModel.Wallpaper.Path is { } path && File.Exists(path)
+        ? new Microsoft.UI.Xaml.Media.Imaging.BitmapImage(new Uri(path)) { DecodePixelWidth = 384 }
+        : null;
 
     void RemoveProgram_Click(object sender, RoutedEventArgs e)
     {

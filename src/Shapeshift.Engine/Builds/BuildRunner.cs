@@ -36,6 +36,7 @@ public static class BuildRunner
         BuildStepKind.KeepEditions => Task.Run(() => KeepEditions(plan, reporter, ct), ct),
         BuildStepKind.RemoveApps => Task.Run(() => RemoveApps(plan, reporter, ct), ct),
         BuildStepKind.AddPrograms => Task.Run(() => AddPrograms(plan, reporter, ct), ct),
+        BuildStepKind.AddWallpaper => Task.Run(() => AddWallpaper(plan), ct),
         BuildStepKind.WriteAnswerFile => AnswerFileWriter.WriteAsync(
             AnswerFileGenerator.Generate(plan.Profile, plan.Catalog, plan.Source.Info),
             Path.Combine(plan.MediaDirectory, AnswerFileWriter.FileName),
@@ -183,6 +184,15 @@ public static class BuildRunner
                 }
             }
         }
+    }
+
+    // Картинка — туда, откуда её возьмут политики и настройки файла ответов (WallpaperOptions.TargetPath).
+    static void AddWallpaper(BuildPlan plan)
+    {
+        var wallpaper = plan.Profile.Wallpaper!;
+        var folder = Path.Combine(plan.MediaDirectory, BuildPlan.WallpaperMediaFolder);
+        Directory.CreateDirectory(folder);
+        File.Copy(wallpaper.Path, Path.Combine(folder, Path.GetFileName(wallpaper.TargetPath)), overwrite: true);
     }
 
     static void Pack(BuildPlan plan, IBuildReporter reporter, CancellationToken ct)

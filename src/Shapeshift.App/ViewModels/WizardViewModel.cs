@@ -102,6 +102,8 @@ public sealed partial class WizardViewModel : ObservableObject
         Customize.ApplySelection(profile.Tweaks);
         Customize.ApplyAppSelection(profile.RemoveApps);
         Customize.Programs.ApplyProfile(profile.Programs);
+        if (!isPreset || profile.Wallpaper is not null)
+            Customize.Wallpaper.ApplyProfile(profile.Wallpaper);
         Editions.ApplyProfile(profile.Editions, profile.Setup.Edition);
         if (profile.Setup.WipeDisk0)
             AdvancedMode = true;
