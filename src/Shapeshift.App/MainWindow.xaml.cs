@@ -63,6 +63,9 @@ public sealed partial class MainWindow : Window
             case WizardStep.Setup:
                 ContentFrame.Navigate(typeof(SetupPage), ViewModel.Setup);
                 break;
+            case WizardStep.Customize:
+                ContentFrame.Navigate(typeof(CustomizePage), new CustomizeArgs(ViewModel.Customize, ViewModel.Source.IsoPath));
+                break;
             case WizardStep.Output:
                 ContentFrame.Navigate(typeof(OutputPage), ViewModel.Output);
                 break;

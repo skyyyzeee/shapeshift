@@ -42,6 +42,31 @@ public static class EngineJson
         warnings,
     }, Options);
 
+    /// <summary>
+    /// Каталог для экрана «Настройка» (<c>catalog list --json</c>): тексты на всех языках каталога,
+    /// фильтр выпусков и — если известен образ — применимость к нему.
+    /// </summary>
+    public static string Catalog(TweakCatalog catalog, Release? release) => JsonSerializer.Serialize(new
+    {
+        categories = catalog.Categories.Select(c => new { id = c.Id, name = c.Name.Values }),
+        tweaks = catalog.Tweaks.Select(t => new
+        {
+            id = t.Id,
+            category = t.Category,
+            name = t.Name.Values,
+            description = t.Description.Values,
+            advanced = t.Advanced,
+            conflicts = t.Conflicts,
+            releases = new
+            {
+                products = t.Releases.Products.Select(p => p == WindowsProduct.Windows11 ? "windows11" : "windows10"),
+                minBuild = t.Releases.MinBuild,
+                maxBuild = t.Releases.MaxBuild,
+            },
+            applicable = release is null ? (bool?)null : t.Releases.Matches(release),
+        }),
+    }, Options);
+
     public static string Error(string code, string message) =>
         JsonSerializer.Serialize(new { error = new { code, message } }, Options);
 }

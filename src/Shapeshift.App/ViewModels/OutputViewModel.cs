@@ -15,7 +15,8 @@ public enum BuildState
 }
 
 /// <summary>Шаг «Результат»: куда сохранить ISO, сводка «что будет сделано», сборка и её ход.</summary>
-public sealed partial class OutputViewModel(EngineClient engine, SourceViewModel source, SetupViewModel setup) : ObservableObject
+public sealed partial class OutputViewModel(
+    EngineClient engine, SourceViewModel source, SetupViewModel setup, CustomizeViewModel customize) : ObservableObject
 {
     BuildSession? _session;
     CancellationTokenSource? _planning;
@@ -57,10 +58,17 @@ public sealed partial class OutputViewModel(EngineClient engine, SourceViewModel
     /// <summary>Выборы шага «Установка» — чтобы перед сборкой было видно, что попадёт в образ.</summary>
     public ObservableCollection<string> Choices { get; } = [];
 
+    IEnumerable<string> DescribeTweaks()
+    {
+        var names = customize.SelectedNames.ToList();
+        if (names.Count > 0)
+            yield return Text.Format("CustomizeSummary_Tweaks", names.Count, string.Join(", ", names));
+    }
+
     ProfileDraft Draft(string sourceIso, string outputIso)
     {
         var (tweaks, setupDraft, regional) = setup.ToDraft();
-        return new ProfileDraft(sourceIso, outputIso, tweaks, setupDraft, regional);
+        return new ProfileDraft(sourceIso, outputIso, [.. tweaks, .. customize.SelectedTweaks], setupDraft, regional);
     }
 
     public ObservableCollection<string> Warnings { get; } = [];
@@ -132,7 +140,7 @@ public sealed partial class OutputViewModel(EngineClient engine, SourceViewModel
         SummaryLines.Clear();
         Warnings.Clear();
         Choices.Clear();
-        foreach (var choice in setup.Describe())
+        foreach (var choice in setup.Describe().Concat(DescribeTweaks()))
             Choices.Add(choice);
         if (plan is null)
             return;

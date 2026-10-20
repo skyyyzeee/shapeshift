@@ -122,7 +122,7 @@
   <data name="PasswordHint" xml:space="preserve"><value>Enter a password (up to 127 characters).</value></data>
   <data name="ComputerNameHint" xml:space="preserve"><value>Up to 15 characters: Latin letters, digits and hyphens; not only digits.</value></data>
   <data name="ProductKeyHint" xml:space="preserve"><value>A key looks like XXXXX-XXXXX-XXXXX-XXXXX-XXXXX.</value></data>
-  <data name="ChoicesHeader.Text" xml:space="preserve"><value>Setup</value></data>
+  <data name="ChoicesHeader.Text" xml:space="preserve"><value>Your choices</value></data>
   <data name="SetupSummary_BypassAll" xml:space="preserve"><value>Windows 11 requirements are not checked</value></data>
   <data name="SetupSummary_BypassSome" xml:space="preserve"><value>Some Windows 11 checks skipped: {0} of 4</value></data>
   <data name="SetupSummary_UserStored" xml:space="preserve"><value>User "{0}", password stored in the image</value></data>
@@ -132,4 +132,17 @@
   <data name="SetupSummary_ComputerName" xml:space="preserve"><value>Computer name: {0}</value></data>
   <data name="SetupSummary_Regional" xml:space="preserve"><value>Region: {0}; keyboards {1}; {2}</value></data>
   <data name="SetupSummary_WipeDisk" xml:space="preserve"><value>Disk 0 will be erased without asking</value></data>
+  <data name="CustomizeTitle.Text" xml:space="preserve"><value>Customize</value></data>
+  <data name="CustomizeSubtitle.Text" xml:space="preserve"><value>Tweaks to apply to Windows. Advanced mode shows more.</value></data>
+  <data name="CatalogError" xml:space="preserve"><value>The tweak catalog could not be read.</value></data>
+  <data name="TweakOnlyWindows11" xml:space="preserve"><value>Windows 11 only</value></data>
+  <data name="TweakOnlyWindows10" xml:space="preserve"><value>Windows 10 only</value></data>
+  <data name="TweakMinBuild" xml:space="preserve"><value>build {0} or newer</value></data>
+  <data name="TweakMaxBuild" xml:space="preserve"><value>build {0} or older</value></data>
+  <data name="TweakNotApplicable" xml:space="preserve"><value>Doesn't fit this image: {0}.</value></data>
+  <data name="TweakConflictTitle" xml:space="preserve"><value>Tweaks conflict</value></data>
+  <data name="TweakConflictText" xml:space="preserve"><value>"{0}" can't be on together with: {1}. Turn those off?</value></data>
+  <data name="TweakConflictReplace" xml:space="preserve"><value>Turn them off and use this one</value></data>
+  <data name="TweakConflictKeep" xml:space="preserve"><value>Keep as it was</value></data>
+  <data name="CustomizeSummary_Tweaks" xml:space="preserve"><value>Tweaks ({0}): {1}</value></data>
 </root>

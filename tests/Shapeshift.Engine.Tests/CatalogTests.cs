@@ -23,6 +23,33 @@ public sealed class CatalogTests : IDisposable
     }
 
     [Fact]
+    public async Task List_json_is_the_contract_for_the_app()
+    {
+        var catalog = WriteCatalog(
+            Tweak("custom.everywhere", Registry("A"), conflicts: """["custom.only-new"]"""),
+            Tweak("custom.only-new", Registry("B"), releases: """{ "products": ["windows11"], "minBuild": 26100 }"""));
+        var iso = new FakeWindowsIso { Build = 22631, SpBuild = 4460 }.WriteTo(_dir.Path);
+
+        var result = await CliRun.RunAsync("catalog", "list", "--catalog", catalog, "--iso", iso);
+
+        Assert.True(result.ExitCode == Cli.ExitCodes.Success, result.Error);
+        Snapshot.Match(result.Output, "json");
+    }
+
+    [Fact]
+    public async Task List_without_an_image_leaves_applicability_open()
+    {
+        var result = await CliRun.RunAsync("catalog", "list");
+
+        Assert.True(result.ExitCode == Cli.ExitCodes.Success, result.Error);
+        using var json = System.Text.Json.JsonDocument.Parse(result.Output);
+        var tweaks = json.RootElement.GetProperty("tweaks").EnumerateArray().ToList();
+        Assert.NotEmpty(tweaks);
+        Assert.All(tweaks, t => Assert.Equal(System.Text.Json.JsonValueKind.Null, t.GetProperty("applicable").ValueKind));
+        Assert.All(tweaks, t => Assert.False(string.IsNullOrEmpty(t.GetProperty("name").GetProperty("ru").GetString())));
+    }
+
+    [Fact]
     public Task Setup_stage_tweaks() => SnapshotOf("""
         {
           "formatVersion": 1,

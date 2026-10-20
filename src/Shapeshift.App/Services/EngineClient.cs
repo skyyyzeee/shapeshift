@@ -102,6 +102,23 @@ public sealed class EngineClient
         }
     }
 
+    /// <summary>Каталог твиков с применимостью к образу. null — каталог прочитать не удалось.</summary>
+    public async Task<JsonDocument?> CatalogAsync(string? isoPath, CancellationToken ct = default)
+    {
+        string[] args = isoPath is null ? ["catalog", "list"] : ["catalog", "list", "--iso", isoPath];
+        var (exitCode, output, _) = await RunAsync(args, ct);
+        if (exitCode != 0)
+            return null;
+        try
+        {
+            return JsonDocument.Parse(output);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
     async Task<(int ExitCode, string Output, string Error)> RunAsync(string[] args, CancellationToken ct)
     {
         if (!File.Exists(EnginePath))

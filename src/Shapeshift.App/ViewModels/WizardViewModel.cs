@@ -23,7 +23,8 @@ public sealed partial class WizardViewModel : ObservableObject
     {
         Source = new SourceViewModel(engine);
         Setup = new SetupViewModel();
-        Output = new OutputViewModel(engine, Source, Setup);
+        Customize = new CustomizeViewModel(engine);
+        Output = new OutputViewModel(engine, Source, Setup, Customize);
         Output.PropertyChanged += OnOutputChanged;
         Source.PropertyChanged += OnSourceChanged;
         Setup.PropertyChanged += OnSetupChanged;
@@ -32,6 +33,8 @@ public sealed partial class WizardViewModel : ObservableObject
     public SourceViewModel Source { get; }
 
     public SetupViewModel Setup { get; }
+
+    public CustomizeViewModel Customize { get; }
 
     public OutputViewModel Output { get; }
 
@@ -77,7 +80,11 @@ public sealed partial class WizardViewModel : ObservableObject
 
     public event EventHandler? StepsAvailabilityChanged;
 
-    partial void OnAdvancedModeChanged(bool value) => Setup.AdvancedMode = value;
+    partial void OnAdvancedModeChanged(bool value)
+    {
+        Setup.AdvancedMode = value;
+        Customize.AdvancedMode = value;
+    }
 
     void StepsChanged()
     {

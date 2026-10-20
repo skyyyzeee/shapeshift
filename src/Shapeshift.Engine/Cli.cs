@@ -342,7 +342,32 @@ public static class Cli
             return ExitCodes.Success;
         });
 
-        return new Command("catalog", "Work with the tweak catalog.") { validate };
+        var catalogOption = CatalogOption();
+        var isoOption = new Option<FileInfo>("--iso")
+        {
+            Description = "Mark which tweaks apply to this image.",
+        };
+        var list = new Command("list", "Print the catalog as JSON for the app.") { catalogOption, isoOption };
+        list.SetAction(async (parseResult, ct) =>
+        {
+            var catalog = await TryLoadCatalogAsync(parseResult.GetValue(catalogOption), context, ct);
+            if (catalog is null)
+                return ExitCodes.InvalidInput;
+
+            ImageInfo? image = null;
+            if (parseResult.GetValue(isoOption) is { } iso)
+            {
+                var source = await TryInspectAsync(iso.FullName, context);
+                if (source is null)
+                    return ExitCodes.InvalidInput;
+                image = source.Info;
+            }
+
+            await context.Output.WriteLineAsync(EngineJson.Catalog(catalog, image?.Release));
+            return ExitCodes.Success;
+        });
+
+        return new Command("catalog", "Work with the tweak catalog.") { validate, list };
     }
 
     static Option<FileInfo> ProfileOption() => new("--profile")
