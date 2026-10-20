@@ -1,0 +1,129 @@
+<Page
+    x:Class="Shapeshift.App.Pages.OutputPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="760" HorizontalAlignment="Left" Spacing="20" Padding="0,0,0,24">
+            <StackPanel Spacing="6">
+                <TextBlock x:Uid="OutputTitle" Style="{StaticResource TitleTextBlockStyle}" />
+                <TextBlock
+                    x:Uid="OutputSubtitle"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    Style="{StaticResource BodyTextBlockStyle}" />
+            </StackPanel>
+
+            <!-- До сборки: куда сохранить и сводка «что будет сделано». -->
+            <StackPanel Spacing="20" Visibility="{x:Bind ViewModel.ShowSummary, Mode=OneWay}">
+                <Border Style="{StaticResource CardStyle}">
+                    <Grid ColumnSpacing="12" RowSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <TextBlock x:Uid="OutputIsoHeader" Grid.ColumnSpan="2" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                        <TextBlock
+                            Grid.Row="1"
+                            VerticalAlignment="Center"
+                            Text="{x:Bind ViewModel.OutputPath, Mode=OneWay}"
+                            TextTrimming="CharacterEllipsis"
+                            ToolTipService.ToolTip="{x:Bind ViewModel.OutputPath, Mode=OneWay}" />
+                        <Button x:Uid="ChangeOutput" Grid.Row="1" Grid.Column="1" Click="ChangeOutput_Click" />
+                    </Grid>
+                </Border>
+
+                <Border Style="{StaticResource CardStyle}">
+                    <StackPanel Spacing="8">
+                        <TextBlock x:Uid="SummaryHeader" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                        <StackPanel Orientation="Horizontal" Spacing="12" Visibility="{x:Bind ViewModel.IsPlanning, Mode=OneWay}">
+                            <ProgressRing Width="16" Height="16" IsActive="{x:Bind ViewModel.IsPlanning, Mode=OneWay}" />
+                            <TextBlock x:Uid="Planning" />
+                        </StackPanel>
+                        <ItemsRepeater ItemsSource="{x:Bind ViewModel.SummaryLines}">
+                            <ItemsRepeater.ItemTemplate>
+                                <DataTemplate x:DataType="x:String">
+                                    <TextBlock Padding="0,2" Text="{x:Bind}" TextWrapping="Wrap" />
+                                </DataTemplate>
+                            </ItemsRepeater.ItemTemplate>
+                        </ItemsRepeater>
+                    </StackPanel>
+                </Border>
+
+                <ItemsRepeater ItemsSource="{x:Bind ViewModel.Warnings}">
+                    <ItemsRepeater.Layout>
+                        <StackLayout Spacing="8" />
+                    </ItemsRepeater.Layout>
+                    <ItemsRepeater.ItemTemplate>
+                        <DataTemplate x:DataType="x:String">
+                            <InfoBar IsClosable="False" IsOpen="True" Message="{x:Bind}" Severity="Warning" />
+                        </DataTemplate>
+                    </ItemsRepeater.ItemTemplate>
+                </ItemsRepeater>
+
+                <InfoBar
+                    x:Uid="PlanErrorBar"
+                    IsClosable="False"
+                    IsOpen="{x:Bind ViewModel.HasPlanError, Mode=OneWay}"
+                    Message="{x:Bind ViewModel.PlanError, Mode=OneWay}"
+                    Severity="Error" />
+
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <Button
+                        x:Uid="BuildButton"
+                        MinWidth="160"
+                        Click="Build_Click"
+                        IsEnabled="{x:Bind ViewModel.CanBuild, Mode=OneWay}"
+                        Style="{StaticResource AccentButtonStyle}" />
+                    <TextBlock
+                        x:Uid="BuildUacHint"
+                        VerticalAlignment="Center"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Style="{StaticResource CaptionTextBlockStyle}" />
+                </StackPanel>
+            </StackPanel>
+
+            <!-- Сборка идёт или закончилась. -->
+            <StackPanel Spacing="16" Visibility="{x:Bind ViewModel.ShowProgress, Mode=OneWay}">
+                <Border Style="{StaticResource CardStyle}">
+                    <StackPanel Spacing="12">
+                        <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{x:Bind ViewModel.StepText, Mode=OneWay}" />
+                        <ProgressBar Maximum="100" Value="{x:Bind ViewModel.Progress, Mode=OneWay}" />
+                        <Button
+                            x:Uid="CancelBuild"
+                            Click="Cancel_Click"
+                            Visibility="{x:Bind ViewModel.IsBuilding, Mode=OneWay}" />
+                    </StackPanel>
+                </Border>
+
+                <InfoBar x:Uid="BuildSucceededBar" IsClosable="False" IsOpen="{x:Bind ViewModel.Succeeded, Mode=OneWay}" Message="{x:Bind ViewModel.OutputPath, Mode=OneWay}" Severity="Success">
+                    <InfoBar.ActionButton>
+                        <Button x:Uid="ShowInFolder" Click="ShowInFolder_Click" />
+                    </InfoBar.ActionButton>
+                </InfoBar>
+                <InfoBar x:Uid="BuildFailedBar" IsClosable="False" IsOpen="{x:Bind ViewModel.Failed, Mode=OneWay}" Message="{x:Bind ViewModel.FailureText, Mode=OneWay}" Severity="Error" />
+                <InfoBar x:Uid="BuildCancelledBar" IsClosable="False" IsOpen="{x:Bind ViewModel.WasCancelled, Mode=OneWay}" Severity="Informational" />
+
+                <Expander x:Uid="LogExpander" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                    <ScrollViewer MaxHeight="280" HorizontalScrollBarVisibility="Auto">
+                        <ItemsRepeater ItemsSource="{x:Bind ViewModel.Log}">
+                            <ItemsRepeater.ItemTemplate>
+                                <DataTemplate x:DataType="x:String">
+                                    <TextBlock FontFamily="Cascadia Mono, Consolas" FontSize="12" IsTextSelectionEnabled="True" Text="{x:Bind}" />
+                                </DataTemplate>
+                            </ItemsRepeater.ItemTemplate>
+                        </ItemsRepeater>
+                    </ScrollViewer>
+                </Expander>
+
+                <StackPanel Orientation="Horizontal" Spacing="8" Visibility="{x:Bind ViewModel.IsFinished, Mode=OneWay}">
+                    <Button x:Uid="SaveLog" Click="SaveLog_Click" />
+                    <Button x:Uid="BackToSummary" Click="BackToSummary_Click" />
+                </StackPanel>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

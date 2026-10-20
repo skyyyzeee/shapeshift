@@ -22,10 +22,14 @@ public sealed partial class WizardViewModel : ObservableObject
     public WizardViewModel(EngineClient engine)
     {
         Source = new SourceViewModel(engine);
+        Output = new OutputViewModel(engine, Source);
+        Output.PropertyChanged += OnOutputChanged;
         Source.PropertyChanged += OnSourceChanged;
     }
 
     public SourceViewModel Source { get; }
+
+    public OutputViewModel Output { get; }
 
     public static IReadOnlyList<WizardStep> Steps { get; } = Enum.GetValues<WizardStep>();
 
@@ -37,13 +41,15 @@ public sealed partial class WizardViewModel : ObservableObject
     [ObservableProperty]
     public partial bool AdvancedMode { get; set; }
 
-    public bool CanGoBack => Current != WizardStep.Source;
+    public bool CanGoBack => Current != WizardStep.Source && !Output.IsBuilding;
 
     public bool CanGoNext => !IsLastStep && CanEnter(Current + 1);
 
     public bool IsLastStep => Current == Steps[^1];
 
-    public bool CanEnter(WizardStep step) => step == WizardStep.Source || Source.HasImage;
+    /// <summary>Пока идёт сборка, уйти с шага «Результат» нельзя.</summary>
+    public bool CanEnter(WizardStep step) =>
+        Output.IsBuilding ? step == Current : step == WizardStep.Source || Source.HasImage;
 
     public void GoBack()
     {
@@ -58,6 +64,14 @@ public sealed partial class WizardViewModel : ObservableObject
     }
 
     public event EventHandler? StepsAvailabilityChanged;
+
+    void OnOutputChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(OutputViewModel.IsBuilding))
+            return;
+        OnPropertyChanged(nameof(CanGoBack));
+        StepsAvailabilityChanged?.Invoke(this, EventArgs.Empty);
+    }
 
     void OnSourceChanged(object? sender, PropertyChangedEventArgs e)
     {

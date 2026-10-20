@@ -16,6 +16,19 @@ public sealed record EditionSummary(int Index, string EditionId, string Name);
 /// <summary>Образ прочитан — или движок отказал с кодом причины.</summary>
 public sealed record InspectResult(ImageSummary? Image, string? ErrorCode, string? ErrorMessage);
 
+/// <summary>Сводка «что будет сделано» из <c>build --dry-run --json</c>.</summary>
+public sealed record PlanSummary(
+    string OutputIso,
+    IReadOnlyList<PlanStep> Steps,
+    IReadOnlyList<SpaceNeed> Space,
+    IReadOnlyList<string> Warnings);
+
+public sealed record PlanStep(string Kind, string? Volume, long Bytes);
+
+public sealed record SpaceNeed(string Volume, long RequiredBytes, long AvailableBytes);
+
+public sealed record PlanResult(PlanSummary? Plan, string? ErrorCode, string? ErrorMessage);
+
 /// <summary>
 /// Окно не работает с образами само: всё делает движок — отдельный процесс (ADR-0003).
 /// Чтение образа не требует прав администратора, поэтому движок здесь запускается без повышения.
@@ -52,6 +65,38 @@ public sealed class EngineClient
         catch (Exception e) when (e is JsonException or KeyNotFoundException or NullReferenceException)
         {
             return new InspectResult(null, "engine-failed", $"exit {exitCode}: {error.Trim()}");
+        }
+    }
+
+    /// <summary>Пробный прогон без повышения: план, место и предупреждения — ничего не собирается.</summary>
+    public async Task<PlanResult> PlanAsync(string profilePath, CancellationToken ct = default)
+    {
+        var (exitCode, output, error) = await RunAsync(["build", "--profile", profilePath, "--dry-run", "--json"], ct);
+
+        try
+        {
+            using var doc = JsonDocument.Parse(output);
+            var root = doc.RootElement;
+            if (root.TryGetProperty("error", out var problem))
+                return new PlanResult(null, problem.GetProperty("code").GetString(), problem.GetProperty("message").GetString());
+
+            return new PlanResult(
+                new PlanSummary(
+                    root.GetProperty("outputIso").GetString()!,
+                    root.GetProperty("steps").EnumerateArray().Select(s => new PlanStep(
+                        s.GetProperty("kind").GetString()!,
+                        s.GetProperty("volume").GetString(),
+                        s.GetProperty("bytes").GetInt64())).ToList(),
+                    root.GetProperty("space").EnumerateArray().Select(s => new SpaceNeed(
+                        s.GetProperty("volume").GetString()!,
+                        s.GetProperty("requiredBytes").GetInt64(),
+                        s.GetProperty("availableBytes").GetInt64())).ToList(),
+                    root.GetProperty("warnings").EnumerateArray().Select(w => w.GetString()!).ToList()),
+                null, null);
+        }
+        catch (Exception e) when (e is JsonException or KeyNotFoundException or InvalidOperationException)
+        {
+            return new PlanResult(null, "engine-failed", $"exit {exitCode}: {error.Trim()}");
         }
     }
 

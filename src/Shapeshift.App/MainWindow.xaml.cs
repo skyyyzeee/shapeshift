@@ -55,10 +55,18 @@ public sealed partial class MainWindow : Window
 
     void Navigate(WizardStep step)
     {
-        if (step == WizardStep.Source)
-            ContentFrame.Navigate(typeof(SourcePage), ViewModel.Source);
-        else
-            ContentFrame.Navigate(typeof(StepPlaceholderPage), step);
+        switch (step)
+        {
+            case WizardStep.Source:
+                ContentFrame.Navigate(typeof(SourcePage), ViewModel.Source);
+                break;
+            case WizardStep.Output:
+                ContentFrame.Navigate(typeof(OutputPage), ViewModel.Output);
+                break;
+            default:
+                ContentFrame.Navigate(typeof(StepPlaceholderPage), step);
+                break;
+        }
     }
 
     // Шаги после «Источника» недоступны, пока не выбран подходящий образ.

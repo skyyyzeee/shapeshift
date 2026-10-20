@@ -43,4 +43,35 @@
   <data name="ImageError_UnsupportedWindows" xml:space="preserve"><value>Поддерживаются только Windows 10 и 11.</value></data>
   <data name="ImageError_TooOld" xml:space="preserve"><value>Слишком старый выпуск: поддерживается Windows 10 версии 2004 и новее.</value></data>
   <data name="ImageError_Other" xml:space="preserve"><value>Не удалось прочитать образ: {0}</value></data>
+  <data name="OutputTitle.Text" xml:space="preserve"><value>Результат</value></data>
+  <data name="OutputSubtitle.Text" xml:space="preserve"><value>Проверьте, что будет сделано, и соберите образ.</value></data>
+  <data name="OutputIsoHeader.Text" xml:space="preserve"><value>Сохранить ISO</value></data>
+  <data name="ChangeOutput.Content" xml:space="preserve"><value>Изменить…</value></data>
+  <data name="SummaryHeader.Text" xml:space="preserve"><value>Что будет сделано</value></data>
+  <data name="Planning.Text" xml:space="preserve"><value>Проверяю образ и место на дисках…</value></data>
+  <data name="PlanErrorBar.Title" xml:space="preserve"><value>Собрать не получится</value></data>
+  <data name="PlanError" xml:space="preserve"><value>{0}</value></data>
+  <data name="BuildButton.Content" xml:space="preserve"><value>Собрать</value></data>
+  <data name="BuildUacHint.Text" xml:space="preserve"><value>Windows попросит разрешение на запуск с правами администратора.</value></data>
+  <data name="CancelBuild.Content" xml:space="preserve"><value>Отменить</value></data>
+  <data name="BuildSucceededBar.Title" xml:space="preserve"><value>Образ готов</value></data>
+  <data name="ShowInFolder.Content" xml:space="preserve"><value>Показать в папке</value></data>
+  <data name="BuildFailedBar.Title" xml:space="preserve"><value>Сборка не удалась</value></data>
+  <data name="BuildCancelledBar.Title" xml:space="preserve"><value>Сборка отменена — ничего не записано</value></data>
+  <data name="LogExpander.Header" xml:space="preserve"><value>Подробный журнал</value></data>
+  <data name="SaveLog.Content" xml:space="preserve"><value>Сохранить журнал…</value></data>
+  <data name="BackToSummary.Content" xml:space="preserve"><value>К сводке</value></data>
+  <data name="StepKind_ExtractImage" xml:space="preserve"><value>Распаковка образа</value></data>
+  <data name="StepKind_WriteAnswerFile" xml:space="preserve"><value>Файл ответов</value></data>
+  <data name="StepKind_PackIso" xml:space="preserve"><value>Упаковка ISO</value></data>
+  <data name="SummaryStepOnVolume" xml:space="preserve"><value>{0} — {1} на {2}</value></data>
+  <data name="SummarySpace" xml:space="preserve"><value>Диск {0}: нужно {1}, свободно {2}</value></data>
+  <data name="BuildStarting" xml:space="preserve"><value>Запуск…</value></data>
+  <data name="BuildStep" xml:space="preserve"><value>Шаг {0} из {1}: {2}</value></data>
+  <data name="BuildCancelling" xml:space="preserve"><value>Отменяю…</value></data>
+  <data name="BuildUacDenied" xml:space="preserve"><value>Без прав администратора собрать образ нельзя: запрос был отклонён.</value></data>
+  <data name="BuildFailedUnknown" xml:space="preserve"><value>Движок завершился с ошибкой; подробности — в журнале.</value></data>
+  <data name="BuildEngineLost" xml:space="preserve"><value>Связь с движком потеряна: {0}</value></data>
+  <data name="UnitGB" xml:space="preserve"><value>ГБ</value></data>
+  <data name="UnitMB" xml:space="preserve"><value>МБ</value></data>
 </root>
