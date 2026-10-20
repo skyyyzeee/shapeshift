@@ -12,6 +12,7 @@
 - Сквозная проверка установки в Hyper-V: `tools/bench/Invoke-Bench.ps1 -Iso <ISO>` (см. `tools/bench/README.md`), не входит в `dotnet test`.
 - Тесты на настоящем ISO Windows пропускаются, пока не задан `SHAPESHIFT_TEST_ISO=<путь к ISO>` (около минуты и ~17 ГБ на диске); быстрые тесты используют синтетический образ `FakeWindowsIso`.
 - Тесты с DISM (`[Trait("Category", "Admin")]`) запускаются от администратора: `dotnet test -- --filter-trait "Category=Admin"`. Если DISM хоста не открывает смонтированные образы, используйте `tools/bench/Invoke-AdminTestsInVm.ps1`.
+- Запросы к Windows Update (UUP) в быстрых тестах — из записанных ответов `tests/Shapeshift.Engine.Tests/Fixtures/WindowsUpdate` (`FakeWindowsUpdate`); живой тест — `SHAPESHIFT_TEST_LIVE=1` (`--filter-trait "Category=Live"`), сырые ответы для перезаписи — `SHAPESHIFT_WU_DUMP=<папка>`.
 - Новый элемент файла ответов нужно объявить в `tests/Shapeshift.Engine.Tests/Schemas/unattend.xsd`, иначе схема его не проверит.
 
 ## Agent skills

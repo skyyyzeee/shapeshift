@@ -19,5 +19,11 @@ public sealed class EngineHost
     /// <summary>Каталог твиков, если не указан явно: поставляется рядом с движком.</summary>
     public string DefaultCatalog { get; init; } = Path.Combine(AppContext.BaseDirectory, "catalog", "tweaks.json");
 
+    /// <summary>Сетевой обработчик для запросов в интернет (Windows Update); тесты подставляют записанные ответы.</summary>
+    public Func<HttpMessageHandler> HttpHandler { get; init; } =
+        () => new SocketsHttpHandler { AutomaticDecompression = System.Net.DecompressionMethods.All };
+
+    public HttpClient CreateHttpClient() => new(HttpHandler(), disposeHandler: true) { Timeout = TimeSpan.FromSeconds(60) };
+
     public static string VolumeOf(string path) => Path.GetPathRoot(Path.GetFullPath(path))!.ToUpperInvariant();
 }

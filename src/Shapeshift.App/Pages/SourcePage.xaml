@@ -3,6 +3,8 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:services="using:Shapeshift.App.Services"
+    xmlns:vm="using:Shapeshift.App.ViewModels"
+    xmlns:c="using:Shapeshift.App.Controls"
     AllowDrop="True"
     DragLeave="Page_DragLeave"
     DragOver="Page_DragOver"
@@ -18,6 +20,12 @@
                     Style="{StaticResource BodyTextBlockStyle}" />
             </StackPanel>
 
+            <SelectorBar x:Name="SourceMode" SelectionChanged="SourceMode_SelectionChanged">
+                <SelectorBarItem x:Name="IsoModeItem" x:Uid="SourceModeIso" />
+                <SelectorBarItem x:Name="DownloadModeItem" x:Uid="SourceModeDownload" />
+            </SelectorBar>
+
+            <StackPanel x:Name="IsoPanel" Spacing="20">
             <!-- Куда бросить образ. Подсвечивается, когда над ним тащат файл. -->
             <Border
                 x:Name="DropZone"
@@ -106,6 +114,76 @@
                     </ItemsRepeater>
                 </StackPanel>
             </Border>
+            </StackPanel>
+
+            <!-- Скачать: выпуск из Windows Update → язык → редакции. -->
+            <StackPanel x:Name="DownloadPanel" Spacing="16" Visibility="Collapsed">
+                <Border Style="{StaticResource CardStyle}">
+                    <StackPanel Spacing="8">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock x:Uid="UupReleasesHeader" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                            <c:InfoTip x:Uid="UupChannelsTip" />
+                        </StackPanel>
+                        <TextBlock x:Uid="UupReleasesHint" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" TextWrapping="Wrap" />
+                        <StackPanel Orientation="Horizontal" Spacing="12" Visibility="{x:Bind Wizard.Download.IsLoading, Mode=OneWay}">
+                            <ProgressRing Width="20" Height="20" IsActive="{x:Bind Wizard.Download.IsLoading, Mode=OneWay}" />
+                            <TextBlock x:Uid="UupAsking" VerticalAlignment="Center" />
+                        </StackPanel>
+                        <InfoBar IsClosable="False" IsOpen="{x:Bind Wizard.Download.HasError, Mode=OneWay}" Message="{x:Bind Wizard.Download.Error, Mode=OneWay}" Severity="Error">
+                            <InfoBar.ActionButton>
+                                <Button x:Uid="UupRetry" Click="UupRetry_Click" />
+                            </InfoBar.ActionButton>
+                        </InfoBar>
+                        <ListView
+                            ItemsSource="{x:Bind Wizard.Download.Releases}"
+                            SelectedItem="{x:Bind Wizard.Download.Release, Mode=TwoWay}"
+                            SelectionMode="Single"
+                            Visibility="{x:Bind Wizard.Download.HasReleases, Mode=OneWay}">
+                            <ListView.ItemTemplate>
+                                <DataTemplate x:DataType="vm:ReleaseChoice">
+                                    <StackPanel Padding="0,6">
+                                        <TextBlock Text="{x:Bind Title}" />
+                                        <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" Text="{x:Bind Detail}" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                        <InfoBar x:Uid="UupInsiderBar" IsClosable="False" IsOpen="{x:Bind Wizard.Download.IsInsider, Mode=OneWay}" Severity="Warning" />
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource CardStyle}" Visibility="{x:Bind Wizard.Download.HasRelease, Mode=OneWay}">
+                    <StackPanel Spacing="12">
+                        <StackPanel Orientation="Horizontal" Spacing="12" Visibility="{x:Bind Wizard.Download.IsLoadingLanguages, Mode=OneWay}">
+                            <ProgressRing Width="20" Height="20" IsActive="{x:Bind Wizard.Download.IsLoadingLanguages, Mode=OneWay}" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <ComboBox
+                                x:Uid="UupLanguageBox"
+                                MinWidth="320"
+                                DisplayMemberPath="Name"
+                                ItemsSource="{x:Bind Wizard.Download.Languages}"
+                                SelectedItem="{x:Bind Wizard.Download.Language, Mode=TwoWay}" />
+                            <c:InfoTip x:Uid="UupLanguageTip" Margin="0,0,0,8" VerticalAlignment="Bottom" />
+                        </StackPanel>
+                        <StackPanel Spacing="4">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock x:Uid="UupEditionsHeader" />
+                                <c:InfoTip x:Uid="UupEditionsTip" />
+                            </StackPanel>
+                            <ItemsRepeater ItemsSource="{x:Bind Wizard.Download.Editions}">
+                                <ItemsRepeater.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:EditionPick">
+                                        <CheckBox Content="{x:Bind Name}" IsChecked="{x:Bind IsOn, Mode=TwoWay}" ToolTipService.ToolTip="{x:Bind EditionId}" />
+                                    </DataTemplate>
+                                </ItemsRepeater.ItemTemplate>
+                            </ItemsRepeater>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <InfoBar x:Uid="UupNotYetBar" IsClosable="False" IsOpen="True" Severity="Informational" />
+            </StackPanel>
 
             <!-- Профиль: начать с пресета или открыть сохранённый. -->
             <Border Style="{StaticResource CardStyle}">

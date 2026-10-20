@@ -8,6 +8,10 @@ public sealed partial class SourceViewModel(EngineClient engine) : ObservableObj
 {
     CancellationTokenSource? _loading;
 
+    /// <summary>Источник — скачивание из Windows Update, а не свой ISO.</summary>
+    [ObservableProperty]
+    public partial bool IsDownloadMode { get; set; }
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(FileName), nameof(HasImage))]
     public partial string? IsoPath { get; private set; }

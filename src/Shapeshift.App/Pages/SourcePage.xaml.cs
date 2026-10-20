@@ -23,7 +23,20 @@ public sealed partial class SourcePage : Page
         ViewModel = Wizard.Source;
         base.OnNavigatedTo(e);
         FillPresets();
+        SourceMode.SelectedItem = ViewModel.IsDownloadMode ? DownloadModeItem : IsoModeItem;
     }
+
+    async void SourceMode_SelectionChanged(SelectorBar sender, SelectorBarSelectionChangedEventArgs args)
+    {
+        var download = sender.SelectedItem == DownloadModeItem;
+        ViewModel.IsDownloadMode = download;
+        IsoPanel.Visibility = download ? Visibility.Collapsed : Visibility.Visible;
+        DownloadPanel.Visibility = download ? Visibility.Visible : Visibility.Collapsed;
+        if (download)
+            await Wizard.Download.LoadAsync(Wizard.AdvancedMode);
+    }
+
+    async void UupRetry_Click(object sender, RoutedEventArgs e) => await Wizard.Download.LoadAsync(Wizard.AdvancedMode, force: true);
 
     async void ChooseIso_Click(object sender, RoutedEventArgs e)
     {

@@ -22,6 +22,7 @@ public sealed partial class WizardViewModel : ObservableObject
     public WizardViewModel(EngineClient engine)
     {
         Source = new SourceViewModel(engine);
+        Download = new DownloadViewModel(engine);
         Editions = new EditionsViewModel();
         Setup = new SetupViewModel();
         Customize = new CustomizeViewModel(engine);
@@ -34,6 +35,9 @@ public sealed partial class WizardViewModel : ObservableObject
     }
 
     public SourceViewModel Source { get; }
+
+    /// <summary>Источник «Скачать»: выпуски из Windows Update.</summary>
+    public DownloadViewModel Download { get; }
 
     public EditionsViewModel Editions { get; }
 
@@ -113,6 +117,9 @@ public sealed partial class WizardViewModel : ObservableObject
     {
         Setup.AdvancedMode = value;
         Customize.AdvancedMode = value;
+        // Каналы Insider видны только в продвинутом режиме.
+        if (Source.IsDownloadMode)
+            _ = Download.LoadAsync(value);
     }
 
     void StepsChanged()

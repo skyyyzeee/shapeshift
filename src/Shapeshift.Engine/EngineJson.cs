@@ -85,6 +85,36 @@ public static class EngineJson
         }),
     }, Options);
 
+    /// <summary>Выпуски из Windows Update по каналам (<c>uup releases --json</c>); problems — каналы, которые не ответили.</summary>
+    public static string UupReleases(IReadOnlyList<Uup.UupRelease> releases, IReadOnlyList<(string Channel, string Problem)> problems) =>
+        JsonSerializer.Serialize(new
+        {
+            releases = releases.Select(r => new
+            {
+                updateId = r.UpdateId,
+                title = r.Title,
+                build = r.Build,
+                channel = r.Channel,
+                advanced = r.Advanced,
+            }),
+            problems = problems.Select(p => new { channel = p.Channel, message = p.Problem }),
+        }, Options);
+
+    /// <summary>Языки и редакции выпуска (<c>uup release --json</c>). Редакции — те, что есть в выпуске готовыми.</summary>
+    public static string UupRelease(Uup.UupRelease release) => JsonSerializer.Serialize(new
+    {
+        updateId = release.UpdateId,
+        title = release.Title,
+        build = release.Build,
+        channel = release.Channel,
+        advanced = release.Advanced,
+        languages = release.Languages().Select(l => new
+        {
+            code = l.Code,
+            editions = l.Editions,
+        }),
+    }, Options);
+
     public static string Error(string code, string message) =>
         JsonSerializer.Serialize(new { error = new { code, message } }, Options);
 }

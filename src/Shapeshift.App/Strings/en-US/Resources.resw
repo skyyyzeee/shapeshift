@@ -27,7 +27,7 @@
   <data name="Next.Content" xml:space="preserve"><value>Next</value></data>
 
   <data name="SourceTitle.Text" xml:space="preserve"><value>Choose a Windows image</value></data>
-  <data name="SourceSubtitle.Text" xml:space="preserve"><value>A Windows 10 or 11 (x64) installation ISO. The original file is not changed.</value></data>
+  <data name="SourceSubtitle.Text" xml:space="preserve"><value>Your own Windows 10 or 11 (x64) installation ISO (the original file is not changed), or a release straight from Windows Update.</value></data>
   <data name="DropHint.Text" xml:space="preserve"><value>Drop an ISO here</value></data>
   <data name="ChooseIso.Content" xml:space="preserve"><value>Choose file…</value></data>
   <data name="ChooseOtherIso.Content" xml:space="preserve"><value>Another file…</value></data>
@@ -265,4 +265,40 @@ Office: the folder with setup.exe from the Office Deployment Tool and configurat
 • Office (ODT): /configure configuration.xml
 To find out: setup.exe /? or the program&apos;s download page.</value></data>
   <data name="PasswordHeader.Text" xml:space="preserve"><value>Password</value></data>
+  <data name="SourceModeIso.Text" xml:space="preserve"><value>Your ISO</value></data>
+  <data name="SourceModeDownload.Text" xml:space="preserve"><value>Download</value></data>
+  <data name="UupReleasesHeader.Text" xml:space="preserve"><value>Windows release</value></data>
+  <data name="UupReleasesHint.Text" xml:space="preserve"><value>The list comes straight from Windows Update, with no third-party sites.</value></data>
+  <data name="UupChannelsTip.Text" xml:space="preserve"><value>Windows 11 — latest version: what Windows Update installs on regular PCs now.
+24H2 — the original build of version 24H2; the latest update is added when the image is built.
+Windows 10 22H2 — the last version of Windows 10.
+Release Preview — the next update shortly before release; usually stable.
+Insider Beta, Dev, Canary — preview builds (advanced mode only): may be unstable, tweaks may not work.</value></data>
+  <data name="UupAsking.Text" xml:space="preserve"><value>Asking Windows Update…</value></data>
+  <data name="UupRetry.Content" xml:space="preserve"><value>Retry</value></data>
+  <data name="UupInsiderBar.Title" xml:space="preserve"><value>Insider build</value></data>
+  <data name="UupInsiderBar.Message" xml:space="preserve"><value>This is a preview version of Windows: it may be unstable, and tweaks may not work.</value></data>
+  <data name="UupLanguageBox.Header" xml:space="preserve"><value>Windows language</value></data>
+  <data name="UupLanguageTip.Text" xml:space="preserve"><value>The display language Windows is installed with.
+Date formats, keyboards and the time zone are set separately, on the Setup step.</value></data>
+  <data name="UupEditionsHeader.Text" xml:space="preserve"><value>Editions</value></data>
+  <data name="UupEditionsTip.Text" xml:space="preserve"><value>These are the editions Microsoft publishes ready-made: Home and Pro (and their N versions without media features, for Europe).
+Education, Enterprise, Pro for Workstations and others are made from Pro and will come later.
+Pick the one you have a license for.</value></data>
+  <data name="UupNotYetBar.Title" xml:space="preserve"><value>Downloading comes in later versions</value></data>
+  <data name="UupNotYetBar.Message" xml:space="preserve"><value>For now you can browse releases, languages and editions here. Downloading and building an image from Windows Update comes in later versions of Shapeshift; for now, choose your own ISO.</value></data>
+  <data name="UupError" xml:space="preserve"><value>Couldn&apos;t get the list of releases from Windows Update. Check the internet connection, or choose your own ISO. Details: {0}</value></data>
+  <data name="UupReleaseDetail" xml:space="preserve"><value>Build {0} · {1}</value></data>
+  <data name="UupChannel_windows11" xml:space="preserve"><value>latest version</value></data>
+  <data name="UupChannel_windows11-24h2" xml:space="preserve"><value>original build</value></data>
+  <data name="UupChannel_windows10" xml:space="preserve"><value>last Windows 10</value></data>
+  <data name="UupChannel_release-preview" xml:space="preserve"><value>Release Preview</value></data>
+  <data name="UupChannel_beta" xml:space="preserve"><value>Insider Beta</value></data>
+  <data name="UupChannel_dev" xml:space="preserve"><value>Insider Dev</value></data>
+  <data name="UupChannel_canary" xml:space="preserve"><value>Insider Canary</value></data>
+  <data name="Edition_Core" xml:space="preserve"><value>Home</value></data>
+  <data name="Edition_CoreN" xml:space="preserve"><value>Home N</value></data>
+  <data name="Edition_Professional" xml:space="preserve"><value>Pro</value></data>
+  <data name="Edition_ProfessionalN" xml:space="preserve"><value>Pro N</value></data>
+  <data name="Edition_CoreCountrySpecific" xml:space="preserve"><value>Home China</value></data>
 </root>

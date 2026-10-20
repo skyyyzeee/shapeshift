@@ -30,6 +30,14 @@ public sealed record SpaceNeed(string Volume, long RequiredBytes, long Available
 
 public sealed record PlanResult(PlanSummary? Plan, string? ErrorCode, string? ErrorMessage);
 
+/// <summary>Выпуск из Windows Update; <paramref name="Advanced"/> — канал Insider (Beta, Dev, Canary).</summary>
+public sealed record UupReleaseSummary(string UpdateId, string Title, string Build, string Channel, bool Advanced);
+
+/// <summary>Выпуски или текст ошибки (нет сети, служба не ответила).</summary>
+public sealed record UupReleasesResult(IReadOnlyList<UupReleaseSummary> Releases, string? Error);
+
+public sealed record UupLanguageSummary(string Code, IReadOnlyList<string> Editions);
+
 /// <summary>
 /// Окно не работает с образами само: всё делает движок — отдельный процесс (ADR-0003).
 /// Чтение образа не требует прав администратора, поэтому движок здесь запускается без повышения.
@@ -149,6 +157,51 @@ public sealed class EngineClient
             return JsonDocument.Parse(output);
         }
         catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>Выпуски Windows из Windows Update по каналам (<c>uup releases --json</c>).</summary>
+    public async Task<UupReleasesResult> UupReleasesAsync(bool advanced, string workspace, CancellationToken ct = default)
+    {
+        string[] args = ["uup", "releases", "--json", "--workspace", workspace, .. advanced ? new[] { "--advanced" } : []];
+        var (exitCode, output, error) = await RunAsync(args, ct);
+        try
+        {
+            using var doc = JsonDocument.Parse(output);
+            var root = doc.RootElement;
+            if (root.TryGetProperty("error", out var problem))
+                return new UupReleasesResult([], problem.GetProperty("message").GetString());
+            return new UupReleasesResult(
+                root.GetProperty("releases").EnumerateArray().Select(r => new UupReleaseSummary(
+                    r.GetProperty("updateId").GetString()!,
+                    r.GetProperty("title").GetString()!,
+                    r.GetProperty("build").GetString()!,
+                    r.GetProperty("channel").GetString()!,
+                    r.GetProperty("advanced").GetBoolean())).ToList(),
+                null);
+        }
+        catch (Exception e) when (e is JsonException or KeyNotFoundException or InvalidOperationException)
+        {
+            return new UupReleasesResult([], $"exit {exitCode}: {error.Trim()}");
+        }
+    }
+
+    /// <summary>Языки и готовые редакции выпуска (<c>uup release --json</c>); null — не удалось.</summary>
+    public async Task<IReadOnlyList<UupLanguageSummary>?> UupLanguagesAsync(string updateId, string workspace, CancellationToken ct = default)
+    {
+        var (exitCode, output, _) = await RunAsync(["uup", "release", "--update", updateId, "--json", "--workspace", workspace], ct);
+        if (exitCode != 0)
+            return null;
+        try
+        {
+            using var doc = JsonDocument.Parse(output);
+            return doc.RootElement.GetProperty("languages").EnumerateArray().Select(l => new UupLanguageSummary(
+                l.GetProperty("code").GetString()!,
+                l.GetProperty("editions").EnumerateArray().Select(e => e.GetString()!).ToList())).ToList();
+        }
+        catch (Exception e) when (e is JsonException or KeyNotFoundException or InvalidOperationException)
         {
             return null;
         }

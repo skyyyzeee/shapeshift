@@ -38,6 +38,7 @@ public static class Cli
             BuildCommand(context),
             CatalogCommand(context),
             AppsCommand(context),
+            UupCommand(context),
             CleanupCommand(context),
         };
 
@@ -459,6 +460,117 @@ public static class Cli
         });
 
         return new Command("apps", "Built-in (provisioned) apps of an image.") { list };
+    }
+
+    static Command UupCommand(Context context)
+    {
+        var workspaceOption = new Option<DirectoryInfo>("--workspace")
+        {
+            Description = "Workspace; found releases are cached in its cache\\uup folder.",
+        };
+        var jsonOption = new Option<bool>("--json")
+        {
+            Description = "Print machine-readable JSON (for the app), or { \"error\": { code, message } }.",
+        };
+        var advancedOption = new Option<bool>("--advanced")
+        {
+            Description = "Also ask the Insider channels Beta, Dev and Canary (tweaks may not work on them).",
+        };
+
+        var releases = new Command("releases", "Ask Windows Update for the current Windows releases, channel by channel.")
+        {
+            workspaceOption,
+            advancedOption,
+            jsonOption,
+        };
+        releases.SetAction(async (parseResult, ct) =>
+        {
+            var workspace = parseResult.GetValue(workspaceOption)?.FullName ?? context.Host.DefaultWorkspace;
+            var json = parseResult.GetValue(jsonOption);
+            using var http = context.Host.CreateHttpClient();
+            IReadOnlyList<Uup.UupRelease> found;
+            IReadOnlyList<(string Channel, string Problem)> problems;
+            try
+            {
+                (found, problems) = await Uup.UupChannels.FindAsync(new Uup.WindowsUpdateClient(http), parseResult.GetValue(advancedOption), ct);
+            }
+            catch (Uup.WindowsUpdateException e)
+            {
+                return await FailUupAsync(context, json, e.Message);
+            }
+            if (found.Count == 0)
+                return await FailUupAsync(context, json, string.Join("; ", problems.Select(p => $"{p.Channel}: {p.Problem}")));
+
+            foreach (var release in found)
+                Uup.UupReleaseCache.Save(workspace, release);
+
+            if (json)
+            {
+                await context.Output.WriteLineAsync(EngineJson.UupReleases(found, problems));
+                return ExitCodes.Success;
+            }
+            foreach (var release in found)
+            {
+                var insider = release.Advanced ? "  (Insider: tweaks may not work)" : "";
+                await context.Output.WriteLineAsync($"{release.Channel,-16} {release.Build,-12} {release.Title}{insider}");
+                await context.Output.WriteLineAsync($"{"",-16} {release.UpdateId}");
+            }
+            foreach (var (channel, problem) in problems)
+                await context.Error.WriteLineAsync($"warning: {channel}: {problem}");
+            return ExitCodes.Success;
+        });
+
+        var updateOption = new Option<string>("--update")
+        {
+            Description = "Update id of a release found by 'uup releases'.",
+            Required = true,
+        };
+        var release = new Command("release", "Languages and editions of a release found by 'uup releases'.")
+        {
+            updateOption,
+            workspaceOption,
+            jsonOption,
+        };
+        release.SetAction(async (parseResult, ct) =>
+        {
+            var workspace = parseResult.GetValue(workspaceOption)?.FullName ?? context.Host.DefaultWorkspace;
+            var json = parseResult.GetValue(jsonOption);
+            var updateId = parseResult.GetRequiredValue(updateOption);
+            if (Uup.UupReleaseCache.Load(workspace, updateId) is not { } found)
+            {
+                var message = $"release {updateId} is not known; run 'uup releases' first.";
+                if (json)
+                {
+                    await context.Output.WriteLineAsync(EngineJson.Error("unknown-release", message));
+                    return ExitCodes.InvalidInput;
+                }
+                return await FailAsync(context, ExitCodes.InvalidInput, message);
+            }
+
+            if (json)
+            {
+                await context.Output.WriteLineAsync(EngineJson.UupRelease(found));
+                return ExitCodes.Success;
+            }
+            await context.Output.WriteLineAsync($"{found.Title} ({found.Build}), channel {found.Channel}");
+            foreach (var language in found.Languages())
+            {
+                var editions = string.Join(", ", language.Editions);
+                await context.Output.WriteLineAsync($"  {language.Code,-11} {editions}");
+            }
+            return ExitCodes.Success;
+        });
+
+        return new Command("uup", "Windows releases straight from Windows Update (UUP).") { releases, release };
+    }
+
+    static async Task<int> FailUupAsync(Context context, bool json, string message)
+    {
+        message = $"{message} Check the internet connection, or use your own ISO.";
+        if (!json)
+            return await FailAsync(context, ExitCodes.Failure, message);
+        await context.Output.WriteLineAsync(EngineJson.Error("network", message));
+        return ExitCodes.Failure;
     }
 
     static Command CleanupCommand(Context context)
