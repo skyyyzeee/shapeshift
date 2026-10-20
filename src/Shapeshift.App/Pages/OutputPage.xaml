@@ -53,6 +53,19 @@
                     </StackPanel>
                 </Border>
 
+                <Border Style="{StaticResource CardStyle}">
+                    <StackPanel Spacing="8">
+                        <TextBlock x:Uid="ChoicesHeader" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                        <ItemsRepeater ItemsSource="{x:Bind ViewModel.Choices}">
+                            <ItemsRepeater.ItemTemplate>
+                                <DataTemplate x:DataType="x:String">
+                                    <TextBlock Padding="0,2" Text="{x:Bind}" TextWrapping="Wrap" />
+                                </DataTemplate>
+                            </ItemsRepeater.ItemTemplate>
+                        </ItemsRepeater>
+                    </StackPanel>
+                </Border>
+
                 <ItemsRepeater ItemsSource="{x:Bind ViewModel.Warnings}">
                     <ItemsRepeater.Layout>
                         <StackLayout Spacing="8" />

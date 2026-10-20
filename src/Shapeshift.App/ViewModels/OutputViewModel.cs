@@ -15,7 +15,7 @@ public enum BuildState
 }
 
 /// <summary>Шаг «Результат»: куда сохранить ISO, сводка «что будет сделано», сборка и её ход.</summary>
-public sealed partial class OutputViewModel(EngineClient engine, SourceViewModel source) : ObservableObject
+public sealed partial class OutputViewModel(EngineClient engine, SourceViewModel source, SetupViewModel setup) : ObservableObject
 {
     BuildSession? _session;
     CancellationTokenSource? _planning;
@@ -53,6 +53,15 @@ public sealed partial class OutputViewModel(EngineClient engine, SourceViewModel
     public ObservableCollection<string> Log { get; } = [];
 
     public ObservableCollection<string> SummaryLines { get; } = [];
+
+    /// <summary>Выборы шага «Установка» — чтобы перед сборкой было видно, что попадёт в образ.</summary>
+    public ObservableCollection<string> Choices { get; } = [];
+
+    ProfileDraft Draft(string sourceIso, string outputIso)
+    {
+        var (tweaks, setupDraft, regional) = setup.ToDraft();
+        return new ProfileDraft(sourceIso, outputIso, tweaks, setupDraft, regional);
+    }
 
     public ObservableCollection<string> Warnings { get; } = [];
 
@@ -96,7 +105,7 @@ public sealed partial class OutputViewModel(EngineClient engine, SourceViewModel
         IsPlanning = true;
         Plan = null;
         PlanError = null;
-        var profile = ProfileFile.Write(source.IsoPath, OutputPath);
+        var profile = ProfileFile.Write(Draft(source.IsoPath, OutputPath));
         try
         {
             var result = await engine.PlanAsync(profile, planning.Token);
@@ -122,6 +131,9 @@ public sealed partial class OutputViewModel(EngineClient engine, SourceViewModel
     {
         SummaryLines.Clear();
         Warnings.Clear();
+        Choices.Clear();
+        foreach (var choice in setup.Describe())
+            Choices.Add(choice);
         if (plan is null)
             return;
 
@@ -148,7 +160,7 @@ public sealed partial class OutputViewModel(EngineClient engine, SourceViewModel
         FailureText = "";
         State = BuildState.Building;
 
-        var profile = ProfileFile.Write(source.IsoPath, OutputPath);
+        var profile = ProfileFile.Write(Draft(source.IsoPath, OutputPath));
         try
         {
             _session = await BuildSession.StartAsync(engine.EnginePath, profile, CancellationToken.None);

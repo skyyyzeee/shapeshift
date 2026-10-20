@@ -74,4 +74,62 @@
   <data name="BuildEngineLost" xml:space="preserve"><value>Связь с движком потеряна: {0}</value></data>
   <data name="UnitGB" xml:space="preserve"><value>ГБ</value></data>
   <data name="UnitMB" xml:space="preserve"><value>МБ</value></data>
+  <data name="SetupTitle.Text" xml:space="preserve"><value>Установка</value></data>
+  <data name="SetupSubtitle.Text" xml:space="preserve"><value>Что сделать, чтобы установка прошла без вопросов.</value></data>
+  <data name="RequirementsHeader.Text" xml:space="preserve"><value>Требования Windows 11</value></data>
+  <data name="BypassAllTitle.Text" xml:space="preserve"><value>Не проверять требования</value></data>
+  <data name="BypassAllHint.Text" xml:space="preserve"><value>Windows 11 установится и без TPM 2.0, Secure Boot, 4 ГБ памяти и процессора из списка поддерживаемых.</value></data>
+  <data name="BypassTpm.Content" xml:space="preserve"><value>Не проверять TPM 2.0</value></data>
+  <data name="BypassSecureBoot.Content" xml:space="preserve"><value>Не проверять Secure Boot</value></data>
+  <data name="BypassRam.Content" xml:space="preserve"><value>Не проверять объём памяти</value></data>
+  <data name="BypassCpu.Content" xml:space="preserve"><value>Не проверять процессор</value></data>
+  <data name="UserHeader.Text" xml:space="preserve"><value>Локальный пользователь</value></data>
+  <data name="UserHint.Text" xml:space="preserve"><value>Создаётся при установке и сразу становится администратором.</value></data>
+  <data name="UserNameBox.Header" xml:space="preserve"><value>Имя пользователя</value></data>
+  <data name="UserNameBox.PlaceholderText" xml:space="preserve"><value>Например, Алексей</value></data>
+  <data name="PasswordMode.Header" xml:space="preserve"><value>Пароль</value></data>
+  <data name="PasswordMode_Change" xml:space="preserve"><value>Задать при первом входе (рекомендуется)</value></data>
+  <data name="PasswordMode_Store" xml:space="preserve"><value>Сохранить в образе</value></data>
+  <data name="PasswordBox.Header" xml:space="preserve"><value>Пароль пользователя</value></data>
+  <data name="StoredPasswordWarning.Title" xml:space="preserve"><value>Пароль можно будет прочитать</value></data>
+  <data name="StoredPasswordWarning.Message" xml:space="preserve"><value>Он хранится в образе почти в открытом виде: любой, у кого есть ISO или флешка, его узнает.</value></data>
+  <data name="AutoLogon.Content" xml:space="preserve"><value>Входить автоматически</value></data>
+  <data name="FirstRunHeader.Text" xml:space="preserve"><value>Первый запуск</value></data>
+  <data name="SkipOobeTitle.Text" xml:space="preserve"><value>Пропустить экраны первого запуска</value></data>
+  <data name="SkipOobeHint.Text" xml:space="preserve"><value>Лицензия, регистрация и вопросы о конфиденциальности (дополнительные данные не отправляются).</value></data>
+  <data name="NoMicrosoftAccountTitle.Text" xml:space="preserve"><value>Без учётной записи Microsoft</value></data>
+  <data name="NoMicrosoftAccountHint.Text" xml:space="preserve"><value>Установка не требует интернета и аккаунта Microsoft.</value></data>
+  <data name="ComputerNameBox.Header" xml:space="preserve"><value>Имя компьютера</value></data>
+  <data name="ComputerNameBox.PlaceholderText" xml:space="preserve"><value>Оставьте пустым — Windows придумает сама</value></data>
+  <data name="RegionalHeader.Text" xml:space="preserve"><value>Регион</value></data>
+  <data name="RegionalHint.Text" xml:space="preserve"><value>Форматы, раскладки и часовой пояс — не зависят от языка интерфейса.</value></data>
+  <data name="FormatsBox.Header" xml:space="preserve"><value>Форматы даты и чисел</value></data>
+  <data name="KeyboardsHeader.Text" xml:space="preserve"><value>Раскладки клавиатуры</value></data>
+  <data name="KeyboardsHint.Text" xml:space="preserve"><value>Первая в списке — основная.</value></data>
+  <data name="MakeDefaultKeyboard.Content" xml:space="preserve"><value>Сделать основной</value></data>
+  <data name="AddKeyboardBox.PlaceholderText" xml:space="preserve"><value>Добавить раскладку…</value></data>
+  <data name="TimeZoneBox.Header" xml:space="preserve"><value>Часовой пояс</value></data>
+  <data name="ProductKeyHeader.Text" xml:space="preserve"><value>Ключ продукта</value></data>
+  <data name="ProductKeyExplain.Text" xml:space="preserve"><value>Необязательно. Без ключа Windows установится и попросит активацию позже.</value></data>
+  <data name="ProductKeyBox.PlaceholderText" xml:space="preserve"><value>XXXXX-XXXXX-XXXXX-XXXXX-XXXXX</value></data>
+  <data name="WipeDiskTitle.Text" xml:space="preserve"><value>Стереть диск 0 и разметить автоматически</value></data>
+  <data name="WipeDiskHint.Text" xml:space="preserve"><value>Установка не спросит, куда ставить Windows. Все данные на диске 0 будут удалены.</value></data>
+  <data name="WipeDiskDialogTitle" xml:space="preserve"><value>Стирать диск без вопросов?</value></data>
+  <data name="WipeDiskDialogText" xml:space="preserve"><value>При загрузке с этого образа установка сотрёт диск 0 на любом компьютере — даже если загрузились случайно или на чужом ПК. Включайте, только если понимаете, где будет использоваться образ.</value></data>
+  <data name="WipeDiskDialogConfirm" xml:space="preserve"><value>Да, стирать</value></data>
+  <data name="WipeDiskDialogCancel" xml:space="preserve"><value>Отмена</value></data>
+  <data name="UserNameHint" xml:space="preserve"><value>До 20 символов, без " / \ [ ] : ; | = , + * ? &lt; &gt; @ % и пробелов по краям; не Administrator и не Guest.</value></data>
+  <data name="PasswordHint" xml:space="preserve"><value>Введите пароль (до 127 символов).</value></data>
+  <data name="ComputerNameHint" xml:space="preserve"><value>До 15 символов: латинские буквы, цифры и дефис; не только цифры.</value></data>
+  <data name="ProductKeyHint" xml:space="preserve"><value>Ключ выглядит так: XXXXX-XXXXX-XXXXX-XXXXX-XXXXX.</value></data>
+  <data name="ChoicesHeader.Text" xml:space="preserve"><value>Установка</value></data>
+  <data name="SetupSummary_BypassAll" xml:space="preserve"><value>Без проверки требований Windows 11</value></data>
+  <data name="SetupSummary_BypassSome" xml:space="preserve"><value>Пропуск части проверок Windows 11: {0} из 4</value></data>
+  <data name="SetupSummary_UserStored" xml:space="preserve"><value>Пользователь «{0}», пароль сохранён в образе</value></data>
+  <data name="SetupSummary_UserChange" xml:space="preserve"><value>Пользователь «{0}», пароль — при первом входе</value></data>
+  <data name="SetupSummary_SkipOobe" xml:space="preserve"><value>Без экранов первого запуска</value></data>
+  <data name="SetupSummary_NoMicrosoftAccount" xml:space="preserve"><value>Без учётной записи Microsoft</value></data>
+  <data name="SetupSummary_ComputerName" xml:space="preserve"><value>Имя компьютера: {0}</value></data>
+  <data name="SetupSummary_Regional" xml:space="preserve"><value>Регион: {0}; раскладки {1}; {2}</value></data>
+  <data name="SetupSummary_WipeDisk" xml:space="preserve"><value>Диск 0 будет стёрт без вопросов</value></data>
 </root>

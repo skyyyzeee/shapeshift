@@ -1,0 +1,208 @@
+<Page
+    x:Class="Shapeshift.App.Pages.SetupPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:Shapeshift.App.ViewModels">
+
+    <Page.Resources>
+        <!-- Строка в духе «Параметров» Windows: слева что и зачем, справа элемент управления. -->
+        <Style x:Key="RowTitle" TargetType="TextBlock" BasedOn="{StaticResource BodyTextBlockStyle}" />
+        <Style x:Key="RowHint" TargetType="TextBlock" BasedOn="{StaticResource CaptionTextBlockStyle}">
+            <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <Style x:Key="FieldError" TargetType="TextBlock" BasedOn="{StaticResource CaptionTextBlockStyle}">
+            <Setter Property="Foreground" Value="{ThemeResource SystemFillColorCriticalBrush}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+    </Page.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="760" HorizontalAlignment="Left" Spacing="16" Padding="0,0,16,24">
+            <StackPanel Spacing="6">
+                <TextBlock x:Uid="SetupTitle" Style="{StaticResource TitleTextBlockStyle}" />
+                <TextBlock x:Uid="SetupSubtitle" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource BodyTextBlockStyle}" />
+            </StackPanel>
+
+            <!-- Требования Windows 11 -->
+            <Border Style="{StaticResource CardStyle}" Visibility="{x:Bind ViewModel.IsWindows11, Mode=OneWay}">
+                <StackPanel Spacing="12">
+                    <TextBlock x:Uid="RequirementsHeader" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                    <Grid ColumnSpacing="16" Visibility="{x:Bind ViewModel.ShowSimpleBypass, Mode=OneWay}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock x:Uid="BypassAllTitle" Style="{StaticResource RowTitle}" />
+                            <TextBlock x:Uid="BypassAllHint" Style="{StaticResource RowHint}" />
+                        </StackPanel>
+                        <ToggleSwitch Grid.Column="1" MinWidth="0" IsOn="{x:Bind ViewModel.BypassAll, Mode=TwoWay}" OffContent="" OnContent="" />
+                    </Grid>
+                    <StackPanel Spacing="4" Visibility="{x:Bind ViewModel.AdvancedMode, Mode=OneWay}">
+                        <CheckBox x:Uid="BypassTpm" IsChecked="{x:Bind ViewModel.BypassTpm, Mode=TwoWay}" />
+                        <CheckBox x:Uid="BypassSecureBoot" IsChecked="{x:Bind ViewModel.BypassSecureBoot, Mode=TwoWay}" />
+                        <CheckBox x:Uid="BypassRam" IsChecked="{x:Bind ViewModel.BypassRam, Mode=TwoWay}" />
+                        <CheckBox x:Uid="BypassCpu" IsChecked="{x:Bind ViewModel.BypassCpu, Mode=TwoWay}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Учётная запись -->
+            <Border Style="{StaticResource CardStyle}">
+                <StackPanel Spacing="12">
+                    <Grid ColumnSpacing="16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock x:Uid="UserHeader" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                            <TextBlock x:Uid="UserHint" Style="{StaticResource RowHint}" />
+                        </StackPanel>
+                        <ToggleSwitch Grid.Column="1" MinWidth="0" IsOn="{x:Bind ViewModel.CreateUser, Mode=TwoWay}" OffContent="" OnContent="" />
+                    </Grid>
+
+                    <StackPanel Spacing="12" Visibility="{x:Bind ViewModel.CreateUser, Mode=OneWay}">
+                        <StackPanel Spacing="4">
+                            <TextBox x:Uid="UserNameBox" MaxWidth="360" HorizontalAlignment="Left" MinWidth="280" Text="{x:Bind ViewModel.UserName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBlock Style="{StaticResource FieldError}" Text="{x:Bind ViewModel.UserNameError, Mode=OneWay}" Visibility="{x:Bind ViewModel.HasUserNameError, Mode=OneWay}" />
+                        </StackPanel>
+
+                        <RadioButtons x:Name="PasswordModeButtons" x:Uid="PasswordMode" SelectedIndex="{x:Bind ViewModel.PasswordModeIndex, Mode=TwoWay}" />
+
+                        <StackPanel Spacing="8" Visibility="{x:Bind ViewModel.StorePassword, Mode=OneWay}">
+                            <PasswordBox x:Uid="PasswordBox" MaxWidth="360" HorizontalAlignment="Left" MinWidth="280" Password="{x:Bind ViewModel.Password, Mode=TwoWay}" />
+                            <TextBlock Style="{StaticResource FieldError}" Text="{x:Bind ViewModel.PasswordError, Mode=OneWay}" Visibility="{x:Bind ViewModel.HasPasswordError, Mode=OneWay}" />
+                            <InfoBar x:Uid="StoredPasswordWarning" IsClosable="False" IsOpen="True" Severity="Warning" />
+                            <CheckBox x:Uid="AutoLogon" IsChecked="{x:Bind ViewModel.AutoLogon, Mode=TwoWay}" IsEnabled="{x:Bind ViewModel.CanAutoLogon, Mode=OneWay}" />
+                        </StackPanel>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Первый запуск -->
+            <Border Style="{StaticResource CardStyle}">
+                <StackPanel Spacing="12">
+                    <TextBlock x:Uid="FirstRunHeader" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                    <Grid ColumnSpacing="16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock x:Uid="SkipOobeTitle" Style="{StaticResource RowTitle}" />
+                            <TextBlock x:Uid="SkipOobeHint" Style="{StaticResource RowHint}" />
+                        </StackPanel>
+                        <ToggleSwitch Grid.Column="1" MinWidth="0" IsOn="{x:Bind ViewModel.SkipOobe, Mode=TwoWay}" OffContent="" OnContent="" />
+                    </Grid>
+                    <Grid ColumnSpacing="16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock x:Uid="NoMicrosoftAccountTitle" Style="{StaticResource RowTitle}" />
+                            <TextBlock x:Uid="NoMicrosoftAccountHint" Style="{StaticResource RowHint}" />
+                        </StackPanel>
+                        <ToggleSwitch Grid.Column="1" MinWidth="0" IsOn="{x:Bind ViewModel.BypassOnlineAccount, Mode=TwoWay}" OffContent="" OnContent="" />
+                    </Grid>
+                    <StackPanel Spacing="4">
+                        <TextBox x:Uid="ComputerNameBox" MaxWidth="360" HorizontalAlignment="Left" MinWidth="280" Text="{x:Bind ViewModel.ComputerName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBlock Style="{StaticResource FieldError}" Text="{x:Bind ViewModel.ComputerNameError, Mode=OneWay}" Visibility="{x:Bind ViewModel.HasComputerNameError, Mode=OneWay}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Регион -->
+            <Border Style="{StaticResource CardStyle}">
+                <StackPanel Spacing="12">
+                    <Grid ColumnSpacing="16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock x:Uid="RegionalHeader" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                            <TextBlock x:Uid="RegionalHint" Style="{StaticResource RowHint}" />
+                        </StackPanel>
+                        <ToggleSwitch Grid.Column="1" MinWidth="0" IsOn="{x:Bind ViewModel.SetRegional, Mode=TwoWay}" OffContent="" OnContent="" />
+                    </Grid>
+
+                    <StackPanel Spacing="12" Visibility="{x:Bind ViewModel.SetRegional, Mode=OneWay}">
+                        <ComboBox
+                            x:Uid="FormatsBox"
+                            MinWidth="360"
+                            ItemsSource="{x:Bind vm:SetupViewModel.CultureChoices}"
+                            SelectedItem="{x:Bind ViewModel.Formats, Mode=TwoWay}" />
+
+                        <StackPanel Spacing="6">
+                            <TextBlock x:Uid="KeyboardsHeader" />
+                            <ItemsRepeater ItemsSource="{x:Bind ViewModel.Keyboards}">
+                                <ItemsRepeater.Layout>
+                                    <StackLayout Spacing="2" />
+                                </ItemsRepeater.Layout>
+                                <ItemsRepeater.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:Choice">
+                                        <Grid ColumnSpacing="8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock VerticalAlignment="Center" Text="{x:Bind Label}" TextTrimming="CharacterEllipsis" />
+                                            <Button x:Uid="MakeDefaultKeyboard" Grid.Column="1" Click="MakeDefaultKeyboard_Click" Style="{StaticResource SubtleButtonStyle}" Tag="{x:Bind}" />
+                                            <Button Grid.Column="2" Click="RemoveKeyboard_Click" Style="{StaticResource SubtleButtonStyle}" Tag="{x:Bind}">
+                                                <FontIcon FontSize="12" Glyph="&#xE711;" />
+                                            </Button>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsRepeater.ItemTemplate>
+                            </ItemsRepeater>
+                            <TextBlock x:Uid="KeyboardsHint" Style="{StaticResource RowHint}" />
+                            <AutoSuggestBox
+                                x:Uid="AddKeyboardBox"
+                                MaxWidth="360"
+                                HorizontalAlignment="Left"
+                                MinWidth="280"
+                                QueryIcon="Add"
+                                QuerySubmitted="AddKeyboard_QuerySubmitted"
+                                TextChanged="AddKeyboard_TextChanged" />
+                        </StackPanel>
+
+                        <ComboBox
+                            x:Uid="TimeZoneBox"
+                            MinWidth="360"
+                            ItemsSource="{x:Bind vm:SetupViewModel.TimeZoneChoices}"
+                            SelectedItem="{x:Bind ViewModel.TimeZone, Mode=TwoWay}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Ключ продукта -->
+            <Border Style="{StaticResource CardStyle}">
+                <StackPanel Spacing="8">
+                    <TextBlock x:Uid="ProductKeyHeader" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                    <TextBlock x:Uid="ProductKeyExplain" Style="{StaticResource RowHint}" />
+                    <TextBox x:Uid="ProductKeyBox" MaxWidth="360" HorizontalAlignment="Left" MinWidth="280" Text="{x:Bind ViewModel.ProductKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock Style="{StaticResource FieldError}" Text="{x:Bind ViewModel.ProductKeyError, Mode=OneWay}" Visibility="{x:Bind ViewModel.HasProductKeyError, Mode=OneWay}" />
+                </StackPanel>
+            </Border>
+
+            <!-- Только в продвинутом режиме: стереть диск 0 -->
+            <Border Style="{StaticResource CardStyle}" Visibility="{x:Bind ViewModel.AdvancedMode, Mode=OneWay}">
+                <Grid ColumnSpacing="16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock x:Uid="WipeDiskTitle" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                        <TextBlock x:Uid="WipeDiskHint" Style="{StaticResource RowHint}" />
+                    </StackPanel>
+                    <ToggleSwitch x:Name="WipeDiskSwitch" Grid.Column="1" MinWidth="0" IsOn="{x:Bind ViewModel.WipeDisk0, Mode=OneWay}" OffContent="" OnContent="" Toggled="WipeDisk_Toggled" />
+                </Grid>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

@@ -74,4 +74,62 @@
   <data name="BuildEngineLost" xml:space="preserve"><value>Lost contact with the engine: {0}</value></data>
   <data name="UnitGB" xml:space="preserve"><value>GB</value></data>
   <data name="UnitMB" xml:space="preserve"><value>MB</value></data>
+  <data name="SetupTitle.Text" xml:space="preserve"><value>Setup</value></data>
+  <data name="SetupSubtitle.Text" xml:space="preserve"><value>What to do so that Windows installs without questions.</value></data>
+  <data name="RequirementsHeader.Text" xml:space="preserve"><value>Windows 11 requirements</value></data>
+  <data name="BypassAllTitle.Text" xml:space="preserve"><value>Don't check the requirements</value></data>
+  <data name="BypassAllHint.Text" xml:space="preserve"><value>Windows 11 installs even without TPM 2.0, Secure Boot, 4 GB of memory or a processor from the supported list.</value></data>
+  <data name="BypassTpm.Content" xml:space="preserve"><value>Don't check TPM 2.0</value></data>
+  <data name="BypassSecureBoot.Content" xml:space="preserve"><value>Don't check Secure Boot</value></data>
+  <data name="BypassRam.Content" xml:space="preserve"><value>Don't check memory</value></data>
+  <data name="BypassCpu.Content" xml:space="preserve"><value>Don't check the processor</value></data>
+  <data name="UserHeader.Text" xml:space="preserve"><value>Local user</value></data>
+  <data name="UserHint.Text" xml:space="preserve"><value>Created during setup as an administrator.</value></data>
+  <data name="UserNameBox.Header" xml:space="preserve"><value>User name</value></data>
+  <data name="UserNameBox.PlaceholderText" xml:space="preserve"><value>For example, Alex</value></data>
+  <data name="PasswordMode.Header" xml:space="preserve"><value>Password</value></data>
+  <data name="PasswordMode_Change" xml:space="preserve"><value>Set at first sign-in (recommended)</value></data>
+  <data name="PasswordMode_Store" xml:space="preserve"><value>Store in the image</value></data>
+  <data name="PasswordBox.Header" xml:space="preserve"><value>User password</value></data>
+  <data name="StoredPasswordWarning.Title" xml:space="preserve"><value>The password can be read</value></data>
+  <data name="StoredPasswordWarning.Message" xml:space="preserve"><value>It is stored in the image almost in plain text: anyone with the ISO or USB drive can find it.</value></data>
+  <data name="AutoLogon.Content" xml:space="preserve"><value>Sign in automatically</value></data>
+  <data name="FirstRunHeader.Text" xml:space="preserve"><value>First run</value></data>
+  <data name="SkipOobeTitle.Text" xml:space="preserve"><value>Skip the first-run screens</value></data>
+  <data name="SkipOobeHint.Text" xml:space="preserve"><value>License, registration and privacy questions (no optional data is sent).</value></data>
+  <data name="NoMicrosoftAccountTitle.Text" xml:space="preserve"><value>No Microsoft account</value></data>
+  <data name="NoMicrosoftAccountHint.Text" xml:space="preserve"><value>Setup needs neither the internet nor a Microsoft account.</value></data>
+  <data name="ComputerNameBox.Header" xml:space="preserve"><value>Computer name</value></data>
+  <data name="ComputerNameBox.PlaceholderText" xml:space="preserve"><value>Leave empty and Windows picks one</value></data>
+  <data name="RegionalHeader.Text" xml:space="preserve"><value>Region</value></data>
+  <data name="RegionalHint.Text" xml:space="preserve"><value>Formats, keyboards and time zone — independent of the display language.</value></data>
+  <data name="FormatsBox.Header" xml:space="preserve"><value>Date and number formats</value></data>
+  <data name="KeyboardsHeader.Text" xml:space="preserve"><value>Keyboard layouts</value></data>
+  <data name="KeyboardsHint.Text" xml:space="preserve"><value>The first one is the default.</value></data>
+  <data name="MakeDefaultKeyboard.Content" xml:space="preserve"><value>Make default</value></data>
+  <data name="AddKeyboardBox.PlaceholderText" xml:space="preserve"><value>Add a keyboard…</value></data>
+  <data name="TimeZoneBox.Header" xml:space="preserve"><value>Time zone</value></data>
+  <data name="ProductKeyHeader.Text" xml:space="preserve"><value>Product key</value></data>
+  <data name="ProductKeyExplain.Text" xml:space="preserve"><value>Optional. Without a key Windows installs and asks for activation later.</value></data>
+  <data name="ProductKeyBox.PlaceholderText" xml:space="preserve"><value>XXXXX-XXXXX-XXXXX-XXXXX-XXXXX</value></data>
+  <data name="WipeDiskTitle.Text" xml:space="preserve"><value>Erase disk 0 and partition it automatically</value></data>
+  <data name="WipeDiskHint.Text" xml:space="preserve"><value>Setup won't ask where to install Windows. All data on disk 0 will be deleted.</value></data>
+  <data name="WipeDiskDialogTitle" xml:space="preserve"><value>Erase the disk without asking?</value></data>
+  <data name="WipeDiskDialogText" xml:space="preserve"><value>Booting from this image will erase disk 0 on any computer — even if it was booted by accident or on someone else's PC. Turn this on only if you know where the image will be used.</value></data>
+  <data name="WipeDiskDialogConfirm" xml:space="preserve"><value>Yes, erase</value></data>
+  <data name="WipeDiskDialogCancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="UserNameHint" xml:space="preserve"><value>Up to 20 characters, without " / \ [ ] : ; | = , + * ? &lt; &gt; @ % or leading/trailing spaces; not Administrator or Guest.</value></data>
+  <data name="PasswordHint" xml:space="preserve"><value>Enter a password (up to 127 characters).</value></data>
+  <data name="ComputerNameHint" xml:space="preserve"><value>Up to 15 characters: Latin letters, digits and hyphens; not only digits.</value></data>
+  <data name="ProductKeyHint" xml:space="preserve"><value>A key looks like XXXXX-XXXXX-XXXXX-XXXXX-XXXXX.</value></data>
+  <data name="ChoicesHeader.Text" xml:space="preserve"><value>Setup</value></data>
+  <data name="SetupSummary_BypassAll" xml:space="preserve"><value>Windows 11 requirements are not checked</value></data>
+  <data name="SetupSummary_BypassSome" xml:space="preserve"><value>Some Windows 11 checks skipped: {0} of 4</value></data>
+  <data name="SetupSummary_UserStored" xml:space="preserve"><value>User "{0}", password stored in the image</value></data>
+  <data name="SetupSummary_UserChange" xml:space="preserve"><value>User "{0}", password set at first sign-in</value></data>
+  <data name="SetupSummary_SkipOobe" xml:space="preserve"><value>No first-run screens</value></data>
+  <data name="SetupSummary_NoMicrosoftAccount" xml:space="preserve"><value>No Microsoft account</value></data>
+  <data name="SetupSummary_ComputerName" xml:space="preserve"><value>Computer name: {0}</value></data>
+  <data name="SetupSummary_Regional" xml:space="preserve"><value>Region: {0}; keyboards {1}; {2}</value></data>
+  <data name="SetupSummary_WipeDisk" xml:space="preserve"><value>Disk 0 will be erased without asking</value></data>
 </root>

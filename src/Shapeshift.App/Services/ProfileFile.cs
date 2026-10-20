@@ -1,27 +1,78 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Shapeshift.App.Services;
 
-/// <summary>
-/// Выборы мастера → профиль для движка (тот же формат, что принимает CLI). Пока в мастере только
-/// источник и результат; остальные шаги добавят свои разделы.
-/// </summary>
+/// <summary>Выборы мастера в виде профиля — того же формата, что принимает CLI.</summary>
+public sealed record ProfileDraft(
+    string SourceIso,
+    string OutputIso,
+    IReadOnlyList<string> Tweaks,
+    SetupDraft? Setup,
+    RegionalDraft? Regional);
+
+public sealed record SetupDraft(
+    UserDraft? User,
+    string? ComputerName,
+    bool SkipOobe,
+    bool BypassOnlineAccount,
+    bool WipeDisk0,
+    string? ProductKey);
+
+/// <param name="Password">Только для режима «хранить»; иначе null.</param>
+public sealed record UserDraft(string Name, bool StorePassword, string? Password, bool AutoLogon);
+
+public sealed record RegionalDraft(string Formats, IReadOnlyList<string> Keyboards, string TimeZone);
+
+/// <summary>Пишет профиль во временный файл для движка и удаляет его после.</summary>
 public static class ProfileFile
 {
     static readonly string Folder = Path.Combine(Path.GetTempPath(), "Shapeshift");
 
-    public static string Write(string sourceIso, string outputIso)
+    static readonly JsonSerializerOptions Json = new()
+    {
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        WriteIndented = true,
+    };
+
+    public static string Write(ProfileDraft draft)
     {
         Directory.CreateDirectory(Folder);
         var path = Path.Combine(Folder, $"profile-{Guid.NewGuid():N}.json");
-        File.WriteAllText(path, JsonSerializer.Serialize(new
-        {
-            formatVersion = 1,
-            source = new { iso = sourceIso },
-            output = new { iso = outputIso },
-        }));
+        File.WriteAllText(path, ToJson(draft));
         return path;
     }
+
+    public static string ToJson(ProfileDraft draft) => JsonSerializer.Serialize(new
+    {
+        formatVersion = 1,
+        tweaks = draft.Tweaks.Count > 0 ? draft.Tweaks : null,
+        setup = draft.Setup is { } s
+            ? new
+            {
+                user = s.User is { } u
+                    ? new
+                    {
+                        name = u.Name,
+                        password = u.StorePassword
+                            ? new { mode = "store", value = u.Password }
+                            : new { mode = "changeAtFirstLogon", value = (string?)null },
+                        autoLogon = u.AutoLogon ? true : (bool?)null,
+                    }
+                    : null,
+                computerName = s.ComputerName,
+                skipOobe = s.SkipOobe,
+                bypassOnlineAccount = s.BypassOnlineAccount,
+                wipeDisk0 = s.WipeDisk0 ? true : (bool?)null,
+                productKey = s.ProductKey,
+            }
+            : null,
+        regional = draft.Regional is { } r
+            ? new { formats = r.Formats, keyboards = r.Keyboards, timeZone = r.TimeZone }
+            : null,
+        source = new { iso = draft.SourceIso },
+        output = new { iso = draft.OutputIso },
+    }, Json);
 
     public static void TryDelete(string? path)
     {

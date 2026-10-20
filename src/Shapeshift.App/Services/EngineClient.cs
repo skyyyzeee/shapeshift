@@ -6,6 +6,7 @@ namespace Shapeshift.App.Services;
 
 /// <summary>Сведения об образе из <c>inspect --json</c>.</summary>
 public sealed record ImageSummary(
+    string Product,
     string ReleaseName,
     string Architecture,
     string? Language,
@@ -56,6 +57,7 @@ public sealed class EngineClient
             var dto = doc.RootElement.Deserialize<ImageDto>(Json)!;
             return new InspectResult(
                 new ImageSummary(
+                    dto.Release.Product,
                     dto.Release.Name,
                     dto.Architecture,
                     dto.Language,
@@ -126,7 +128,7 @@ public sealed class EngineClient
 
     sealed record ImageDto(ReleaseDto Release, string Architecture, string? Language, List<EditionDto> Editions);
 
-    sealed record ReleaseDto(string Name);
+    sealed record ReleaseDto(string Name, string Product);
 
     sealed record EditionDto(int Index, string EditionId, string Name);
 }
