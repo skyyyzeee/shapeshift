@@ -10,10 +10,35 @@ public sealed partial class SourceViewModel(EngineClient engine) : ObservableObj
 
     /// <summary>Источник — скачивание из Windows Update, а не свой ISO.</summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasSource))]
     public partial bool IsDownloadMode { get; set; }
 
+    ImageSummary? _isoImage;
+
+    /// <summary>Выпуск UUP, если источник — «Скачать» и выбор сделан.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(FileName), nameof(HasImage))]
+    [NotifyPropertyChangedFor(nameof(HasSource))]
+    public partial UupSourceDraft? Uup { get; private set; }
+
+    /// <summary>Есть из чего собирать: выбранный ISO или выбранный выпуск UUP.</summary>
+    public bool HasSource => IsDownloadMode ? Uup is not null : IsoPath is not null;
+
+    /// <summary>Источник — свой ISO: образ — прочитанный из него.</summary>
+    public void ShowIso()
+    {
+        Uup = null;
+        Image = _isoImage;
+    }
+
+    /// <summary>Источник — выпуск UUP: образ — каким он получится из выбранного.</summary>
+    public void ShowDownload(ImageSummary? image, UupSourceDraft? uup)
+    {
+        Uup = uup;
+        Image = image;
+    }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(FileName), nameof(HasImage), nameof(HasSource))]
     public partial string? IsoPath { get; private set; }
 
     [ObservableProperty]
@@ -52,7 +77,9 @@ public sealed partial class SourceViewModel(EngineClient engine) : ObservableObj
         var loading = _loading = new CancellationTokenSource();
 
         IsoPath = isoPath;
-        Image = null;
+        _isoImage = null;
+        if (!IsDownloadMode)
+            Image = null;
         ErrorMessage = null;
         IsLoading = true;
         try
@@ -62,7 +89,11 @@ public sealed partial class SourceViewModel(EngineClient engine) : ObservableObj
                 return;
 
             if (result.Image is { } image)
-                Image = image;
+            {
+                _isoImage = image;
+                if (!IsDownloadMode)
+                    Image = image;
+            }
             else
                 ErrorMessage = DescribeError(result.ErrorCode, result.ErrorMessage);
         }

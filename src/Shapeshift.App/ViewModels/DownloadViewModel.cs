@@ -190,8 +190,30 @@ public sealed partial class DownloadViewModel(EngineClient engine) : ObservableO
         if (State != DownloadState.Downloading)
             State = DownloadState.Idle;
         OnPropertyChanged(nameof(CanDownload));
+        SourceChanged?.Invoke(this, EventArgs.Empty);
         _ = MeasureAsync();
     }
+
+    /// <summary>Изменился выбор выпуска, языка или редакций — источник мастера другой.</summary>
+    public event EventHandler? SourceChanged;
+
+    /// <summary>Источник для профиля; null — выбор не закончен (нет редакций).</summary>
+    public UupSourceDraft? Draft => Release is { } release && Language is { } language && ChosenEditions.Count > 0
+        ? new UupSourceDraft(release.Release.Channel, language.Code, release.Release.UpdateId)
+        : null;
+
+    /// <summary>Образ, каким он получится: для шагов «Редакции» и «Установка».</summary>
+    public ImageSummary? Image => Draft is null
+        ? null
+        : new ImageSummary(
+            int.TryParse(Release!.Release.Build.Split('.')[0], out var build) && build < 22000 ? "windows10" : "windows11",
+            Release.Release.Title,
+            "x64",
+            Language!.Code,
+            Editions.Where(e => e.IsOn).Select((e, i) => new EditionSummary(i + 1, e.EditionId, e.Name)).ToList());
+
+    /// <summary>Выбранные редакции — для профиля (поле editions).</summary>
+    public IReadOnlyList<string> SelectedEditions => ChosenEditions;
 
     /// <summary>Сколько скачать для выбранного: первый раз движок скачивает метаданные выпуска (несколько МБ).</summary>
     async Task MeasureAsync()
@@ -285,13 +307,18 @@ public sealed partial class DownloadViewModel(EngineClient engine) : ObservableO
         }
     }
 
-    // «2,3 из 9,1 ГБ · 7,5 МБ/с · осталось 18 мин»
     void ShowTransfer(System.Text.Json.JsonElement body)
+    {
+        (var fraction, ProgressText) = DescribeTransfer(body);
+        Progress = 100 * fraction;
+    }
+
+    /// <summary>Сообщение transfer движка → доля и «2,3 из 9,1 ГБ · 7,5 МБ/с · осталось 18 мин».</summary>
+    public static (double Fraction, string Text) DescribeTransfer(System.Text.Json.JsonElement body)
     {
         var bytes = body.GetProperty("bytes").GetInt64();
         var total = body.GetProperty("total").GetInt64();
         var speed = body.GetProperty("bytesPerSecond").GetDouble();
-        Progress = total > 0 ? 100.0 * bytes / total : 0;
         var parts = new List<string> { Text.Format("UupProgressAmount", Text.Size(bytes), Text.Size(total)) };
         if (speed > 0)
             parts.Add(Text.Format("UupProgressSpeed", Text.Size((long)speed)));
@@ -302,7 +329,7 @@ public sealed partial class DownloadViewModel(EngineClient engine) : ObservableO
                 ? Text.Format("UupProgressLeftHours", (int)time.TotalHours, time.Minutes)
                 : Text.Format("UupProgressLeftMinutes", Math.Max(1, (int)Math.Ceiling(time.TotalMinutes))));
         }
-        ProgressText = string.Join("  ·  ", parts);
+        return (total > 0 ? (double)bytes / total : 0, string.Join("  ·  ", parts));
     }
 
     static string ChannelName(string channel) => Text.Get($"UupChannel_{channel}") is var name && name != $"UupChannel_{channel}" ? name : channel;

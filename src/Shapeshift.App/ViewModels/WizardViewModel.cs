@@ -23,6 +23,7 @@ public sealed partial class WizardViewModel : ObservableObject
     {
         Source = new SourceViewModel(engine);
         Download = new DownloadViewModel(engine);
+        Download.SourceChanged += (_, _) => { if (Source.IsDownloadMode) Source.ShowDownload(Download.Image, Download.Draft); };
         Editions = new EditionsViewModel();
         Setup = new SetupViewModel();
         Customize = new CustomizeViewModel(engine);
@@ -143,6 +144,15 @@ public sealed partial class WizardViewModel : ObservableObject
 
     void OnSourceChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (e.PropertyName == nameof(SourceViewModel.IsDownloadMode))
+        {
+            if (Source.IsDownloadMode)
+                Source.ShowDownload(Download.Image, Download.Draft);
+            else
+                Source.ShowIso();
+        }
+        if (e.PropertyName == nameof(SourceViewModel.HasSource))
+            StepsChanged();
         if (e.PropertyName == nameof(SourceViewModel.Image))
             Editions.SetImage(Source.Image);
         if (e.PropertyName == nameof(SourceViewModel.Image))

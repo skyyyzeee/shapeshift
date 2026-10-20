@@ -206,6 +206,19 @@ try {
         Save-VmScreenshot $vmName (Join-Path $work 'timeout.png')
         throw "Installation did not finish in $TimeoutMinutes minutes; see timeout.png in $work."
     }
+    # Без анимации первого входа (например, в образе без встроенных приложений) рабочий стол появляется раньше,
+    # чем выполнятся команды первого входа. Ждём, пока в сеансе пользователя не останется cmd и PowerShell.
+    Write-Step 'Desktop is up; waiting for the first-logon commands to finish'
+    $settleStart = Get-Date
+    $quietSince = $null
+    while ((Get-Date) - $settleStart -lt [TimeSpan]::FromMinutes(15)) {
+        $busy = Invoke-Command -VMName $vmName -Credential $credential -ErrorAction SilentlyContinue -ScriptBlock {
+            [bool](Get-Process cmd, powershell -ErrorAction SilentlyContinue | Where-Object SessionId -gt 0)
+        }
+        if ($busy) { $quietSince = $null } elseif (-not $quietSince) { $quietSince = Get-Date }
+        if ($quietSince -and (Get-Date) - $quietSince -gt [TimeSpan]::FromSeconds(60) -and (Get-Date) - $settleStart -gt [TimeSpan]::FromSeconds(90)) { break }
+        Start-Sleep -Seconds 10
+    }
     Write-Step 'Installed; checking the result'
 
     # 5. Факты об установленной системе. Культуру читаем из реестра пользователя: Get-Culture

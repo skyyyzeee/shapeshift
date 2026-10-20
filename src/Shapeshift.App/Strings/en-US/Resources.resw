@@ -285,8 +285,8 @@ Date formats, keyboards and the time zone are set separately, on the Setup step.
   <data name="UupEditionsTip.Text" xml:space="preserve"><value>These are the editions Microsoft publishes ready-made: Home and Pro (and their N versions without media features, for Europe).
 Education, Enterprise, Pro for Workstations and others are made from Pro and will come later.
 Pick the one you have a license for.</value></data>
-  <data name="UupNotYetBar.Title" xml:space="preserve"><value>Building from the download comes in later versions</value></data>
-  <data name="UupNotYetBar.Message" xml:space="preserve"><value>The release files can already be downloaded into the cache. Building an image from them comes in later versions of Shapeshift; for now, choose your own ISO to build.</value></data>
+  <data name="UupNotYetBar.Title" xml:space="preserve"><value>What you get</value></data>
+  <data name="UupNotYetBar.Message" xml:space="preserve"><value>From here it works as with your own ISO: the image is built from Windows Update files. For now it is the original build of the version (for example, 26100.1 for 24H2 and 25H2) without built-in apps; the latest update and the apps come in later versions of Shapeshift. You can download the files in advance, or the build downloads them itself.</value></data>
   <data name="UupError" xml:space="preserve"><value>Couldn&apos;t get the list of releases from Windows Update. Check the internet connection, or choose your own ISO. Details: {0}</value></data>
   <data name="UupReleaseDetail" xml:space="preserve"><value>Build {0} · {1}</value></data>
   <data name="UupChannel_windows11" xml:space="preserve"><value>latest version</value></data>
@@ -316,8 +316,12 @@ What is downloaded once is not downloaded again, even for another edition of the
   <data name="UupProgressLeftHours" xml:space="preserve"><value>{0} h {1} min left</value></data>
   <data name="UupProgressLeftMinutes" xml:space="preserve"><value>{0} min left</value></data>
   <data name="UupDoneBar.Title" xml:space="preserve"><value>Downloaded</value></data>
-  <data name="UupDoneBar.Message" xml:space="preserve"><value>The files are in the cache and verified. Building an image from them comes in the next version of Shapeshift.</value></data>
+  <data name="UupDoneBar.Message" xml:space="preserve"><value>The files are in the cache and verified; the build takes them from there. Press Next.</value></data>
   <data name="UupCancelledBar.Title" xml:space="preserve"><value>Download stopped</value></data>
   <data name="UupCancelledBar.Message" xml:space="preserve"><value>Press Download to resume where it stopped.</value></data>
   <data name="UupFailedBar.Title" xml:space="preserve"><value>Couldn&apos;t download</value></data>
+  <data name="StepKind_DownloadFiles" xml:space="preserve"><value>Downloading Windows files</value></data>
+  <data name="StepKind_AssembleImage" xml:space="preserve"><value>Building the image from UUP files</value></data>
+  <data name="StepKind_DownloadMetadata" xml:space="preserve"><value>Getting the file list</value></data>
+  <data name="AppsNoIso" xml:space="preserve"><value>An image built from Windows Update has no built-in apps yet, so there is nothing to remove.</value></data>
 </root>

@@ -52,6 +52,10 @@ public sealed partial class OutputViewModel(
     [ObservableProperty]
     public partial string FailureText { get; private set; } = "";
 
+    /// <summary>Подробности шага: при скачивании — объём, скорость, оставшееся время.</summary>
+    [ObservableProperty]
+    public partial string StepDetail { get; private set; } = "";
+
     public ObservableCollection<string> Log { get; } = [];
 
     public ObservableCollection<string> SummaryLines { get; } = [];
@@ -72,12 +76,18 @@ public sealed partial class OutputViewModel(
             yield return Text.Format("CustomizeSummary_Programs", programs.Count, string.Join(", ", programs));
     }
 
-    ProfileDraft Draft(string sourceIso, string outputIso)
+    ProfileDraft Draft(string outputIso)
     {
         var (tweaks, setupDraft, regional) = setup.ToDraft();
         var (keep, install) = editions.ToDraft();
-        return new ProfileDraft(sourceIso, outputIso, [.. tweaks, .. customize.SelectedTweaks], keep, setupDraft with { Edition = install }, regional, customize.SelectedApps, customize.Programs.ToDraft());
+        // Для UUP редакции — всегда явно: без них движок скачал бы только Pro.
+        if (source.Uup is not null)
+            keep ??= editions.Editions.Select(e => e.EditionId).ToList();
+        return new ProfileDraft(source.Uup is null ? source.IsoPath : null, outputIso, [.. tweaks, .. customize.SelectedTweaks], keep,
+            setupDraft with { Edition = install }, regional, customize.SelectedApps, customize.Programs.ToDraft(), source.Uup);
     }
+
+    bool HasSource => source.HasSource;
 
     public ObservableCollection<string> Warnings { get; } = [];
 
@@ -101,29 +111,32 @@ public sealed partial class OutputViewModel(
 
     public bool WasCancelled => State == BuildState.Cancelled;
 
-    /// <summary>Путь по умолчанию: «Документы\&lt;исходный образ&gt;-shapeshift.iso».</summary>
+    /// <summary>Путь по умолчанию: «Документы\&lt;исходный образ&gt;-shapeshift.iso» (для UUP — «Windows-ru-RU-shapeshift.iso»).</summary>
     public void SuggestOutputPath()
     {
-        if (OutputPath is not null || source.IsoPath is null)
+        if (OutputPath is not null || !HasSource)
             return;
         var documents = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-        OutputPath = Path.Combine(documents, Path.GetFileNameWithoutExtension(source.IsoPath) + "-shapeshift.iso");
+        var name = source.Uup is { } uup
+            ? $"{(source.Image?.Product == "windows10" ? "Windows10" : "Windows11")}-{uup.Language}"
+            : Path.GetFileNameWithoutExtension(source.IsoPath);
+        OutputPath = Path.Combine(documents, name + "-shapeshift.iso");
     }
 
     /// <summary>Все выборы мастера — в файл профиля (тот же формат, что принимает CLI).</summary>
     public async Task SaveProfileAsync(string path)
     {
-        if (source.IsoPath is null || OutputPath is null)
+        if (!HasSource || OutputPath is null)
             return;
-        await File.WriteAllTextAsync(path, ProfileFile.ToJson(Draft(source.IsoPath, OutputPath)));
+        await File.WriteAllTextAsync(path, ProfileFile.ToJson(Draft(OutputPath)));
     }
 
     /// <summary>Только файл ответов — для обычного ISO. null — успех, иначе текст ошибки.</summary>
     public async Task<string?> ExportAnswerFileAsync(string path)
     {
-        if (source.IsoPath is null || OutputPath is null)
+        if (!HasSource || OutputPath is null)
             return null;
-        var profile = ProfileFile.Write(Draft(source.IsoPath, OutputPath));
+        var profile = ProfileFile.Write(Draft(OutputPath));
         try
         {
             return await engine.AnswerFileAsync(profile, path);
@@ -137,7 +150,7 @@ public sealed partial class OutputViewModel(
     /// <summary>Пробный прогон движка без повышения — для сводки и проверки места.</summary>
     public async Task RefreshPlanAsync()
     {
-        if (source.IsoPath is null || OutputPath is null || State == BuildState.Building)
+        if (!HasSource || OutputPath is null || State == BuildState.Building)
             return;
 
         _planning?.Cancel();
@@ -145,7 +158,7 @@ public sealed partial class OutputViewModel(
         IsPlanning = true;
         Plan = null;
         PlanError = null;
-        var profile = ProfileFile.Write(Draft(source.IsoPath, OutputPath));
+        var profile = ProfileFile.Write(Draft(OutputPath));
         try
         {
             var result = await engine.PlanAsync(profile, AppSettings.Current.EffectiveWorkspace, planning.Token);
@@ -191,7 +204,7 @@ public sealed partial class OutputViewModel(
     /// <summary>Сборка: движок с повышением (один запрос UAC), ход — по каналу.</summary>
     public async Task BuildAsync()
     {
-        if (!CanBuild || source.IsoPath is null || OutputPath is null)
+        if (!CanBuild || !HasSource || OutputPath is null)
             return;
 
         Log.Clear();
@@ -200,7 +213,7 @@ public sealed partial class OutputViewModel(
         FailureText = "";
         State = BuildState.Building;
 
-        var profile = ProfileFile.Write(Draft(source.IsoPath, OutputPath));
+        var profile = ProfileFile.Write(Draft(OutputPath));
         try
         {
             _session = await BuildSession.StartBuildAsync(engine.EnginePath, profile, AppSettings.Current.EffectiveWorkspace, CancellationToken.None);
@@ -221,6 +234,7 @@ public sealed partial class OutputViewModel(
                         var total = message.Body.GetProperty("total").GetInt32();
                         var kind = message.Body.GetProperty("kind").GetString();
                         StepText = Text.Format("BuildStep", index + 1, total, Text.Get($"StepKind_{kind}"));
+                        StepDetail = "";
                         Progress = 100.0 * index / total;
                         _stepIndex = index;
                         _stepTotal = total;
@@ -229,6 +243,11 @@ public sealed partial class OutputViewModel(
                     case "progress":
                         var fraction = message.Body.GetProperty("fraction").GetDouble();
                         Progress = 100.0 * (_stepIndex + fraction) / Math.Max(1, _stepTotal);
+                        break;
+                    case "transfer":
+                        var (done, detail) = DownloadViewModel.DescribeTransfer(message.Body);
+                        Progress = 100.0 * (_stepIndex + done) / Math.Max(1, _stepTotal);
+                        StepDetail = detail;
                         break;
                     case "log":
                         Log.Add(message.Text ?? "");

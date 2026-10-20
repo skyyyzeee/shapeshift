@@ -60,6 +60,20 @@ public sealed class UupDownloadTests : IDisposable
         Assert.Equal(_release.Files[$"{FakeUupRelease.UpdateId}.AggregatedMetadata.cab"].Length, json.RootElement.GetProperty("cachedBytes").GetInt64());
     }
 
+    [Fact]
+    public async Task Media_only_lists_what_the_build_downloads()
+    {
+        var wu = await Listed();
+
+        var result = await CliRun.RunAsync(wu.Host(Workspace), [.. Select("files", "Professional"), "--media-only", "--list"]);
+
+        Assert.True(result.ExitCode == Cli.ExitCodes.Success, result.Error);
+        var listed = result.Output.Split('\n').Where(l => l.StartsWith("  ") && !l.StartsWith("   ")).Select(l => l.Trim()).ToList();
+        Assert.Contains("professional_ru-ru.esd", listed);
+        Assert.Contains("Microsoft-Windows-Fake-FOD-Package~31bf3856ad364e35~amd64~~.cab", listed);
+        Assert.DoesNotContain(listed, f => f.EndsWith(".appx") || f.EndsWith(".msixbundle") || f.StartsWith("Windows11.0-KB") || f.Contains("AggregatedMetadata"));
+    }
+
     [Theory]
     [InlineData("de-DE", "Professional", "language 'de-DE' is not in this release; available: en-US, ru-RU.")]
     [InlineData("en-US", "Core", "edition 'Core' is not available in en-US; available: Professional.")]

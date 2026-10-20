@@ -110,6 +110,7 @@
                 <Border Style="{StaticResource CardStyle}">
                     <StackPanel Spacing="12">
                         <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{x:Bind ViewModel.StepText, Mode=OneWay}" />
+                        <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" Text="{x:Bind ViewModel.StepDetail, Mode=OneWay}" />
                         <ProgressBar Maximum="100" Value="{x:Bind ViewModel.Progress, Mode=OneWay}" />
                         <Button
                             x:Uid="CancelBuild"

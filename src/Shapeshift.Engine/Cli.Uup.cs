@@ -8,7 +8,7 @@ namespace Shapeshift.Engine;
 // Скачивание выпуска UUP: какие файлы нужны (uup files) и само скачивание в кэш (uup download).
 public static partial class Cli
 {
-    sealed record UupChoice(string UpdateId, string Language, IReadOnlyList<string> Editions, string Workspace);
+    sealed record UupChoice(string UpdateId, string Language, IReadOnlyList<string> Editions, string Workspace, bool MediaOnly = false);
 
     sealed class UupOptions
     {
@@ -16,6 +16,7 @@ public static partial class Cli
         public Option<string> Language { get; } = new("--lang") { Description = "Windows language, like ru-RU.", Required = true };
         public Option<string[]> Editions { get; } = new("--edition") { Description = "Edition (EditionID, like Professional); repeat for several.", Required = true, AllowMultipleArgumentsPerToken = true };
         public Option<DirectoryInfo> Workspace { get; } = new("--workspace") { Description = "Workspace; files are cached in its cache\\uup folder." };
+        public Option<bool> MediaOnly { get; } = new("--media-only") { Description = "Only what building the installation media needs (no apps and updates)." };
 
         public void AddTo(Command command)
         {
@@ -23,13 +24,15 @@ public static partial class Cli
             command.Options.Add(Language);
             command.Options.Add(Editions);
             command.Options.Add(Workspace);
+            command.Options.Add(MediaOnly);
         }
 
         public UupChoice Read(ParseResult parseResult, Context context) => new(
             parseResult.GetRequiredValue(Update),
             parseResult.GetRequiredValue(Language),
             parseResult.GetRequiredValue(Editions),
-            parseResult.GetValue(Workspace)?.FullName ?? context.Host.DefaultWorkspace);
+            parseResult.GetValue(Workspace)?.FullName ?? context.Host.DefaultWorkspace,
+            parseResult.GetValue(MediaOnly));
     }
 
     static Command UupFilesCommand(Context context)
@@ -163,9 +166,10 @@ public static partial class Cli
             var selected = UupFileSet.Resolve(release, compDbs, language.Code, editions);
             foreach (var problem in selected.Problems)
                 await context.Error.WriteLineAsync($"error: {problem}");
+            var files = selection.MediaOnly ? UupFileSet.MediaFiles(selected.Files) : selected.Files;
             return selected.Problems.Count > 0
                 ? (ExitCodes.Failure, null)
-                : (ExitCodes.Success, new UupPlan(release, language.Code, editions, selected.Files, downloader, urls, selected.BaseVersion));
+                : (ExitCodes.Success, new UupPlan(release, language.Code, editions, files, downloader, urls, selected.BaseVersion));
         }
         catch (Exception e) when (e is UupDownloadException or WindowsUpdateException or InvalidDataException)
         {

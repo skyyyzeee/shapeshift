@@ -214,7 +214,7 @@ public sealed class EngineClient
     public async Task<UupFilesResult> UupFilesAsync(
         string updateId, string language, IReadOnlyList<string> editions, string workspace, CancellationToken ct = default)
     {
-        string[] args = ["uup", "files", "--update", updateId, "--lang", language, .. editions.SelectMany(e => new[] { "--edition", e }), "--workspace", workspace, "--json"];
+        string[] args = ["uup", "files", "--update", updateId, "--lang", language, .. editions.SelectMany(e => new[] { "--edition", e }), "--workspace", workspace, "--media-only", "--json"];
         var (exitCode, output, error) = await RunAsync(args, ct);
         try
         {

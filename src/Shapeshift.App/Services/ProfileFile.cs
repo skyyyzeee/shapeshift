@@ -4,15 +4,20 @@ using System.Text.Json.Serialization;
 namespace Shapeshift.App.Services;
 
 /// <summary>Выборы мастера в виде профиля — того же формата, что принимает CLI.</summary>
+/// <param name="SourceIso">Свой ISO; null — источник <paramref name="Uup"/>.</param>
 public sealed record ProfileDraft(
-    string SourceIso,
+    string? SourceIso,
     string OutputIso,
     IReadOnlyList<string> Tweaks,
     IReadOnlyList<string>? Editions,
     SetupDraft? Setup,
     RegionalDraft? Regional,
     IReadOnlyList<string>? RemoveApps = null,
-    IReadOnlyList<ProgramDraft>? Programs = null);
+    IReadOnlyList<ProgramDraft>? Programs = null,
+    UupSourceDraft? Uup = null);
+
+/// <summary>Выпуск из Windows Update: канал, язык и конкретный выпуск (null — самый новый в канале при сборке).</summary>
+public sealed record UupSourceDraft(string Channel, string Language, string? UpdateId);
 
 /// <summary>Программа профиля: <paramref name="Winget"/> или <paramref name="Path"/> (с <paramref name="Run"/> для папки).</summary>
 public sealed record ProgramDraft(string? Winget, string? Path, string? Run, string? Args, string? Name);
@@ -83,7 +88,9 @@ public static class ProfileFile
         regional = draft.Regional is { } r
             ? new { formats = r.Formats, keyboards = r.Keyboards, timeZone = r.TimeZone }
             : null,
-        source = new { iso = draft.SourceIso },
+        source = draft.Uup is { } uup
+            ? (object)new { uup = new { channel = uup.Channel, language = uup.Language, updateId = uup.UpdateId } }
+            : new { iso = draft.SourceIso },
         output = new { iso = draft.OutputIso },
     }, Json);
 

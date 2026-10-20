@@ -37,7 +37,7 @@ public sealed class BuildSession : IAsyncDisposable
     public static async Task<BuildSession> StartDownloadAsync(
         string enginePath, string updateId, string language, IReadOnlyList<string> editions, string workspace, CancellationToken ct) =>
         (await StartAsync(enginePath,
-            ["uup", "download", "--update", updateId, "--lang", language, .. editions.SelectMany(e => new[] { "--edition", e }), "--workspace", workspace],
+            ["uup", "download", "--update", updateId, "--lang", language, .. editions.SelectMany(e => new[] { "--edition", e }), "--workspace", workspace, "--media-only"],
             elevated: false, ct))!;
 
     static async Task<BuildSession?> StartAsync(string enginePath, IReadOnlyList<string> arguments, bool elevated, CancellationToken ct)

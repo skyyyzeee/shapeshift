@@ -259,7 +259,16 @@ public sealed partial class CustomizeViewModel(EngineClient engine) : Observable
     public async Task LoadAppsAsync(string? isoPath, string? edition)
     {
         var key = $"{isoPath}|{edition}";
-        if (isoPath is null || (key == _appsLoadedFor && Apps.Count > 0))
+        if (isoPath is null)
+        {
+            // Источник — UUP: в собранном образе пока нет встроенных приложений.
+            Apps.Clear();
+            ShownApps.Clear();
+            AppsError = Text.Get("AppsNoIso");
+            _appsLoadedFor = null;
+            return;
+        }
+        if (key == _appsLoadedFor && Apps.Count > 0)
             return;
 
         foreach (var app in Apps)
