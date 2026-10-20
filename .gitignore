@@ -9,3 +9,6 @@ TestResults/
 
 # Стенд Hyper-V: образы, диски ВМ, логи
 .bench/
+
+# Портативные сборки (tools/Publish-Release.ps1)
+artifacts/

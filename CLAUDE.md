@@ -7,6 +7,7 @@
 - `dotnet build` / `dotnet test` из корня (.NET 10 SDK; если `dotnet` нет в PATH — `C:\Program Files\dotnet\dotnet.exe`).
 - Единственный шов тестирования — команды CLI движка: тесты вызывают `Cli.RunAsync` внутри процесса. Новое поведение тестируется через команду, а не через внутренние классы.
 - Снимки: `tests/*/Snapshots/*.verified.*`. При расхождении рядом появляется `.received.*` — просмотреть и переименовать, либо прогнать с `SHAPESHIFT_ACCEPT_SNAPSHOTS=1`.
+- Портативная сборка: `tools/Publish-Release.ps1` → `artifacts/Shapeshift-<версия>-win-x64.zip` (версия — `Version` в `Directory.Build.props`).
 - Окно: `dotnet run --project src/Shapeshift.App [-- <путь к ISO>]`. Автотестами не покрывается — вся логика ниже шва движка.
 - Сквозная проверка установки в Hyper-V: `tools/bench/Invoke-Bench.ps1 -Iso <ISO>` (см. `tools/bench/README.md`), не входит в `dotnet test`.
 - Тесты на настоящем ISO Windows пропускаются, пока не задан `SHAPESHIFT_TEST_ISO=<путь к ISO>` (около минуты и ~17 ГБ на диске); быстрые тесты используют синтетический образ `FakeWindowsIso`.
