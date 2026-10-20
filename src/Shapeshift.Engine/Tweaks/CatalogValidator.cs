@@ -24,6 +24,17 @@ public static partial class CatalogValidator
         foreach (var category in catalog.Categories)
             CheckText(problems, $"category '{category.Id}'", "name", category.Name);
 
+        foreach (var name in Duplicates(catalog.Apps.Select(a => a.Name.ToLowerInvariant())))
+            problems.Add($"app '{name}' is described more than once.");
+        foreach (var app in catalog.Apps)
+        {
+            if (!AppNamePattern().IsMatch(app.Name))
+                problems.Add($"app '{app.Name}': name must be a package name without version, like Microsoft.BingNews or MSTeams.");
+            CheckText(problems, $"app '{app.Name}'", "title", app.Title);
+            if (app.Recommended && app.Safety == AppSafety.Risky)
+                problems.Add($"app '{app.Name}': a risky app cannot be recommended for removal.");
+        }
+
         var categories = catalog.Categories.Select(c => c.Id).ToHashSet();
         var ids = catalog.Tweaks.Select(t => t.Id).ToHashSet();
         foreach (var tweak in catalog.Tweaks)
@@ -117,4 +128,7 @@ public static partial class CatalogValidator
 
     [GeneratedRegex(@"^[a-z0-9]+(\.[a-z0-9]+(-[a-z0-9]+)*)+$")]
     private static partial Regex TweakIdPattern();
+
+    [GeneratedRegex(@"^[A-Za-z0-9]+([.-][A-Za-z0-9]+)*$")]
+    private static partial Regex AppNamePattern();
 }

@@ -67,6 +67,23 @@ public static class EngineJson
         }),
     }, Options);
 
+    /// <summary>Встроенные приложения редакции с разметкой каталога (<c>apps list --json</c>).</summary>
+    public static string Apps(Edition edition, IReadOnlyList<string> apps, TweakCatalog catalog) => JsonSerializer.Serialize(new
+    {
+        edition = new { index = edition.Index, editionId = edition.EditionId, name = edition.Name },
+        apps = apps.Select(name =>
+        {
+            var markup = catalog.FindApp(name);
+            return new
+            {
+                name,
+                title = markup?.Title.Values,
+                safety = markup is null ? "unknown" : markup.Safety == AppSafety.Safe ? "safe" : "risky",
+                recommended = markup?.Recommended ?? false,
+            };
+        }),
+    }, Options);
+
     public static string Error(string code, string message) =>
         JsonSerializer.Serialize(new { error = new { code, message } }, Options);
 }

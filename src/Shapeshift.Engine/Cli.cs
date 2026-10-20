@@ -5,6 +5,7 @@ using Shapeshift.Engine.AnswerFiles;
 using Shapeshift.Engine.Builds;
 using Shapeshift.Engine.Images;
 using Shapeshift.Engine.Pipes;
+using Shapeshift.Engine.Servicing;
 using Shapeshift.Engine.Tweaks;
 
 namespace Shapeshift.Engine;
@@ -22,6 +23,7 @@ public static class Cli
         public const int InvalidInput = 2;
         public const int NotEnoughSpace = 3;
         public const int Cancelled = 4;
+        public const int NeedsElevation = 5;
     }
 
     public static Task<int> RunAsync(
@@ -34,6 +36,8 @@ public static class Cli
             InspectCommand(context),
             BuildCommand(context),
             CatalogCommand(context),
+            AppsCommand(context),
+            CleanupCommand(context),
         };
 
         return root.Parse(args).InvokeAsync(new InvocationConfiguration { Output = output, Error = error }, ct);
@@ -247,6 +251,7 @@ public static class Cli
         ExitCodes.InvalidInput => "invalid-input",
         ExitCodes.NotEnoughSpace => "not-enough-space",
         ExitCodes.Cancelled => "cancelled",
+        ExitCodes.NeedsElevation => "needs-elevation",
         _ => "failure",
     };
 
@@ -263,6 +268,10 @@ public static class Cli
         {
             await context.Error.WriteLineAsync("error: the build was cancelled; nothing was written.");
             return (ExitCodes.Cancelled, null);
+        }
+        catch (ServicingException e)
+        {
+            return (await FailAsync(context, ExitCodes.Failure, e.Message), null);
         }
     }
 
@@ -313,10 +322,24 @@ public static class Cli
                     $"the limit is {BuildPlan.MaxPath}. Choose a workspace path of at most {budget} characters."), plan);
             }
 
+            if (plan.NeedsElevation)
+            {
+                if (DismServicing.HostTooOldWarning(source.Info.Release.Build) is { } tooOld)
+                    await context.Error.WriteLineAsync($"warning: {tooOld}");
+                if (!options.DryRun && !DismServicing.IsElevated)
+                {
+                    return (await FailAsync(context, ExitCodes.NeedsElevation,
+                        "removing built-in apps uses DISM and needs administrator rights; run the engine as administrator."), plan);
+                }
+            }
+
             if (options.DryRun)
                 return (ExitCodes.Success, plan);
 
             ct.ThrowIfCancellationRequested();
+            // Зависшие монтирования прошлых сборок (вылет, выключение питания) мешают новому — отключаем.
+            if (plan.NeedsElevation)
+                await Task.Run(() => DismServicing.CleanupStale(context.Output), ct);
             await BuildRunner.RunAsync(plan, reporter, ct);
             return (ExitCodes.Success, plan);
         }
@@ -368,6 +391,76 @@ public static class Cli
         });
 
         return new Command("catalog", "Work with the tweak catalog.") { validate, list };
+    }
+
+    static Command AppsCommand(Context context)
+    {
+        var isoOption = new Option<FileInfo>("--iso") { Description = "Windows installation ISO.", Required = true };
+        var editionOption = new Option<string>("--edition") { Description = "Edition to list (EditionId; default: the first one)." };
+        var jsonOption = new Option<bool>("--json") { Description = "Print JSON for the app." };
+        var catalogOption = CatalogOption();
+
+        var list = new Command("list", "List the built-in apps of an edition, without administrator rights.")
+        {
+            isoOption, editionOption, jsonOption, catalogOption,
+        };
+        list.SetAction(async (parseResult, ct) =>
+        {
+            var catalog = await TryLoadCatalogAsync(parseResult.GetValue(catalogOption), context, ct);
+            var source = await TryInspectAsync(parseResult.GetRequiredValue(isoOption).FullName, context);
+            if (catalog is null || source is null)
+                return ExitCodes.InvalidInput;
+
+            var editionId = parseResult.GetValue(editionOption);
+            var edition = editionId is null ? source.Info.Editions[0] : source.Info.FindEdition(editionId);
+            if (edition is null)
+                return await FailAsync(context, ExitCodes.InvalidInput, $"edition '{editionId}' is not in the image.");
+
+            IReadOnlyList<string> apps;
+            try
+            {
+                apps = await Task.Run(() =>
+                {
+                    using var mount = IsoMount.Mount(source.IsoPath);
+                    return ProvisionedApps.List(Path.Combine(mount.Root, source.InstallImagePath), edition.Index);
+                }, ct);
+            }
+            catch (IOException e)
+            {
+                return await FailAsync(context, ExitCodes.Failure, e.Message);
+            }
+
+            if (parseResult.GetValue(jsonOption))
+            {
+                await context.Output.WriteLineAsync(EngineJson.Apps(edition, apps, catalog));
+                return ExitCodes.Success;
+            }
+
+            await context.Output.WriteLineAsync($"Built-in apps of {edition.Name} ({edition.EditionId}):");
+            foreach (var app in apps)
+            {
+                var markup = catalog.FindApp(app);
+                var safety = markup is null ? "unknown" : markup.Safety == AppSafety.Safe ? "safe" : "risky";
+                await context.Output.WriteLineAsync($"  {app,-50} {safety}{(markup?.Recommended == true ? ", recommended" : "")}");
+            }
+            return ExitCodes.Success;
+        });
+
+        return new Command("apps", "Built-in (provisioned) apps of an image.") { list };
+    }
+
+    static Command CleanupCommand(Context context)
+    {
+        var command = new Command("cleanup", "Unmount images left mounted by an interrupted Shapeshift build (needs administrator rights).");
+        command.SetAction(async (_, ct) =>
+        {
+            if (!DismServicing.IsElevated)
+                return await FailAsync(context, ExitCodes.NeedsElevation, "cleanup uses DISM and needs administrator rights.");
+            var count = await Task.Run(() => DismServicing.CleanupStale(context.Output), ct);
+            await context.Output.WriteLineAsync($"ok: {count} stale mount(s) removed.");
+            return ExitCodes.Success;
+        });
+        return command;
     }
 
     static Option<FileInfo> ProfileOption() => new("--profile")

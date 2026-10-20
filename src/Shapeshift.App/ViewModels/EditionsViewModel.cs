@@ -108,6 +108,9 @@ public sealed partial class EditionsViewModel : ObservableObject
         return (keep, install);
     }
 
+    /// <summary>Чьи встроенные приложения показывать: ставящуюся редакцию, иначе первую оставленную (null — первую в образе).</summary>
+    public string? AppsEdition => ToDraft().Install ?? Editions.FirstOrDefault(e => e.IsKept)?.EditionId;
+
     public IEnumerable<string> Describe()
     {
         var (keep, install) = ToDraft();

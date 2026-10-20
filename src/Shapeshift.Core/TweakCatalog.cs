@@ -71,9 +71,24 @@ public sealed record Tweak(
 
 public sealed record TweakCategory(string Id, LocalizedText Name);
 
-/// <summary>Полный набор описаний твиков. Порядок твиков задаёт порядок их действий в файле ответов.</summary>
-public sealed record TweakCatalog(IReadOnlyList<TweakCategory> Categories, IReadOnlyList<Tweak> Tweaks)
+public enum AppSafety
 {
+    /// <summary>Удаление ничего не ломает; приложение можно вернуть из Microsoft Store.</summary>
+    Safe,
+
+    /// <summary>От приложения зависят другие части Windows (магазин, безопасность, кодеки, установщик пакетов).</summary>
+    Risky,
+}
+
+/// <summary>Разметка встроенного приложения: сам список приложений читается из образа, здесь — что о нём известно.</summary>
+/// <param name="Name">Имя пакета без версии, например Microsoft.BingNews.</param>
+public sealed record AppMarkup(string Name, LocalizedText Title, AppSafety Safety, bool Recommended);
+
+/// <summary>Полный набор описаний твиков и разметка встроенных приложений. Порядок твиков задаёт порядок их действий.</summary>
+public sealed record TweakCatalog(IReadOnlyList<TweakCategory> Categories, IReadOnlyList<Tweak> Tweaks, IReadOnlyList<AppMarkup> Apps)
+{
+    public AppMarkup? FindApp(string name) => Apps.FirstOrDefault(a => string.Equals(a.Name, name, StringComparison.OrdinalIgnoreCase));
+
     public Tweak? Find(string id) => Tweaks.FirstOrDefault(t => string.Equals(t.Id, id, StringComparison.Ordinal));
 
     /// <summary>Конфликтуют ли твики (отношение симметрично, даже если записано в одном из них).</summary>

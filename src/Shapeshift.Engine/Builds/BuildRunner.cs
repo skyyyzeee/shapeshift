@@ -30,6 +30,7 @@ public static class BuildRunner
     {
         BuildStepKind.ExtractImage => Task.Run(() => Extract(plan, reporter, ct), ct),
         BuildStepKind.KeepEditions => Task.Run(() => KeepEditions(plan, reporter, ct), ct),
+        BuildStepKind.RemoveApps => Task.Run(() => RemoveApps(plan, reporter, ct), ct),
         BuildStepKind.WriteAnswerFile => AnswerFileWriter.WriteAsync(
             AnswerFileGenerator.Generate(plan.Profile, plan.Catalog, plan.Source.Info),
             Path.Combine(plan.MediaDirectory, AnswerFileWriter.FileName),
@@ -81,6 +82,25 @@ public static class BuildRunner
         var exported = installImage + ".new";
         WimLib.KeepImages(installImage, indices, exported, new SynchronousProgress<double>(reporter.Progress), ct);
         File.Move(exported, installImage, overwrite: true);
+    }
+
+    // Из каждой редакции результата. DISM не монтирует ESD (сплошное сжатие) — тогда сначала WIM.
+    static void RemoveApps(BuildPlan plan, IBuildReporter reporter, CancellationToken ct)
+    {
+        var installImage = Path.Combine(plan.MediaDirectory, plan.Source.InstallImagePath);
+        if (installImage.EndsWith(".esd", StringComparison.OrdinalIgnoreCase))
+        {
+            var wim = Path.ChangeExtension(installImage, ".wim");
+            reporter.Log("Converting install.esd to install.wim for DISM");
+            var count = plan.Source.Info.KeepEditions(plan.Profile.Editions).Editions.Count;
+            WimLib.KeepImages(installImage, Enumerable.Range(1, count).ToList(), wim, null, ct, forceWim: true);
+            File.Delete(installImage);
+            installImage = wim;
+        }
+
+        var editions = plan.Source.Info.KeepEditions(plan.Profile.Editions).Editions;
+        Servicing.DismServicing.RemoveApps(
+            installImage, editions.Select(e => e.Index).ToList(), plan.Profile.RemoveApps, plan.MountDirectory, reporter, ct);
     }
 
     static void Pack(BuildPlan plan, IBuildReporter reporter, CancellationToken ct)

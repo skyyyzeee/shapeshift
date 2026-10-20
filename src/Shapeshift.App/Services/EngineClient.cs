@@ -132,6 +132,28 @@ public sealed class EngineClient
         }
     }
 
+    /// <summary>
+    /// Встроенные приложения редакции (null — первой) с разметкой каталога, из <c>apps list --json</c>.
+    /// null — список прочитать не удалось.
+    /// </summary>
+    public async Task<JsonDocument?> AppsAsync(string isoPath, string? edition, CancellationToken ct = default)
+    {
+        string[] args = edition is null
+            ? ["apps", "list", "--iso", isoPath, "--json"]
+            : ["apps", "list", "--iso", isoPath, "--edition", edition, "--json"];
+        var (exitCode, output, _) = await RunAsync(args, ct);
+        if (exitCode != 0)
+            return null;
+        try
+        {
+            return JsonDocument.Parse(output);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
     async Task<(int ExitCode, string Output, string Error)> RunAsync(string[] args, CancellationToken ct)
     {
         if (!File.Exists(EnginePath))

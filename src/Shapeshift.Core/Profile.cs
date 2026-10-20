@@ -3,10 +3,12 @@ namespace Shapeshift.Core;
 /// <summary>Сохранённый полный набор выборов пользователя, по которому можно повторить сборку.</summary>
 /// <param name="Tweaks">Идентификаторы включённых твиков каталога.</param>
 /// <param name="Editions">Какие редакции оставить в образе (EditionId); пусто — все.</param>
+/// <param name="RemoveApps">Встроенные приложения, которые удалить из образа (имя пакета без версии).</param>
 public sealed record Profile(
     Architecture Architecture,
     IReadOnlyList<string> Tweaks,
     IReadOnlyList<string> Editions,
+    IReadOnlyList<string> RemoveApps,
     SetupOptions Setup,
     RegionalOptions Regional,
     SourceOptions Source,

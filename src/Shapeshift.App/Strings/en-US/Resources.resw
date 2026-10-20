@@ -135,7 +135,7 @@
   <data name="SetupSummary_Regional" xml:space="preserve"><value>Region: {0}; keyboards {1}; {2}</value></data>
   <data name="SetupSummary_WipeDisk" xml:space="preserve"><value>Disk 0 will be erased without asking</value></data>
   <data name="CustomizeTitle.Text" xml:space="preserve"><value>Customize</value></data>
-  <data name="CustomizeSubtitle.Text" xml:space="preserve"><value>Tweaks to apply to Windows. Advanced mode shows more.</value></data>
+  <data name="CustomizeSubtitle.Text" xml:space="preserve"><value>Tweaks to apply to Windows and built-in apps to remove. Advanced mode shows more.</value></data>
   <data name="CatalogError" xml:space="preserve"><value>The tweak catalog could not be read.</value></data>
   <data name="TweakOnlyWindows11" xml:space="preserve"><value>Windows 11 only</value></data>
   <data name="TweakOnlyWindows10" xml:space="preserve"><value>Windows 10 only</value></data>
@@ -184,8 +184,8 @@
   <data name="ProfileSaved" xml:space="preserve"><value>Profile saved</value></data>
   <data name="AnswerFileExported" xml:space="preserve"><value>Answer file saved — put it in the root of a USB drive or ISO</value></data>
   <data name="AnswerFileExportFailed" xml:space="preserve"><value>The answer file was not saved</value></data>
-  <data name="DroppedTweaksBar.Title" xml:space="preserve"><value>Some tweaks of the profile don't fit</value></data>
-  <data name="DroppedTweaksBar.Message" xml:space="preserve"><value>They won't be applied to this image:</value></data>
+  <data name="DroppedTweaksBar.Title" xml:space="preserve"><value>Some of the profile doesn't fit this image</value></data>
+  <data name="DroppedTweaksBar.Message" xml:space="preserve"><value>This won't be applied:</value></data>
   <data name="EditionsTitle.Text" xml:space="preserve"><value>Editions and languages</value></data>
   <data name="EditionsSubtitle.Text" xml:space="preserve"><value>What to keep in the image and what to install without asking.</value></data>
   <data name="KeepEditionsHeader.Text" xml:space="preserve"><value>Editions in the image</value></data>
@@ -199,4 +199,14 @@
   <data name="EditionsSummary_Keep" xml:space="preserve"><value>Editions in the image: {0}</value></data>
   <data name="EditionsSummary_Install" xml:space="preserve"><value>Installs: {0}</value></data>
   <data name="StepKind_KeepEditions" xml:space="preserve"><value>Removing other editions</value></data>
+  <data name="StepKind_RemoveApps" xml:space="preserve"><value>Removing built-in apps</value></data>
+  <data name="AppsHeader.Text" xml:space="preserve"><value>Built-in apps</value></data>
+  <data name="AppsHint.Text" xml:space="preserve"><value>Checked apps are removed from the image and won't appear for new users. The list is read from the selected edition. DISM does the removal, which adds a few minutes to the build.</value></data>
+  <data name="AppsRecommended.Content" xml:space="preserve"><value>Recommended</value></data>
+  <data name="AppsClear.Content" xml:space="preserve"><value>Clear all</value></data>
+  <data name="AppsError" xml:space="preserve"><value>Couldn't read the list of apps from the image.</value></data>
+  <data name="AppRisky" xml:space="preserve"><value>Windows or other apps may need it</value></data>
+  <data name="AppUnknown" xml:space="preserve"><value>Not in the Shapeshift catalog — remove only if you know what it is</value></data>
+  <data name="AppNotInImage" xml:space="preserve"><value>App {0} — not in the image</value></data>
+  <data name="CustomizeSummary_Apps" xml:space="preserve"><value>Remove apps ({0}): {1}</value></data>
 </root>

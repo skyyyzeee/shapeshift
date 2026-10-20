@@ -30,6 +30,29 @@ public sealed partial class TweakItem : ObservableObject
     public partial bool IsVisible { get; set; } = true;
 }
 
+/// <summary>Встроенное приложение образа; отмеченное удаляется при сборке.</summary>
+public sealed partial class AppItem : ObservableObject
+{
+    public required string Name { get; init; }
+    public required string Title { get; init; }
+
+    /// <summary>safe | risky | unknown (нет в каталоге).</summary>
+    public required string Safety { get; init; }
+
+    public required bool Recommended { get; init; }
+
+    /// <summary>Предупреждение под названием — для risky и unknown.</summary>
+    public string? Note { get; init; }
+
+    public bool HasNote => Note is not null;
+
+    [ObservableProperty]
+    public partial bool IsOn { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsVisible { get; set; } = true;
+}
+
 public sealed class TweakCategoryItem
 {
     public required string Name { get; init; }
@@ -76,7 +99,7 @@ public sealed partial class CustomizeViewModel(EngineClient engine) : Observable
     [ObservableProperty]
     public partial bool HasDropped { get; private set; }
 
-    /// <summary>В профиле есть твики продвинутого режима — мастер его включит.</summary>
+    /// <summary>В профиле есть твики или приложения продвинутого режима — мастер его включит.</summary>
     public event EventHandler? AdvancedTweaksSelected;
 
     /// <summary>Выбор из профиля: применится при следующей загрузке каталога (в нём же видно, что не подошло).</summary>
@@ -98,8 +121,13 @@ public sealed partial class CustomizeViewModel(EngineClient engine) : Observable
         if (isoPath == _loadedFor && Categories.Count > 0)
             return;
 
-        foreach (var tweak in All.Where(t => t.IsOn))
-            _remembered.Add(tweak.Id);
+        foreach (var tweak in All)
+        {
+            if (tweak.IsOn)
+                _remembered.Add(tweak.Id);
+            else
+                _remembered.Remove(tweak.Id);
+        }
 
         IsLoading = true;
         Error = null;
@@ -179,6 +207,131 @@ public sealed partial class CustomizeViewModel(EngineClient engine) : Observable
     {
         foreach (var tweak in All)
             tweak.IsVisible = AdvancedMode || !tweak.Advanced;
+        foreach (var app in Apps)
+            app.IsVisible = AdvancedMode || app.Safety == "safe";
+    }
+
+    string? _appsLoadedFor;
+    readonly HashSet<string> _rememberedApps = new(StringComparer.OrdinalIgnoreCase);
+    bool _reportDroppedApps;
+
+    public ObservableCollection<AppItem> Apps { get; } = [];
+
+    [ObservableProperty]
+    public partial bool IsLoadingApps { get; private set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasAppsError))]
+    public partial string? AppsError { get; private set; }
+
+    public bool HasAppsError => AppsError is not null;
+
+    IEnumerable<AppItem> SelectedAppItems => Apps.Where(a => a.IsOn && a.IsVisible);
+
+    /// <summary>Приложения к удалению — для профиля.</summary>
+    public IReadOnlyList<string> SelectedApps => SelectedAppItems.Select(a => a.Name).ToList();
+
+    public IEnumerable<string> SelectedAppTitles => SelectedAppItems.Select(a => a.Title);
+
+    /// <summary>Приложения из профиля: отметятся при следующей загрузке списка.</summary>
+    public void ApplyAppSelection(IEnumerable<string> names)
+    {
+        _rememberedApps.Clear();
+        _rememberedApps.UnionWith(names);
+        Apps.Clear();
+        _appsLoadedFor = null;
+        _reportDroppedApps = true;
+    }
+
+    /// <summary>Список приложений редакции образа (чтение ISO — несколько секунд); выбор сохраняется.</summary>
+    public async Task LoadAppsAsync(string? isoPath, string? edition)
+    {
+        var key = $"{isoPath}|{edition}";
+        if (isoPath is null || (key == _appsLoadedFor && Apps.Count > 0))
+            return;
+
+        foreach (var app in Apps)
+        {
+            if (app.IsOn)
+                _rememberedApps.Add(app.Name);
+            else
+                _rememberedApps.Remove(app.Name);
+        }
+
+        IsLoadingApps = true;
+        AppsError = null;
+        try
+        {
+            using var list = await engine.AppsAsync(isoPath, edition);
+            if (list is null)
+            {
+                Apps.Clear();
+                AppsError = Text.Get("AppsError");
+                return;
+            }
+            FillApps(list.RootElement);
+            _appsLoadedFor = key;
+        }
+        finally
+        {
+            IsLoadingApps = false;
+        }
+    }
+
+    void FillApps(JsonElement root)
+    {
+        var language = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+        string? Localized(JsonElement texts) =>
+            texts.ValueKind != JsonValueKind.Object ? null :
+            texts.TryGetProperty(language, out var t) ? t.GetString() :
+            texts.TryGetProperty("en", out var en) ? en.GetString() : null;
+
+        var items = root.GetProperty("apps").EnumerateArray().Select(app =>
+        {
+            var name = app.GetProperty("name").GetString()!;
+            var safety = app.GetProperty("safety").GetString()!;
+            return new AppItem
+            {
+                Name = name,
+                Title = Localized(app.GetProperty("title")) ?? name,
+                Safety = safety,
+                Recommended = app.GetProperty("recommended").GetBoolean(),
+                Note = safety switch { "risky" => Text.Get("AppRisky"), "unknown" => Text.Get("AppUnknown"), _ => null },
+                IsOn = _rememberedApps.Contains(name),
+            };
+        });
+
+        Apps.Clear();
+        // Безопасные — сначала, рекомендованные среди них — первыми.
+        foreach (var item in items.OrderBy(a => a.Safety switch { "safe" => 0, "risky" => 1, _ => 2 })
+                     .ThenByDescending(a => a.Recommended)
+                     .ThenBy(a => a.Title, StringComparer.CurrentCultureIgnoreCase))
+            Apps.Add(item);
+        ApplyVisibility();
+
+        if (_reportDroppedApps)
+        {
+            _reportDroppedApps = false;
+            var present = Apps.Select(a => a.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            foreach (var name in _rememberedApps.Where(n => !present.Contains(n)))
+                Dropped.Add(Text.Format("AppNotInImage", name));
+            HasDropped = Dropped.Count > 0;
+            if (Apps.Any(a => a.IsOn && a.Safety != "safe"))
+                AdvancedTweaksSelected?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    /// <summary>Отметить рекомендованные к удалению (остальные снять).</summary>
+    public void SelectRecommendedApps()
+    {
+        foreach (var app in Apps)
+            app.IsOn = app.Recommended;
+    }
+
+    public void ClearApps()
+    {
+        foreach (var app in Apps)
+            app.IsOn = false;
     }
 
     /// <summary>Включённые твики, с которыми конфликтует этот (отношение симметрично).</summary>

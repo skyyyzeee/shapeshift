@@ -77,6 +77,45 @@
                     </DataTemplate>
                 </ItemsRepeater.ItemTemplate>
             </ItemsRepeater>
+
+            <!-- Встроенные приложения: список читается из образа, отмеченные удаляются при сборке. -->
+            <Border Style="{StaticResource CardStyle}">
+                <StackPanel Spacing="8">
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Uid="AppsHeader" VerticalAlignment="Center" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                        <Button x:Uid="AppsRecommended" Grid.Column="1" Click="AppsRecommended_Click" />
+                        <Button x:Uid="AppsClear" Grid.Column="2" Click="AppsClear_Click" />
+                    </Grid>
+                    <TextBlock x:Uid="AppsHint" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" TextWrapping="Wrap" />
+                    <ProgressRing HorizontalAlignment="Left" IsActive="{x:Bind ViewModel.IsLoadingApps, Mode=OneWay}" Visibility="{x:Bind ViewModel.IsLoadingApps, Mode=OneWay}" />
+                    <InfoBar IsClosable="False" IsOpen="{x:Bind ViewModel.HasAppsError, Mode=OneWay}" Message="{x:Bind ViewModel.AppsError, Mode=OneWay}" Severity="Error" />
+                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.Apps}">
+                        <ItemsRepeater.Layout>
+                            <UniformGridLayout ItemsStretch="Fill" MinColumnSpacing="16" MinItemWidth="320" MinRowSpacing="0" />
+                        </ItemsRepeater.Layout>
+                        <ItemsRepeater.ItemTemplate>
+                            <DataTemplate x:DataType="vm:AppItem">
+                                <CheckBox IsChecked="{x:Bind IsOn, Mode=TwoWay}" ToolTipService.ToolTip="{x:Bind Name}" Visibility="{x:Bind IsVisible, Mode=OneWay}">
+                                    <StackPanel>
+                                        <TextBlock Text="{x:Bind Title}" TextWrapping="Wrap" />
+                                        <TextBlock
+                                            Foreground="{ThemeResource SystemFillColorCautionBrush}"
+                                            Style="{StaticResource CaptionTextBlockStyle}"
+                                            Text="{x:Bind Note}"
+                                            TextWrapping="Wrap"
+                                            Visibility="{x:Bind HasNote}" />
+                                    </StackPanel>
+                                </CheckBox>
+                            </DataTemplate>
+                        </ItemsRepeater.ItemTemplate>
+                    </ItemsRepeater>
+                </StackPanel>
+            </Border>
         </StackPanel>
     </ScrollViewer>
 </Page>

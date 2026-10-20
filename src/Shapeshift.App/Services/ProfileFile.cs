@@ -10,7 +10,8 @@ public sealed record ProfileDraft(
     IReadOnlyList<string> Tweaks,
     IReadOnlyList<string>? Editions,
     SetupDraft? Setup,
-    RegionalDraft? Regional);
+    RegionalDraft? Regional,
+    IReadOnlyList<string>? RemoveApps = null);
 
 public sealed record SetupDraft(
     UserDraft? User,
@@ -50,6 +51,7 @@ public static class ProfileFile
         formatVersion = 1,
         tweaks = draft.Tweaks.Count > 0 ? draft.Tweaks : null,
         editions = draft.Editions,
+        removeApps = draft.RemoveApps is { Count: > 0 } ? draft.RemoveApps : null,
         setup = draft.Setup is { } s
             ? new
             {

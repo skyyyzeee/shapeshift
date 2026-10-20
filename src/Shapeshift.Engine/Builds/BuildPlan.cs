@@ -7,6 +7,7 @@ public enum BuildStepKind
 {
     ExtractImage,
     KeepEditions,
+    RemoveApps,
     WriteAnswerFile,
     PackIso,
 }
@@ -42,6 +43,12 @@ public sealed record BuildPlan(
     public int LongestExtractedPath => MediaDirectory.Length + 1 + Source.LongestPathLength;
 
     public bool FitsMaxPath => LongestExtractedPath <= MaxPath;
+
+    /// <summary>Есть шаги через DISM — сборке нужны права администратора.</summary>
+    public bool NeedsElevation => Steps.Any(s => s.Kind == BuildStepKind.RemoveApps);
+
+    /// <summary>Сюда DISM монтирует образ; путь короткий — из-за того же предела длины пути.</summary>
+    public string MountDirectory => Path.Combine(BuildDirectory, "mnt");
 }
 
 /// <summary>Профиль + исходный образ → план сборки.</summary>
@@ -66,6 +73,10 @@ public static class BuildPlanner
         // Новый install.wim пишется рядом со старым — на время шага нужно ещё столько же места.
         if (profile.Editions.Count > 0 && source.Info.KeepEditions(profile.Editions).Editions.Count < source.Info.Editions.Count)
             steps.Add(new(BuildStepKind.KeepEditions, "Keep selected editions", workspaceVolume, source.InstallImageBytes));
+
+        // DISM монтирует образ без копирования, а при сохранении дописывает в WIM только изменения — с запасом 1 ГБ.
+        if (profile.RemoveApps.Count > 0)
+            steps.Add(new(BuildStepKind.RemoveApps, "Remove built-in apps", workspaceVolume, 1L << 30));
 
         steps.Add(new(BuildStepKind.WriteAnswerFile, "Write answer file"));
         steps.Add(new(BuildStepKind.PackIso, "Pack ISO", outputVolume, isoBytes));

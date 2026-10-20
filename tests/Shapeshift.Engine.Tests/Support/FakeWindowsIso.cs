@@ -23,6 +23,9 @@ public sealed record FakeWindowsIso
     /// <summary>Файлы, которых не будет в образе (пути как в образе).</summary>
     public IReadOnlyList<string> Omit { get; init; } = [];
 
+    /// <summary>Папки в Program Files\WindowsApps каждой редакции: имя папки пакета и фреймворк ли это (по манифесту).</summary>
+    public IReadOnlyList<(string Folder, bool Framework)> WindowsApps { get; init; } = [];
+
     public const string VolumeLabel = "FAKE_WIN11";
 
     /// <summary>Файлы образа и их содержимое (кроме install.wim).</summary>
@@ -62,7 +65,7 @@ public sealed record FakeWindowsIso
 
     // Настоящий WIM (wimlib): по образу на редакцию из крошечной папки, свойства Windows — в XML,
     // как у установочного образа. Содержимое у каждой редакции своё, чтобы их можно было различить.
-    void WriteInstallWim(string path, string scratch)
+    public void WriteInstallWim(string path, string scratch)
     {
         WimLib.EnsureInitialized();
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
@@ -73,6 +76,13 @@ public sealed record FakeWindowsIso
             var content = Path.Combine(scratch, $"edition-{i}");
             Directory.CreateDirectory(Path.Combine(content, "Windows"));
             File.WriteAllText(Path.Combine(content, "Windows", "edition.txt"), editionId);
+            foreach (var (folder, framework) in WindowsApps)
+            {
+                var package = Path.Combine(content, "Program Files", "WindowsApps", folder);
+                Directory.CreateDirectory(package);
+                File.WriteAllText(Path.Combine(package, "AppxManifest.xml"),
+                    $"<Package><Properties><Framework>{(framework ? "true" : "false")}</Framework></Properties></Package>");
+            }
 
             wim.AddImage(content, name, null!, AddFlags.None);
             var index = i + 1;

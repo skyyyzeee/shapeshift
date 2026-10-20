@@ -43,7 +43,20 @@ public static class CatalogReader
 
         return new TweakCatalog(
             (dto.Categories ?? []).Select(c => new TweakCategory(Require(c.Id, "category id"), Text(c.Name))).ToList(),
-            (dto.Tweaks ?? []).Select(ToTweak).ToList());
+            (dto.Tweaks ?? []).Select(ToTweak).ToList(),
+            (dto.Apps ?? []).Select(ToApp).ToList());
+    }
+
+    static AppMarkup ToApp(AppV1 a)
+    {
+        var name = Require(a.Name, "app name");
+        var safety = a.Safety switch
+        {
+            "safe" => AppSafety.Safe,
+            "risky" => AppSafety.Risky,
+            var other => throw new CatalogFormatException($"app '{name}': unknown safety '{other}'; expected 'safe' or 'risky'."),
+        };
+        return new AppMarkup(name, Text(a.Title), safety, a.Recommended ?? false);
     }
 
     static Tweak ToTweak(TweakV1 t)
@@ -131,7 +144,9 @@ public static class CatalogReader
     static string Require(string? value, string what) =>
         string.IsNullOrWhiteSpace(value) ? throw new CatalogFormatException($"Missing {what}.") : value;
 
-    sealed record CatalogV1(int FormatVersion, List<CategoryV1>? Categories, List<TweakV1>? Tweaks);
+    sealed record CatalogV1(int FormatVersion, List<CategoryV1>? Categories, List<TweakV1>? Tweaks, List<AppV1>? Apps);
+
+    sealed record AppV1(string? Name, Dictionary<string, string>? Title, string? Safety, bool? Recommended);
 
     sealed record CategoryV1(string? Id, Dictionary<string, string>? Name);
 

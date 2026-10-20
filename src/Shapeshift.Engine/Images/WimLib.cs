@@ -34,12 +34,15 @@ public static class WimLib
     /// поэтому данные копируются без пересжатия. ESD остаётся ESD (сплошное сжатие LZMS).
     /// </summary>
     /// <exception cref="OperationCanceledException">Отменили; недописанный файл удалён.</exception>
-    public static void KeepImages(string wimPath, IReadOnlyList<int> indices, string outputPath, IProgress<double>? progress, CancellationToken ct)
+    /// <param name="forceWim">Писать обычный WIM (LZX, не сплошной) даже из ESD — например, для DISM. Это пересжатие, медленно.</param>
+    public static void KeepImages(
+        string wimPath, IReadOnlyList<int> indices, string outputPath, IProgress<double>? progress, CancellationToken ct,
+        bool forceWim = false)
     {
         EnsureInitialized();
         using var source = Wim.OpenWim(wimPath, OpenFlags.None);
-        var compression = source.GetWimInfo().CompressionType;
-        var solid = Path.GetExtension(wimPath).Equals(".esd", StringComparison.OrdinalIgnoreCase);
+        var solid = !forceWim && Path.GetExtension(wimPath).Equals(".esd", StringComparison.OrdinalIgnoreCase);
+        var compression = forceWim ? CompressionType.LZX : source.GetWimInfo().CompressionType;
 
         using var target = Wim.CreateNewWim(compression);
         if (solid)

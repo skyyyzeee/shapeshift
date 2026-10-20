@@ -135,7 +135,7 @@
   <data name="SetupSummary_Regional" xml:space="preserve"><value>Регион: {0}; раскладки {1}; {2}</value></data>
   <data name="SetupSummary_WipeDisk" xml:space="preserve"><value>Диск 0 будет стёрт без вопросов</value></data>
   <data name="CustomizeTitle.Text" xml:space="preserve"><value>Настройка</value></data>
-  <data name="CustomizeSubtitle.Text" xml:space="preserve"><value>Твики, которые будут применены к Windows. В продвинутом режиме — больше.</value></data>
+  <data name="CustomizeSubtitle.Text" xml:space="preserve"><value>Твики, которые будут применены к Windows, и встроенные приложения, которые будут удалены. В продвинутом режиме — больше.</value></data>
   <data name="CatalogError" xml:space="preserve"><value>Не удалось прочитать каталог твиков.</value></data>
   <data name="TweakOnlyWindows11" xml:space="preserve"><value>только для Windows 11</value></data>
   <data name="TweakOnlyWindows10" xml:space="preserve"><value>только для Windows 10</value></data>
@@ -184,8 +184,8 @@
   <data name="ProfileSaved" xml:space="preserve"><value>Профиль сохранён</value></data>
   <data name="AnswerFileExported" xml:space="preserve"><value>Файл ответов сохранён — положите его в корень флешки или ISO</value></data>
   <data name="AnswerFileExportFailed" xml:space="preserve"><value>Файл ответов не сохранён</value></data>
-  <data name="DroppedTweaksBar.Title" xml:space="preserve"><value>Часть твиков профиля не подошла</value></data>
-  <data name="DroppedTweaksBar.Message" xml:space="preserve"><value>Они не будут применены к этому образу:</value></data>
+  <data name="DroppedTweaksBar.Title" xml:space="preserve"><value>Часть профиля не подошла к образу</value></data>
+  <data name="DroppedTweaksBar.Message" xml:space="preserve"><value>Это не будет применено:</value></data>
   <data name="EditionsTitle.Text" xml:space="preserve"><value>Редакции и языки</value></data>
   <data name="EditionsSubtitle.Text" xml:space="preserve"><value>Что оставить в образе и что ставить без вопросов.</value></data>
   <data name="KeepEditionsHeader.Text" xml:space="preserve"><value>Редакции в образе</value></data>
@@ -199,4 +199,14 @@
   <data name="EditionsSummary_Keep" xml:space="preserve"><value>Редакции в образе: {0}</value></data>
   <data name="EditionsSummary_Install" xml:space="preserve"><value>Ставится: {0}</value></data>
   <data name="StepKind_KeepEditions" xml:space="preserve"><value>Удаление лишних редакций</value></data>
+  <data name="StepKind_RemoveApps" xml:space="preserve"><value>Удаление встроенных приложений</value></data>
+  <data name="AppsHeader.Text" xml:space="preserve"><value>Встроенные приложения</value></data>
+  <data name="AppsHint.Text" xml:space="preserve"><value>Отмеченные будут удалены из образа и не появятся у новых пользователей. Список прочитан из выбранной редакции. Удаление делает DISM — сборка станет дольше на несколько минут.</value></data>
+  <data name="AppsRecommended.Content" xml:space="preserve"><value>Рекомендованные</value></data>
+  <data name="AppsClear.Content" xml:space="preserve"><value>Снять все</value></data>
+  <data name="AppsError" xml:space="preserve"><value>Не удалось прочитать список приложений из образа.</value></data>
+  <data name="AppRisky" xml:space="preserve"><value>Может понадобиться системе или другим приложениям</value></data>
+  <data name="AppUnknown" xml:space="preserve"><value>Нет в каталоге Shapeshift — удаляйте, если знаете, что это</value></data>
+  <data name="AppNotInImage" xml:space="preserve"><value>Приложение {0} — нет в образе</value></data>
+  <data name="CustomizeSummary_Apps" xml:space="preserve"><value>Удалить приложения ({0}): {1}</value></data>
 </root>

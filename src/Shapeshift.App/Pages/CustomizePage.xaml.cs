@@ -6,8 +6,8 @@ using Shapeshift.App.ViewModels;
 
 namespace Shapeshift.App.Pages;
 
-/// <summary>Параметр навигации: модель шага и образ, для которого показывать каталог.</summary>
-public sealed record CustomizeArgs(CustomizeViewModel ViewModel, string? IsoPath);
+/// <summary>Параметр навигации: модель шага, образ для каталога и редакция, чьи приложения показывать (null — первая).</summary>
+public sealed record CustomizeArgs(CustomizeViewModel ViewModel, string? IsoPath, string? Edition);
 
 public sealed partial class CustomizePage : Page
 {
@@ -23,7 +23,12 @@ public sealed partial class CustomizePage : Page
         ViewModel = args.ViewModel;
         base.OnNavigatedTo(e);
         await ViewModel.LoadAsync(args.IsoPath);
+        await ViewModel.LoadAppsAsync(args.IsoPath, args.Edition);
     }
+
+    void AppsRecommended_Click(object sender, RoutedEventArgs e) => ViewModel.SelectRecommendedApps();
+
+    void AppsClear_Click(object sender, RoutedEventArgs e) => ViewModel.ClearApps();
 
     // Включили твик, который конфликтует с уже включёнными, — предлагаем выключить те.
     async void Tweak_Toggled(object sender, RoutedEventArgs e)

@@ -47,6 +47,7 @@ public static partial class ProfileReader
             ParseArchitecture(dto.Architecture),
             ParseTweaks(dto.Tweaks),
             ParseEditions(dto.Editions),
+            ParseNames(dto.RemoveApps, "removeApps"),
             ParseSetup(dto.Setup),
             ParseRegional(dto.Regional),
             new SourceOptions(ResolvePath(dto.Source?.Iso, baseDirectory)),
@@ -63,6 +64,18 @@ public static partial class ProfileReader
         if (tweaks.Distinct(StringComparer.Ordinal).Count() != tweaks.Count)
             throw new ProfileFormatException("'tweaks' lists the same tweak twice.");
         return tweaks;
+    }
+
+    // Список имён без пустых и повторов; что из них есть в образе, решает движок.
+    static IReadOnlyList<string> ParseNames(List<string>? names, string field)
+    {
+        if (names is null)
+            return [];
+        if (names.Any(string.IsNullOrWhiteSpace))
+            throw new ProfileFormatException($"'{field}' contains an empty name.");
+        if (names.Distinct(StringComparer.OrdinalIgnoreCase).Count() != names.Count)
+            throw new ProfileFormatException($"'{field}' lists the same name twice.");
+        return names;
     }
 
     // Существование редакций в образе проверяет движок: профиль читается и без образа.
@@ -215,7 +228,7 @@ public static partial class ProfileReader
     };
 
     sealed record ProfileV1(
-        int FormatVersion, string? Architecture, List<string>? Tweaks, List<string>? Editions, SetupV1? Setup, RegionalV1? Regional, IsoV1? Source, IsoV1? Output);
+        int FormatVersion, string? Architecture, List<string>? Tweaks, List<string>? Editions, List<string>? RemoveApps, SetupV1? Setup, RegionalV1? Regional, IsoV1? Source, IsoV1? Output);
 
     sealed record SetupV1(
         UserV1? User, string? ComputerName, bool? SkipOobe, bool? BypassOnlineAccount, bool? WipeDisk0,
