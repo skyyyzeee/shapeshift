@@ -97,6 +97,12 @@
                         Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                         Style="{StaticResource CaptionTextBlockStyle}" />
                 </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Button x:Uid="SaveProfile" Click="SaveProfile_Click" />
+                    <Button x:Uid="ExportAnswerFile" Click="ExportAnswerFile_Click" IsEnabled="{x:Bind ViewModel.CanBuild, Mode=OneWay}" />
+                </StackPanel>
+                <InfoBar x:Name="FileMessage" IsClosable="True" />
             </StackPanel>
 
             <!-- Сборка идёт или закончилась. -->

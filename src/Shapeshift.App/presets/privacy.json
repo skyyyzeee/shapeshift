@@ -1,0 +1,11 @@
+{
+  // Приватность: чистая установка и все твики приватности.
+  "formatVersion": 1,
+  "tweaks": [
+    "bypass.tpm", "bypass.secure-boot", "bypass.ram", "bypass.cpu",
+    "privacy.telemetry", "privacy.advertising-id", "privacy.activity-history",
+    "privacy.suggestions", "privacy.web-search", "privacy.recall",
+    "system.no-device-encryption"
+  ],
+  "setup": { "skipOobe": true, "bypassOnlineAccount": true }
+}

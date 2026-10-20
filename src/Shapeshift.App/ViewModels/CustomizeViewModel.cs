@@ -70,6 +70,28 @@ public sealed partial class CustomizeViewModel(EngineClient engine) : Observable
 
     public IEnumerable<string> SelectedNames => All.Where(t => t.IsOn && t.IsApplicable && (AdvancedMode || !t.Advanced)).Select(t => t.Name);
 
+    /// <summary>Твики из профиля, которые не подошли к образу или которых нет в каталоге.</summary>
+    public ObservableCollection<string> Dropped { get; } = [];
+
+    [ObservableProperty]
+    public partial bool HasDropped { get; private set; }
+
+    /// <summary>В профиле есть твики продвинутого режима — мастер его включит.</summary>
+    public event EventHandler? AdvancedTweaksSelected;
+
+    /// <summary>Выбор из профиля: применится при следующей загрузке каталога (в нём же видно, что не подошло).</summary>
+    public void ApplySelection(IEnumerable<string> ids)
+    {
+        _remembered.Clear();
+        foreach (var id in ids.Where(id => !id.StartsWith(SetupCategory + ".", StringComparison.Ordinal)))
+            _remembered.Add(id);
+        Categories.Clear();
+        _loadedFor = null;
+        _reportDropped = true;
+    }
+
+    bool _reportDropped;
+
     /// <summary>Загружает каталог для образа; выбор сохраняется при смене образа.</summary>
     public async Task LoadAsync(string? isoPath)
     {
@@ -133,6 +155,24 @@ public sealed partial class CustomizeViewModel(EngineClient engine) : Observable
             Categories.Add(item);
         }
         ApplyVisibility();
+
+        // Только после загрузки профиля: что из него не подошло к этому образу.
+        if (_reportDropped)
+        {
+            _reportDropped = false;
+            Dropped.Clear();
+            var byId = All.ToDictionary(t => t.Id);
+            foreach (var id in _remembered)
+            {
+                if (!byId.TryGetValue(id, out var tweak))
+                    Dropped.Add(id);
+                else if (!tweak.IsApplicable)
+                    Dropped.Add($"{tweak.Name} — {tweak.Reason}");
+            }
+            HasDropped = Dropped.Count > 0;
+            if (All.Any(t => t.IsOn && t.Advanced))
+                AdvancedTweaksSelected?.Invoke(this, EventArgs.Empty);
+        }
     }
 
     void ApplyVisibility()

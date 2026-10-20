@@ -28,10 +28,13 @@ public partial class App : Application
         _window = new MainWindow();
         _window.Activate();
 
-        // `Shapeshift.exe образ.iso` (и «Открыть с помощью») — сразу открыть образ.
-        var iso = Environment.GetCommandLineArgs().Skip(1)
-            .FirstOrDefault(a => a.EndsWith(".iso", StringComparison.OrdinalIgnoreCase) && File.Exists(a));
-        if (iso is not null)
-            _window.OpenIso(iso);
+        // `Shapeshift.exe образ.iso` или `Shapeshift.exe профиль.json` (и «Открыть с помощью») — сразу открыть.
+        foreach (var arg in Environment.GetCommandLineArgs().Skip(1).Where(File.Exists))
+        {
+            if (arg.EndsWith(".iso", StringComparison.OrdinalIgnoreCase))
+                _window.OpenIso(arg);
+            else if (arg.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+                _window.OpenProfile(arg);
+        }
     }
 }

@@ -168,6 +168,48 @@ public sealed partial class SetupViewModel : ObservableObject
             AutoLogon = false;
     }
 
+    /// <summary>
+    /// Выборы из профиля. <paramref name="onlyWhatIsSet"/> — для пресетов: меняются только заданные в нём поля,
+    /// остальное (пользователь, регион этого компьютера) остаётся как было.
+    /// </summary>
+    public void ApplyProfile(Profile profile, bool onlyWhatIsSet)
+    {
+        BypassTpm = profile.Tweaks.Contains("bypass.tpm");
+        BypassSecureBoot = profile.Tweaks.Contains("bypass.secure-boot");
+        BypassRam = profile.Tweaks.Contains("bypass.ram");
+        BypassCpu = profile.Tweaks.Contains("bypass.cpu");
+        OnPropertyChanged(nameof(BypassAll));
+
+        var setup = profile.Setup;
+        SkipOobe = setup.SkipOobe;
+        BypassOnlineAccount = setup.BypassOnlineAccount;
+        WipeDisk0 = setup.WipeDisk0;
+        if (onlyWhatIsSet && setup.User is null && setup.ComputerName is null && setup.ProductKey is null)
+            return;
+
+        CreateUser = setup.User is not null;
+        UserName = setup.User?.Name ?? "";
+        StorePassword = setup.User?.PasswordMode == PasswordMode.Store;
+        Password = setup.User?.Password ?? "";
+        AutoLogon = setup.User?.AutoLogon ?? false;
+        ComputerName = setup.ComputerName ?? "";
+        ProductKey = setup.ProductKey ?? "";
+
+        if (onlyWhatIsSet && profile.Regional.IsEmpty)
+            return;
+        SetRegional = !profile.Regional.IsEmpty;
+        if (profile.Regional.Formats is { } formats)
+            Formats = CultureChoices.FirstOrDefault(c => c.Value == formats) ?? new Choice(formats, formats);
+        if (profile.Regional.Keyboards.Count > 0)
+        {
+            Keyboards.Clear();
+            foreach (var keyboard in profile.Regional.Keyboards)
+                Keyboards.Add(CultureChoices.FirstOrDefault(c => c.Value == keyboard) ?? new Choice(keyboard, keyboard));
+        }
+        if (profile.Regional.TimeZone is { } timeZone)
+            TimeZone = TimeZoneChoices.FirstOrDefault(t => t.Value == timeZone) ?? new Choice(timeZone, timeZone);
+    }
+
     /// <summary>Выборы шага для профиля: твики обхода, раздел setup и regional.</summary>
     public (IReadOnlyList<string> Tweaks, SetupDraft Setup, RegionalDraft? Regional) ToDraft()
     {

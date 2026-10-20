@@ -28,6 +28,7 @@ public sealed partial class WizardViewModel : ObservableObject
         Output.PropertyChanged += OnOutputChanged;
         Source.PropertyChanged += OnSourceChanged;
         Setup.PropertyChanged += OnSetupChanged;
+        Customize.AdvancedTweaksSelected += (_, _) => AdvancedMode = true;
     }
 
     public SourceViewModel Source { get; }
@@ -79,6 +80,25 @@ public sealed partial class WizardViewModel : ObservableObject
     }
 
     public event EventHandler? StepsAvailabilityChanged;
+
+    /// <summary>
+    /// Профиль → выборы мастера. Пресет (<paramref name="isPreset"/>) меняет только то, что в нём задано;
+    /// профиль из файла — всё, включая исходный образ и путь результата.
+    /// </summary>
+    public void ApplyProfile(Shapeshift.Core.Profile profile, bool isPreset)
+    {
+        Setup.ApplyProfile(profile, onlyWhatIsSet: isPreset);
+        Customize.ApplySelection(profile.Tweaks);
+        if (profile.Setup.WipeDisk0)
+            AdvancedMode = true;
+        if (profile.Output.IsoPath is { } output)
+            Output.OutputPath = output;
+        if (profile.Source.IsoPath is { } source && source != Source.IsoPath)
+        {
+            Current = WizardStep.Source;
+            _ = Source.LoadAsync(source);
+        }
+    }
 
     partial void OnAdvancedModeChanged(bool value)
     {

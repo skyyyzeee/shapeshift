@@ -102,6 +102,30 @@ public sealed partial class OutputViewModel(
         OutputPath = Path.Combine(documents, Path.GetFileNameWithoutExtension(source.IsoPath) + "-shapeshift.iso");
     }
 
+    /// <summary>Все выборы мастера — в файл профиля (тот же формат, что принимает CLI).</summary>
+    public async Task SaveProfileAsync(string path)
+    {
+        if (source.IsoPath is null || OutputPath is null)
+            return;
+        await File.WriteAllTextAsync(path, ProfileFile.ToJson(Draft(source.IsoPath, OutputPath)));
+    }
+
+    /// <summary>Только файл ответов — для обычного ISO. null — успех, иначе текст ошибки.</summary>
+    public async Task<string?> ExportAnswerFileAsync(string path)
+    {
+        if (source.IsoPath is null || OutputPath is null)
+            return null;
+        var profile = ProfileFile.Write(Draft(source.IsoPath, OutputPath));
+        try
+        {
+            return await engine.AnswerFileAsync(profile, path);
+        }
+        finally
+        {
+            ProfileFile.TryDelete(profile);
+        }
+    }
+
     /// <summary>Пробный прогон движка без повышения — для сводки и проверки места.</summary>
     public async Task RefreshPlanAsync()
     {

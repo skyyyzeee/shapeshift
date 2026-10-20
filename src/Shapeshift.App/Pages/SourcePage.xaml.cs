@@ -2,6 +2,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
 using Microsoft.Windows.Storage.Pickers;
+using Shapeshift.App.Services;
 using Shapeshift.App.ViewModels;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage;
@@ -14,10 +15,14 @@ public sealed partial class SourcePage : Page
 
     public SourceViewModel ViewModel { get; private set; } = null!;
 
+    public WizardViewModel Wizard { get; private set; } = null!;
+
     protected override void OnNavigatedTo(NavigationEventArgs e)
     {
-        ViewModel = (SourceViewModel)e.Parameter;
+        Wizard = (WizardViewModel)e.Parameter;
+        ViewModel = Wizard.Source;
         base.OnNavigatedTo(e);
+        FillPresets();
     }
 
     async void ChooseIso_Click(object sender, RoutedEventArgs e)
@@ -55,4 +60,65 @@ public sealed partial class SourcePage : Page
     }
 
     void ResetDropZone() => DropZone.ClearValue(Border.BorderBrushProperty);
+
+    bool _presetsFilled;
+
+    protected override void OnNavigatedFrom(NavigationEventArgs e)
+    {
+        _presetsFilled = false;
+        base.OnNavigatedFrom(e);
+    }
+
+    void FillPresets()
+    {
+        if (_presetsFilled)
+            return;
+        PresetBox.ItemsSource = Profiles.Presets;
+        _presetsFilled = true;
+    }
+
+    void Preset_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (PresetBox.SelectedItem is not Preset preset)
+            return;
+        try
+        {
+            Wizard.ApplyProfile(Profiles.LoadPreset(preset), isPreset: true);
+            PresetDescription.Text = preset.Description;
+            ProfileMessage.IsOpen = false;
+        }
+        catch (Exception ex) when (ex is IOException or Shapeshift.Core.ProfileFormatException)
+        {
+            ShowProfileMessage(InfoBarSeverity.Error, Text.Get("ProfileLoadFailed"), ex.Message);
+        }
+    }
+
+    async void OpenProfile_Click(object sender, RoutedEventArgs e)
+    {
+        var picker = new FileOpenPicker(XamlRoot.ContentIslandEnvironment.AppWindowId);
+        picker.FileTypeFilter.Add(".json");
+        var file = await picker.PickSingleFileAsync();
+        if (file is null)
+            return;
+
+        try
+        {
+            Wizard.ApplyProfile(Profiles.Load(file.Path), isPreset: false);
+            PresetBox.SelectedItem = null;
+            PresetDescription.Text = "";
+            ShowProfileMessage(InfoBarSeverity.Success, Text.Get("ProfileLoaded"), Path.GetFileName(file.Path));
+        }
+        catch (Exception ex) when (ex is IOException or Shapeshift.Core.ProfileFormatException)
+        {
+            ShowProfileMessage(InfoBarSeverity.Error, Text.Get("ProfileLoadFailed"), ex.Message);
+        }
+    }
+
+    void ShowProfileMessage(InfoBarSeverity severity, string title, string message)
+    {
+        ProfileMessage.Severity = severity;
+        ProfileMessage.Title = title;
+        ProfileMessage.Message = message;
+        ProfileMessage.IsOpen = true;
+    }
 }

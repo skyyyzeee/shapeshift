@@ -103,6 +103,18 @@ public sealed class EngineClient
         }
     }
 
+    /// <summary>Только файл ответов — тот же, что положит сборка. null — успех, иначе текст ошибки движка.</summary>
+    public async Task<string?> AnswerFileAsync(string profilePath, string outPath, CancellationToken ct = default)
+    {
+        var (exitCode, _, error) = await RunAsync(["answerfile", "--profile", profilePath, "--out", outPath], ct);
+        if (exitCode == 0)
+            return null;
+        var problems = error.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(l => !l.StartsWith("warning: ", StringComparison.Ordinal))
+            .Select(l => l.StartsWith("error: ", StringComparison.Ordinal) ? l["error: ".Length..] : l);
+        return string.Join("\n", problems);
+    }
+
     /// <summary>Каталог твиков с применимостью к образу. null — каталог прочитать не удалось.</summary>
     public async Task<JsonDocument?> CatalogAsync(string? isoPath, CancellationToken ct = default)
     {

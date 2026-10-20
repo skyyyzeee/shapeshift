@@ -58,6 +58,39 @@ public sealed partial class OutputPage : Page
             await File.WriteAllLinesAsync(file.Path, ViewModel.Log);
     }
 
+    async void SaveProfile_Click(object sender, RoutedEventArgs e)
+    {
+        var picker = new FileSavePicker(XamlRoot.ContentIslandEnvironment.AppWindowId) { SuggestedFileName = "shapeshift-profile.json" };
+        picker.FileTypeChoices.Add(Services.Text.Get("ProfileFileType"), [".json"]);
+        var file = await picker.PickSaveFileAsync();
+        if (file is null)
+            return;
+        await ViewModel.SaveProfileAsync(file.Path);
+        ShowFileMessage(InfoBarSeverity.Success, Services.Text.Get("ProfileSaved"), file.Path);
+    }
+
+    async void ExportAnswerFile_Click(object sender, RoutedEventArgs e)
+    {
+        var picker = new FileSavePicker(XamlRoot.ContentIslandEnvironment.AppWindowId) { SuggestedFileName = "autounattend.xml" };
+        picker.FileTypeChoices.Add(Services.Text.Get("AnswerFileType"), [".xml"]);
+        var file = await picker.PickSaveFileAsync();
+        if (file is null)
+            return;
+        var error = await ViewModel.ExportAnswerFileAsync(file.Path);
+        if (error is null)
+            ShowFileMessage(InfoBarSeverity.Success, Services.Text.Get("AnswerFileExported"), file.Path);
+        else
+            ShowFileMessage(InfoBarSeverity.Error, Services.Text.Get("AnswerFileExportFailed"), error);
+    }
+
+    void ShowFileMessage(InfoBarSeverity severity, string title, string message)
+    {
+        FileMessage.Severity = severity;
+        FileMessage.Title = title;
+        FileMessage.Message = message;
+        FileMessage.IsOpen = true;
+    }
+
     async void BackToSummary_Click(object sender, RoutedEventArgs e)
     {
         ViewModel.Reset();

@@ -29,6 +29,25 @@ public sealed partial class MainWindow : Window
 
     public WizardViewModel ViewModel { get; }
 
+    public void OpenProfile(string path)
+    {
+        try
+        {
+            ViewModel.ApplyProfile(Profiles.Load(path), isPreset: false);
+        }
+        catch (Exception e) when (e is IOException or Shapeshift.Core.ProfileFormatException)
+        {
+            // Окно ещё может быть не готово к диалогу — показываем, когда загрузится содержимое.
+            ContentFrame.Loaded += async (_, _) => await new ContentDialog
+            {
+                XamlRoot = Content.XamlRoot,
+                Title = Text.Get("ProfileLoadFailed"),
+                Content = e.Message,
+                CloseButtonText = "OK",
+            }.ShowAsync();
+        }
+    }
+
     public void OpenIso(string path)
     {
         ViewModel.Current = WizardStep.Source;
@@ -69,7 +88,7 @@ public sealed partial class MainWindow : Window
         switch (step)
         {
             case WizardStep.Source:
-                ContentFrame.Navigate(typeof(SourcePage), ViewModel.Source);
+                ContentFrame.Navigate(typeof(SourcePage), ViewModel);
                 break;
             case WizardStep.Setup:
                 ContentFrame.Navigate(typeof(SetupPage), ViewModel.Setup);

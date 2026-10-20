@@ -1,0 +1,6 @@
+{
+  // Чистая установка: только то, что убирает вопросы при установке. Твиков нет.
+  "formatVersion": 1,
+  "tweaks": ["bypass.tpm", "bypass.secure-boot", "bypass.ram", "bypass.cpu"],
+  "setup": { "skipOobe": true, "bypassOnlineAccount": true }
+}

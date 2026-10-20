@@ -22,6 +22,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Встроенные пресеты — обычные профили; их проверяет тест движка. -->
+    <None Include="presets\*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- Движок — отдельный процесс (ADR-0003); ссылка нужна, чтобы он лежал рядом с окном. -->
     <ProjectReference Include="..\Shapeshift.Engine\Shapeshift.Engine.csproj" />
   </ItemGroup>

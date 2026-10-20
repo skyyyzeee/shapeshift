@@ -1,0 +1,11 @@
+{
+  // Минимальная: чистая установка без рекламы, виджетов и лишнего в интерфейсе.
+  "formatVersion": 1,
+  "tweaks": [
+    "bypass.tpm", "bypass.secure-boot", "bypass.ram", "bypass.cpu",
+    "privacy.suggestions", "privacy.web-search",
+    "interface.no-widgets", "interface.classic-context-menu", "interface.file-extensions",
+    "system.no-device-encryption"
+  ],
+  "setup": { "skipOobe": true, "bypassOnlineAccount": true }
+}

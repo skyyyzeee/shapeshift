@@ -165,4 +165,25 @@
   <data name="ClearCacheDialogConfirm" xml:space="preserve"><value>Clear</value></data>
   <data name="AboutHeader.Text" xml:space="preserve"><value>About</value></data>
   <data name="AboutText.Text" xml:space="preserve"><value>Prepares Windows installation images. No telemetry: the app sends nothing anywhere.</value></data>
+  <data name="ProfileHeader.Text" xml:space="preserve"><value>Profile</value></data>
+  <data name="ProfileHint.Text" xml:space="preserve"><value>Start from a preset or open a saved profile — the next steps fill in by themselves.</value></data>
+  <data name="PresetBox.PlaceholderText" xml:space="preserve"><value>Preset…</value></data>
+  <data name="OpenProfile.Content" xml:space="preserve"><value>Open profile…</value></data>
+  <data name="Preset_clean" xml:space="preserve"><value>Clean install</value></data>
+  <data name="Preset_clean_Description" xml:space="preserve"><value>Setup without questions or requirement checks. Windows itself is unchanged.</value></data>
+  <data name="Preset_minimal" xml:space="preserve"><value>Minimal</value></data>
+  <data name="Preset_minimal_Description" xml:space="preserve"><value>Clean install without ads, suggestions and widgets; classic menu, file extensions, no automatic disk encryption.</value></data>
+  <data name="Preset_privacy" xml:space="preserve"><value>Privacy</value></data>
+  <data name="Preset_privacy_Description" xml:space="preserve"><value>Clean install and every privacy tweak: minimal diagnostics, no advertising ID, activity history, Recall or web search.</value></data>
+  <data name="ProfileLoaded" xml:space="preserve"><value>Profile loaded</value></data>
+  <data name="ProfileLoadFailed" xml:space="preserve"><value>The profile could not be opened</value></data>
+  <data name="SaveProfile.Content" xml:space="preserve"><value>Save profile…</value></data>
+  <data name="ExportAnswerFile.Content" xml:space="preserve"><value>Answer file only…</value></data>
+  <data name="ProfileFileType" xml:space="preserve"><value>Shapeshift profile</value></data>
+  <data name="AnswerFileType" xml:space="preserve"><value>Answer file</value></data>
+  <data name="ProfileSaved" xml:space="preserve"><value>Profile saved</value></data>
+  <data name="AnswerFileExported" xml:space="preserve"><value>Answer file saved — put it in the root of a USB drive or ISO</value></data>
+  <data name="AnswerFileExportFailed" xml:space="preserve"><value>The answer file was not saved</value></data>
+  <data name="DroppedTweaksBar.Title" xml:space="preserve"><value>Some tweaks of the profile don't fit</value></data>
+  <data name="DroppedTweaksBar.Message" xml:space="preserve"><value>They won't be applied to this image:</value></data>
 </root>

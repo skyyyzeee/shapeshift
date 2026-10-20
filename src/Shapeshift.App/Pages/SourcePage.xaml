@@ -106,6 +106,34 @@
                     </ItemsRepeater>
                 </StackPanel>
             </Border>
+
+            <!-- Профиль: начать с пресета или открыть сохранённый. -->
+            <Border Style="{StaticResource CardStyle}">
+                <StackPanel Spacing="12">
+                    <StackPanel>
+                        <TextBlock x:Uid="ProfileHeader" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                        <TextBlock
+                            x:Uid="ProfileHint"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            Style="{StaticResource CaptionTextBlockStyle}"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <ComboBox
+                            x:Name="PresetBox"
+                            x:Uid="PresetBox"
+                            MinWidth="240"
+                            SelectionChanged="Preset_SelectionChanged" />
+                        <Button x:Uid="OpenProfile" Click="OpenProfile_Click" />
+                    </StackPanel>
+                    <TextBlock
+                        x:Name="PresetDescription"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Style="{StaticResource CaptionTextBlockStyle}"
+                        TextWrapping="Wrap" />
+                    <InfoBar x:Name="ProfileMessage" IsClosable="True" />
+                </StackPanel>
+            </Border>
         </StackPanel>
     </ScrollViewer>
 </Page>

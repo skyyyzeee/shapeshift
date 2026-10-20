@@ -165,4 +165,25 @@
   <data name="ClearCacheDialogConfirm" xml:space="preserve"><value>Очистить</value></data>
   <data name="AboutHeader.Text" xml:space="preserve"><value>О программе</value></data>
   <data name="AboutText.Text" xml:space="preserve"><value>Подготовка установочных образов Windows. Без телеметрии: программа ничего не отправляет.</value></data>
+  <data name="ProfileHeader.Text" xml:space="preserve"><value>Профиль</value></data>
+  <data name="ProfileHint.Text" xml:space="preserve"><value>Начните с готового набора или откройте сохранённый профиль — выборы на следующих шагах заполнятся сами.</value></data>
+  <data name="PresetBox.PlaceholderText" xml:space="preserve"><value>Пресет…</value></data>
+  <data name="OpenProfile.Content" xml:space="preserve"><value>Открыть профиль…</value></data>
+  <data name="Preset_clean" xml:space="preserve"><value>Чистая установка</value></data>
+  <data name="Preset_clean_Description" xml:space="preserve"><value>Установка без вопросов и без проверки требований. Сама Windows не меняется.</value></data>
+  <data name="Preset_minimal" xml:space="preserve"><value>Минимальная</value></data>
+  <data name="Preset_minimal_Description" xml:space="preserve"><value>Чистая установка без рекламы, рекомендаций и виджетов; классическое меню, расширения файлов, без автошифрования диска.</value></data>
+  <data name="Preset_privacy" xml:space="preserve"><value>Приватность</value></data>
+  <data name="Preset_privacy_Description" xml:space="preserve"><value>Чистая установка и все твики приватности: минимум диагностики, без рекламного ID, журнала действий, Recall и интернет-поиска.</value></data>
+  <data name="ProfileLoaded" xml:space="preserve"><value>Профиль загружен</value></data>
+  <data name="ProfileLoadFailed" xml:space="preserve"><value>Профиль не открылся</value></data>
+  <data name="SaveProfile.Content" xml:space="preserve"><value>Сохранить профиль…</value></data>
+  <data name="ExportAnswerFile.Content" xml:space="preserve"><value>Только файл ответов…</value></data>
+  <data name="ProfileFileType" xml:space="preserve"><value>Профиль Shapeshift</value></data>
+  <data name="AnswerFileType" xml:space="preserve"><value>Файл ответов</value></data>
+  <data name="ProfileSaved" xml:space="preserve"><value>Профиль сохранён</value></data>
+  <data name="AnswerFileExported" xml:space="preserve"><value>Файл ответов сохранён — положите его в корень флешки или ISO</value></data>
+  <data name="AnswerFileExportFailed" xml:space="preserve"><value>Файл ответов не сохранён</value></data>
+  <data name="DroppedTweaksBar.Title" xml:space="preserve"><value>Часть твиков профиля не подошла</value></data>
+  <data name="DroppedTweaksBar.Message" xml:space="preserve"><value>Они не будут применены к этому образу:</value></data>
 </root>
