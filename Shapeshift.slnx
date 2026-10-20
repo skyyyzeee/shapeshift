@@ -1,5 +1,8 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Shapeshift.App/Shapeshift.App.csproj">
+      <Platform Project="x64" />
+    </Project>
     <Project Path="src/Shapeshift.Core/Shapeshift.Core.csproj" />
     <Project Path="src/Shapeshift.Engine/Shapeshift.Engine.csproj" />
   </Folder>

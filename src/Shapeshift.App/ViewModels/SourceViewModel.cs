@@ -1,0 +1,94 @@
+using CommunityToolkit.Mvvm.ComponentModel;
+using Shapeshift.App.Services;
+
+namespace Shapeshift.App.ViewModels;
+
+/// <summary>Шаг «Источник»: какой ISO выбран и что в нём.</summary>
+public sealed partial class SourceViewModel(EngineClient engine) : ObservableObject
+{
+    CancellationTokenSource? _loading;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(FileName), nameof(HasImage))]
+    public partial string? IsoPath { get; private set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasImage), nameof(Summary), nameof(Editions), nameof(ShowDropZone))]
+    public partial ImageSummary? Image { get; private set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowDropZone), nameof(HasImage), nameof(CanChoose))]
+    public partial bool IsLoading { get; private set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasError))]
+    public partial string? ErrorMessage { get; private set; }
+
+    public string FileName => IsoPath is null ? "" : Path.GetFileName(IsoPath);
+
+    public bool HasImage => Image is not null && !IsLoading;
+
+    public bool HasError => ErrorMessage is not null;
+
+    /// <summary>Большая зона «перетащите сюда» — пока образ не выбран; потом её заменяет карточка образа.</summary>
+    public bool ShowDropZone => !IsLoading && Image is null;
+
+    public bool CanChoose => !IsLoading;
+
+    /// <summary>Одна строка: выпуск · архитектура · язык.</summary>
+    public string Summary => Image is null
+        ? ""
+        : string.Join("  ·  ", new[] { Image.ReleaseName, Image.Architecture, Image.Language }.Where(s => !string.IsNullOrEmpty(s)));
+
+    public IReadOnlyList<EditionSummary> Editions => Image?.Editions ?? [];
+
+    public async Task LoadAsync(string isoPath)
+    {
+        _loading?.Cancel();
+        var loading = _loading = new CancellationTokenSource();
+
+        IsoPath = isoPath;
+        Image = null;
+        ErrorMessage = null;
+        IsLoading = true;
+        try
+        {
+            var result = await engine.InspectAsync(isoPath, loading.Token);
+            if (loading.IsCancellationRequested)
+                return;
+
+            if (result.Image is { } image)
+                Image = image;
+            else
+                ErrorMessage = DescribeError(result.ErrorCode, result.ErrorMessage);
+        }
+        catch (OperationCanceledException)
+        {
+            // Выбрали другой файл, пока читался этот.
+        }
+        finally
+        {
+            if (loading == _loading)
+                IsLoading = false;
+        }
+    }
+
+    // Окно показывает свой текст по коду причины; текст движка (английский) — только если код незнаком.
+    static string DescribeError(string? code, string? engineMessage)
+    {
+        var key = code switch
+        {
+            "not-found" => "ImageError_NotFound",
+            "not-disc-image" => "ImageError_NotDiscImage",
+            "not-windows-installer" => "ImageError_NotWindowsInstaller",
+            "corrupt" => "ImageError_Corrupt",
+            "server" => "ImageError_Server",
+            "arm64" => "ImageError_Arm64",
+            "x86" => "ImageError_X86",
+            "unsupported-windows" => "ImageError_UnsupportedWindows",
+            "too-old" => "ImageError_TooOld",
+            _ => null,
+        };
+        return key is not null ? Text.Get(key) : Text.Format("ImageError_Other", engineMessage ?? code ?? "");
+    }
+}

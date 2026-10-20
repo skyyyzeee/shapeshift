@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <data name="AppTitle.Text" xml:space="preserve"><value>Shapeshift</value></data>
+
+  <data name="StepSource.Content" xml:space="preserve"><value>Source</value></data>
+  <data name="StepEditionsAndLanguages.Content" xml:space="preserve"><value>Editions and languages</value></data>
+  <data name="StepSetup.Content" xml:space="preserve"><value>Setup</value></data>
+  <data name="StepCustomize.Content" xml:space="preserve"><value>Customize</value></data>
+  <data name="StepOutput.Content" xml:space="preserve"><value>Output</value></data>
+
+  <data name="StepTitle_Source" xml:space="preserve"><value>Source</value></data>
+  <data name="StepTitle_EditionsAndLanguages" xml:space="preserve"><value>Editions and languages</value></data>
+  <data name="StepTitle_Setup" xml:space="preserve"><value>Setup</value></data>
+  <data name="StepTitle_Customize" xml:space="preserve"><value>Customize</value></data>
+  <data name="StepTitle_Output" xml:space="preserve"><value>Output</value></data>
+  <data name="StepComingSoon.Text" xml:space="preserve"><value>This step is coming in a future version.</value></data>
+
+  <data name="AdvancedMode.Header" xml:space="preserve"><value>Advanced mode</value></data>
+  <data name="Back.Content" xml:space="preserve"><value>Back</value></data>
+  <data name="Next.Content" xml:space="preserve"><value>Next</value></data>
+
+  <data name="SourceTitle.Text" xml:space="preserve"><value>Choose a Windows image</value></data>
+  <data name="SourceSubtitle.Text" xml:space="preserve"><value>A Windows 10 or 11 (x64) installation ISO. The original file is not changed.</value></data>
+  <data name="DropHint.Text" xml:space="preserve"><value>Drop an ISO here</value></data>
+  <data name="ChooseIso.Content" xml:space="preserve"><value>Choose file…</value></data>
+  <data name="ChooseOtherIso.Content" xml:space="preserve"><value>Another file…</value></data>
+  <data name="ReadingImage.Text" xml:space="preserve"><value>Reading the image…</value></data>
+  <data name="ImageErrorBar.Title" xml:space="preserve"><value>This image won't work</value></data>
+  <data name="EditionsHeader.Text" xml:space="preserve"><value>Editions</value></data>
+
+  <data name="ImageError_NotFound" xml:space="preserve"><value>The file was not found.</value></data>
+  <data name="ImageError_NotDiscImage" xml:space="preserve"><value>The file is not a disc image.</value></data>
+  <data name="ImageError_NotWindowsInstaller" xml:space="preserve"><value>This is not a Windows installation image: the installer files are missing.</value></data>
+  <data name="ImageError_Corrupt" xml:space="preserve"><value>The image is damaged: its list of editions cannot be read.</value></data>
+  <data name="ImageError_Server" xml:space="preserve"><value>Windows Server images are not supported — only Windows 10 and 11.</value></data>
+  <data name="ImageError_Arm64" xml:space="preserve"><value>ARM64 images are not supported yet — only x64.</value></data>
+  <data name="ImageError_X86" xml:space="preserve"><value>32-bit images are not supported — only x64.</value></data>
+  <data name="ImageError_UnsupportedWindows" xml:space="preserve"><value>Only Windows 10 and 11 are supported.</value></data>
+  <data name="ImageError_TooOld" xml:space="preserve"><value>This release is too old: Windows 10 version 2004 or newer is supported.</value></data>
+  <data name="ImageError_Other" xml:space="preserve"><value>The image could not be read: {0}</value></data>
+</root>

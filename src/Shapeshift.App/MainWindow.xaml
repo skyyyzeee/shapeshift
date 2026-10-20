@@ -1,0 +1,97 @@
+<Window
+    x:Class="Shapeshift.App.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Window.SystemBackdrop>
+        <MicaBackdrop />
+    </Window.SystemBackdrop>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="48" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Grid x:Name="AppTitleBar" Padding="16,0,0,0">
+            <TextBlock
+                x:Uid="AppTitle"
+                VerticalAlignment="Center"
+                Style="{StaticResource CaptionTextBlockStyle}"
+                Text="Shapeshift" />
+        </Grid>
+
+        <NavigationView
+            x:Name="Nav"
+            Grid.Row="1"
+            IsBackButtonVisible="Collapsed"
+            IsPaneToggleButtonVisible="False"
+            IsSettingsVisible="False"
+            OpenPaneLength="232"
+            PaneDisplayMode="Left"
+            SelectionChanged="Nav_SelectionChanged">
+            <NavigationView.MenuItems>
+                <NavigationViewItem x:Uid="StepSource" Tag="Source">
+                    <NavigationViewItem.Icon>
+                        <SymbolIcon Symbol="OpenFile" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem x:Uid="StepEditionsAndLanguages" Tag="EditionsAndLanguages">
+                    <NavigationViewItem.Icon>
+                        <SymbolIcon Symbol="Globe" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem x:Uid="StepSetup" Tag="Setup">
+                    <NavigationViewItem.Icon>
+                        <SymbolIcon Symbol="Contact" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem x:Uid="StepCustomize" Tag="Customize">
+                    <NavigationViewItem.Icon>
+                        <SymbolIcon Symbol="Setting" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem x:Uid="StepOutput" Tag="Output">
+                    <NavigationViewItem.Icon>
+                        <SymbolIcon Symbol="Save" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+            </NavigationView.MenuItems>
+
+            <NavigationView.PaneFooter>
+                <ToggleSwitch
+                    x:Uid="AdvancedMode"
+                    Margin="16,0,0,16"
+                    IsOn="{x:Bind ViewModel.AdvancedMode, Mode=TwoWay}" />
+            </NavigationView.PaneFooter>
+
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <Frame x:Name="ContentFrame" Padding="40,28,40,0" />
+
+                <StackPanel
+                    Grid.Row="1"
+                    Padding="40,16,40,24"
+                    HorizontalAlignment="Right"
+                    Orientation="Horizontal"
+                    Spacing="8">
+                    <Button
+                        x:Uid="Back"
+                        MinWidth="120"
+                        Click="Back_Click"
+                        IsEnabled="{x:Bind ViewModel.CanGoBack, Mode=OneWay}" />
+                    <Button
+                        x:Uid="Next"
+                        MinWidth="120"
+                        Click="Next_Click"
+                        IsEnabled="{x:Bind ViewModel.CanGoNext, Mode=OneWay}"
+                        Style="{StaticResource AccentButtonStyle}" />
+                </StackPanel>
+            </Grid>
+        </NavigationView>
+    </Grid>
+</Window>

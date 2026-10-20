@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <data name="AppTitle.Text" xml:space="preserve"><value>Shapeshift</value></data>
+
+  <data name="StepSource.Content" xml:space="preserve"><value>Источник</value></data>
+  <data name="StepEditionsAndLanguages.Content" xml:space="preserve"><value>Редакции и языки</value></data>
+  <data name="StepSetup.Content" xml:space="preserve"><value>Установка</value></data>
+  <data name="StepCustomize.Content" xml:space="preserve"><value>Настройка</value></data>
+  <data name="StepOutput.Content" xml:space="preserve"><value>Результат</value></data>
+
+  <data name="StepTitle_Source" xml:space="preserve"><value>Источник</value></data>
+  <data name="StepTitle_EditionsAndLanguages" xml:space="preserve"><value>Редакции и языки</value></data>
+  <data name="StepTitle_Setup" xml:space="preserve"><value>Установка</value></data>
+  <data name="StepTitle_Customize" xml:space="preserve"><value>Настройка</value></data>
+  <data name="StepTitle_Output" xml:space="preserve"><value>Результат</value></data>
+  <data name="StepComingSoon.Text" xml:space="preserve"><value>Этот шаг появится в одной из следующих версий.</value></data>
+
+  <data name="AdvancedMode.Header" xml:space="preserve"><value>Продвинутый режим</value></data>
+  <data name="Back.Content" xml:space="preserve"><value>Назад</value></data>
+  <data name="Next.Content" xml:space="preserve"><value>Далее</value></data>
+
+  <data name="SourceTitle.Text" xml:space="preserve"><value>Выберите образ Windows</value></data>
+  <data name="SourceSubtitle.Text" xml:space="preserve"><value>Установочный ISO Windows 10 или 11 (x64). Исходный файл не изменится.</value></data>
+  <data name="DropHint.Text" xml:space="preserve"><value>Перетащите ISO сюда</value></data>
+  <data name="ChooseIso.Content" xml:space="preserve"><value>Выбрать файл…</value></data>
+  <data name="ChooseOtherIso.Content" xml:space="preserve"><value>Другой файл…</value></data>
+  <data name="ReadingImage.Text" xml:space="preserve"><value>Читаю образ…</value></data>
+  <data name="ImageErrorBar.Title" xml:space="preserve"><value>Этот образ не подойдёт</value></data>
+  <data name="EditionsHeader.Text" xml:space="preserve"><value>Редакции</value></data>
+
+  <data name="ImageError_NotFound" xml:space="preserve"><value>Файл не найден.</value></data>
+  <data name="ImageError_NotDiscImage" xml:space="preserve"><value>Файл не является образом диска.</value></data>
+  <data name="ImageError_NotWindowsInstaller" xml:space="preserve"><value>Это не установочный образ Windows: в нём нет файлов установщика.</value></data>
+  <data name="ImageError_Corrupt" xml:space="preserve"><value>Образ повреждён: не удалось прочитать список редакций.</value></data>
+  <data name="ImageError_Server" xml:space="preserve"><value>Образы Windows Server не поддерживаются — только Windows 10 и 11.</value></data>
+  <data name="ImageError_Arm64" xml:space="preserve"><value>Образы для ARM64 пока не поддерживаются — только x64.</value></data>
+  <data name="ImageError_X86" xml:space="preserve"><value>32-разрядные образы не поддерживаются — только x64.</value></data>
+  <data name="ImageError_UnsupportedWindows" xml:space="preserve"><value>Поддерживаются только Windows 10 и 11.</value></data>
+  <data name="ImageError_TooOld" xml:space="preserve"><value>Слишком старый выпуск: поддерживается Windows 10 версии 2004 и новее.</value></data>
+  <data name="ImageError_Other" xml:space="preserve"><value>Не удалось прочитать образ: {0}</value></data>
+</root>

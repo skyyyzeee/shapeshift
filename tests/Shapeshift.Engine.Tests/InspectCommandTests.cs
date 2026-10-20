@@ -20,6 +20,51 @@ public sealed class InspectCommandTests : IDisposable
     }
 
     [Fact]
+    public async Task Json_output_is_the_contract_for_the_app()
+    {
+        var iso = new FakeWindowsIso { Language = "ru-RU" }.WriteTo(_dir.Path);
+
+        var result = await CliRun.RunAsync("inspect", "--iso", iso, "--json");
+
+        Assert.True(result.ExitCode == Cli.ExitCodes.Success, result.Error);
+        Snapshot.Match(result.Output, "json");
+    }
+
+    [Theory]
+    [InlineData("server", "server")]
+    [InlineData("arm64", "arm64")]
+    [InlineData("old", "too-old")]
+    [InlineData("no-install", "not-windows-installer")]
+    public async Task Json_error_carries_a_code(string variant, string expectedCode)
+    {
+        var fake = variant switch
+        {
+            "server" => new FakeWindowsIso { InstallationType = "Server" },
+            "arm64" => new FakeWindowsIso { Arch = 12 },
+            "old" => new FakeWindowsIso { Build = 17763 },
+            _ => new FakeWindowsIso { Omit = [@"sources\install.wim"] },
+        };
+        var iso = fake.WriteTo(_dir.Path);
+
+        var result = await CliRun.RunAsync("inspect", "--iso", iso, "--json");
+
+        Assert.Equal(Cli.ExitCodes.InvalidInput, result.ExitCode);
+        using var json = System.Text.Json.JsonDocument.Parse(result.Output);
+        var error = json.RootElement.GetProperty("error");
+        Assert.Equal(expectedCode, error.GetProperty("code").GetString());
+        Assert.False(string.IsNullOrEmpty(error.GetProperty("message").GetString()));
+    }
+
+    [Fact]
+    public async Task Json_error_for_a_missing_file()
+    {
+        var result = await CliRun.RunAsync("inspect", "--iso", _dir.File("nope.iso"), "--json");
+
+        Assert.Equal(Cli.ExitCodes.InvalidInput, result.ExitCode);
+        Assert.Contains("\"code\":\"not-found\"", result.Output);
+    }
+
+    [Fact]
     public async Task Windows_10_ltsc_is_supported()
     {
         var iso = new FakeWindowsIso

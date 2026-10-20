@@ -102,19 +102,41 @@ public static class Cli
             Required = true,
         };
 
+        var jsonOption = new Option<bool>("--json")
+        {
+            Description = "Print machine-readable JSON (for the app): the image, or { \"error\": { code, message } }.",
+        };
+
         var command = new Command("inspect", "Show the release, architecture and editions of an image.")
         {
             isoOption,
+            jsonOption,
         };
 
         command.SetAction(async (parseResult, ct) =>
         {
-            var source = await TryInspectAsync(parseResult.GetRequiredValue(isoOption).FullName, context);
-            if (source is null)
-                return ExitCodes.InvalidInput;
+            var iso = parseResult.GetRequiredValue(isoOption).FullName;
+            if (!parseResult.GetValue(jsonOption))
+            {
+                var source = await TryInspectAsync(iso, context);
+                if (source is null)
+                    return ExitCodes.InvalidInput;
 
-            await WriteImageAsync(source, context.Output);
-            return ExitCodes.Success;
+                await WriteImageAsync(source, context.Output);
+                return ExitCodes.Success;
+            }
+
+            try
+            {
+                var source = await Task.Run(() => ImageInspector.Inspect(iso), ct);
+                await context.Output.WriteLineAsync(EngineJson.Image(source.Info));
+                return ExitCodes.Success;
+            }
+            catch (ImageNotSupportedException e)
+            {
+                await context.Output.WriteLineAsync(EngineJson.Error(e.Code, e.Message));
+                return ExitCodes.InvalidInput;
+            }
         });
 
         return command;

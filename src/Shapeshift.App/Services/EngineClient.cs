@@ -1,0 +1,87 @@
+using System.Diagnostics;
+using System.Text;
+using System.Text.Json;
+
+namespace Shapeshift.App.Services;
+
+/// <summary>Сведения об образе из <c>inspect --json</c>.</summary>
+public sealed record ImageSummary(
+    string ReleaseName,
+    string Architecture,
+    string? Language,
+    IReadOnlyList<EditionSummary> Editions);
+
+public sealed record EditionSummary(int Index, string EditionId, string Name);
+
+/// <summary>Образ прочитан — или движок отказал с кодом причины.</summary>
+public sealed record InspectResult(ImageSummary? Image, string? ErrorCode, string? ErrorMessage);
+
+/// <summary>
+/// Окно не работает с образами само: всё делает движок — отдельный процесс (ADR-0003).
+/// Чтение образа не требует прав администратора, поэтому движок здесь запускается без повышения.
+/// </summary>
+public sealed class EngineClient
+{
+    static readonly JsonSerializerOptions Json = new() { PropertyNameCaseInsensitive = true };
+
+    public string EnginePath { get; } = Path.Combine(AppContext.BaseDirectory, "Shapeshift.Engine.exe");
+
+    public async Task<InspectResult> InspectAsync(string isoPath, CancellationToken ct = default)
+    {
+        var (exitCode, output, error) = await RunAsync(["inspect", "--iso", isoPath, "--json"], ct);
+
+        try
+        {
+            using var doc = JsonDocument.Parse(output);
+            if (doc.RootElement.TryGetProperty("error", out var problem))
+            {
+                return new InspectResult(null,
+                    problem.GetProperty("code").GetString(),
+                    problem.GetProperty("message").GetString());
+            }
+
+            var dto = doc.RootElement.Deserialize<ImageDto>(Json)!;
+            return new InspectResult(
+                new ImageSummary(
+                    dto.Release.Name,
+                    dto.Architecture,
+                    dto.Language,
+                    dto.Editions.Select(e => new EditionSummary(e.Index, e.EditionId, e.Name)).ToList()),
+                null, null);
+        }
+        catch (Exception e) when (e is JsonException or KeyNotFoundException or NullReferenceException)
+        {
+            return new InspectResult(null, "engine-failed", $"exit {exitCode}: {error.Trim()}");
+        }
+    }
+
+    async Task<(int ExitCode, string Output, string Error)> RunAsync(string[] args, CancellationToken ct)
+    {
+        if (!File.Exists(EnginePath))
+            return (-1, "", $"engine not found: {EnginePath}");
+
+        var start = new ProcessStartInfo(EnginePath)
+        {
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            StandardOutputEncoding = Encoding.UTF8,
+            StandardErrorEncoding = Encoding.UTF8,
+        };
+        foreach (var arg in args)
+            start.ArgumentList.Add(arg);
+
+        using var process = Process.Start(start)!;
+        var output = process.StandardOutput.ReadToEndAsync(ct);
+        var error = process.StandardError.ReadToEndAsync(ct);
+        await process.WaitForExitAsync(ct);
+        return (process.ExitCode, await output, await error);
+    }
+
+    sealed record ImageDto(ReleaseDto Release, string Architecture, string? Language, List<EditionDto> Editions);
+
+    sealed record ReleaseDto(string Name);
+
+    sealed record EditionDto(int Index, string EditionId, string Name);
+}
