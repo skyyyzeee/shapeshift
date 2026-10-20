@@ -212,9 +212,9 @@ public sealed class EngineClient
 
     /// <summary>Сколько скачать для языка и редакций и сколько уже в кэше (<c>uup files --json</c>).</summary>
     public async Task<UupFilesResult> UupFilesAsync(
-        string updateId, string language, IReadOnlyList<string> editions, string workspace, CancellationToken ct = default)
+        string updateId, string language, IReadOnlyList<string> editions, string workspace, bool withUpdates, CancellationToken ct = default)
     {
-        string[] args = ["uup", "files", "--update", updateId, "--lang", language, .. editions.SelectMany(e => new[] { "--edition", e }), "--workspace", workspace, "--media-only", "--json"];
+        string[] args = ["uup", "files", "--update", updateId, "--lang", language, .. editions.SelectMany(e => new[] { "--edition", e }), "--workspace", workspace, "--media-only", .. withUpdates ? new[] { "--with-updates" } : [], "--json"];
         var (exitCode, output, error) = await RunAsync(args, ct);
         try
         {

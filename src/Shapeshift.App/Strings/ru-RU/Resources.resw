@@ -287,7 +287,7 @@ Insider Beta, Dev, Canary — предварительные сборки (то�
 Education, Enterprise, Pro для рабочих станций и другие получаются из Pro и появятся позже.
 Выбирайте ту, на которую у вас лицензия.</value></data>
   <data name="UupNotYetBar.Title" xml:space="preserve"><value>Что получится</value></data>
-  <data name="UupNotYetBar.Message" xml:space="preserve"><value>Дальше — как со своим ISO: образ соберётся из файлов Windows Update. Пока это исходная сборка версии (например, 26100.1 для 24H2 и 25H2) без встроенных приложений; последнее обновление и приложения появятся в следующих версиях Shapeshift. Скачать файлы можно заранее — или сборка скачает их сама.</value></data>
+  <data name="UupNotYetBar.Message" xml:space="preserve"><value>Дальше — как со своим ISO: образ соберётся из файлов Windows Update, с последним обновлением, если оно отмечено. Встроенных приложений (Store, «Фотографии» и т. п.) в таком образе пока нет — они появятся в следующих версиях Shapeshift. Скачать файлы можно заранее — или сборка скачает их сама.</value></data>
   <data name="UupError" xml:space="preserve"><value>Не удалось получить список выпусков из Windows Update. Проверьте подключение к интернету или выберите свой ISO. Подробности: {0}</value></data>
   <data name="UupReleaseDetail" xml:space="preserve"><value>Сборка {0} · {1}</value></data>
   <data name="UupChannel_windows11" xml:space="preserve"><value>последняя версия</value></data>
@@ -325,4 +325,8 @@ Education, Enterprise, Pro для рабочих станций и другие 
   <data name="StepKind_AssembleImage" xml:space="preserve"><value>Сборка образа из файлов UUP</value></data>
   <data name="StepKind_DownloadMetadata" xml:space="preserve"><value>Получение списка файлов</value></data>
   <data name="AppsNoIso" xml:space="preserve"><value>В образе, собранном из Windows Update, пока нет встроенных приложений — удалять нечего.</value></data>
+  <data name="UupLatestUpdate.Content" xml:space="preserve"><value>Встроить последнее обновление (рекомендуется)</value></data>
+  <data name="UupLatestUpdateTip.Text" xml:space="preserve"><value>Windows сразу будет актуальной — не придётся ставить накопительное обновление после установки.
+Для 25H2 это обязательно: без обновления получится исходная сборка 26100.1 (по сути 24H2).
+Добавляет к скачиванию около 5 ГБ, а к сборке — от 20 минут до часа и больше, в зависимости от компьютера; нужны права администратора (окно спросит).</value></data>
 </root>

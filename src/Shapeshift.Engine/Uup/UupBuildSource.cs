@@ -6,12 +6,16 @@ namespace Shapeshift.Engine.Uup;
 
 /// <summary>
 /// Источник сборки — выпуск UUP: что скачать и из чего собрать носитель. Вместо распаковки ISO сборка
-/// скачивает файлы (шаг DownloadFiles) и собирает носитель wimlib (шаг AssembleImage).
+/// скачивает файлы (шаг DownloadFiles) и собирает носитель wimlib (шаг AssembleImage); обновления выпуска
+/// встраиваются DISM (шаг IntegrateUpdates), если <paramref name="updates"/> заданы.
 /// </summary>
 public sealed class UupBuildSource(
     UupRelease release, string language, IReadOnlyList<string> editions, IReadOnlyList<UupFile> files,
-    UupDownloader downloader, UupLinks links, string? baseVersion)
+    UupDownloader downloader, UupLinks links, string? baseVersion, UupUpdates? updates = null)
 {
+    /// <summary>Что встроить в Windows; null — образ остаётся исходной сборкой.</summary>
+    public UupUpdates? Updates => updates is { IsEmpty: false } ? updates : null;
+
     public UupRelease Release => release;
 
     public string Language => language;
@@ -29,15 +33,19 @@ public sealed class UupBuildSource(
 
     public IReadOnlyList<UupFile> Packages => MediaFiles.Except(EditionImages).ToList();
 
-    public long BytesToDownload => MediaFiles.Where(f => !downloader.IsCached(f)).Sum(f => f.Size);
+    /// <summary>Всё, что качает сборка: носитель и, если встраиваются, обновления.</summary>
+    public IReadOnlyList<UupFile> DownloadFiles => [.. MediaFiles, .. Updates?.All ?? []];
+
+    public long BytesToDownload => DownloadFiles.Where(f => !downloader.IsCached(f)).Sum(f => f.Size);
 
     /// <summary>
-    /// Образ, каким он получится (для плана и файла ответов): версия — исходная сборка выпуска (обновления не встроены),
-    /// редакции — с номерами по порядку.
+    /// Образ, каким он получится (для плана и файла ответов): версия — сборка выпуска с обновлениями или исходная
+    /// без них, редакции — с номерами по порядку.
     /// </summary>
     public SourceImage Image()
     {
-        var version = (baseVersion ?? "10.0." + release.Build).Split('.');
+        // С обновлениями образ станет той сборкой, что предлагает Windows Update; без них — исходной из CompDB.
+        var version = (Updates is not null || baseVersion is null ? "10.0." + release.Build : baseVersion).Split('.');
         var build = int.Parse(version.ElementAtOrDefault(2) ?? "0", CultureInfo.InvariantCulture);
         var revision = int.Parse(version.ElementAtOrDefault(3) ?? "0", CultureInfo.InvariantCulture);
         var releaseInfo = new Release(build, revision);

@@ -19,9 +19,11 @@ public sealed class UupBuildTests : IDisposable
 
     string Output => _dir.File("out.iso");
 
-    string Profile(string editions = "[\"Professional\"]", string uup = """{ "channel": "windows11", "language": "ru-RU" }""") => _dir.Write("profile.json", $$"""
+    // Без встраивания обновлений по умолчанию: оно требует DISM и прав администратора (отдельные тесты ниже).
+    string Profile(string editions = "[\"Professional\"]", string uup = """{ "channel": "windows11", "language": "ru-RU" }""", bool latestUpdate = false) => _dir.Write("profile.json", $$"""
         {
           "formatVersion": 1,
+          "latestUpdate": {{(latestUpdate ? "true" : "false")}},
           "editions": {{editions}},
           "setup": { "skipOobe": true },
           "source": { "uup": {{uup}} },
@@ -135,6 +137,62 @@ public sealed class UupBuildTests : IDisposable
         // Образ — исходная сборка (из CompDB), обновления не встроены.
         Assert.Equal(26100, plan.RootElement.GetProperty("image").GetProperty("release").GetProperty("build").GetInt32());
         Assert.False(File.Exists(Output));
+    }
+
+    [Fact]
+    public async Task Latest_update_is_integrated_by_default_in_order()
+    {
+        _dir.Write("profile.json", $$"""
+            { "formatVersion": 1, "source": { "uup": { "channel": "windows11", "language": "ru-RU" } }, "output": { "iso": {{JsonSerializer.Serialize(Output)}} } }
+            """);
+
+        var result = await Build(new FakeWindowsUpdate { Release = _release }, "--dry-run");
+
+        Assert.True(result.ExitCode == Cli.ExitCodes.Success, result.Error + result.Output);
+        // Накопительное, пакет включения, .NET; обновление среды восстановления — не для Windows.
+        Assert.Contains("Updates: Windows11.0-KB5000001-x64.msu, Windows11.0-KB5000002-x64.cab, Windows11.0-KB5000004-x64-NDP481.cab", result.Output);
+        Assert.Contains("Integrate updates", result.Output);
+        // С обновлениями образ — сборка выпуска, а не исходная.
+        Assert.Contains($"Image: Windows 11 25H2 ({FakeUupRelease.Build})", result.Output);
+    }
+
+    [Fact]
+    public async Task Integrating_updates_needs_administrator_rights()
+    {
+        Assert.SkipWhen(Servicing.DismServicing.IsElevated, "Runs only without administrator rights.");
+        Profile(latestUpdate: true);
+
+        var result = await Build(new FakeWindowsUpdate { Release = _release });
+
+        Assert.Equal(Cli.ExitCodes.NeedsElevation, result.ExitCode);
+        Assert.Contains("integrating updates", result.Error);
+        Assert.False(File.Exists(Output));
+    }
+
+    [Fact]
+    public async Task Without_latest_update_the_image_stays_at_the_original_build()
+    {
+        Profile(latestUpdate: false);
+
+        var result = await Build(new FakeWindowsUpdate { Release = _release }, "--dry-run");
+
+        Assert.True(result.ExitCode == Cli.ExitCodes.Success, result.Error);
+        Assert.DoesNotContain("Integrate updates", result.Output);
+        Assert.Contains("Image: Windows 11 24H2 (26100.1)", result.Output);
+    }
+
+    [Fact]
+    public async Task Latest_update_for_own_iso_is_not_supported_yet()
+    {
+        var iso = new FakeWindowsIso().WriteTo(_dir.Path);
+        _dir.Write("profile.json", $$"""
+            { "formatVersion": 1, "latestUpdate": true, "source": { "iso": {{JsonSerializer.Serialize(iso)}} }, "output": { "iso": {{JsonSerializer.Serialize(Output)}} } }
+            """);
+
+        var result = await CliRun.RunAsync("build", "--profile", _dir.File("profile.json"), "--workspace", Workspace, "--dry-run");
+
+        Assert.Equal(Cli.ExitCodes.InvalidInput, result.ExitCode);
+        Assert.Contains("works only with a release from Windows Update", result.Error);
     }
 
     [Theory]

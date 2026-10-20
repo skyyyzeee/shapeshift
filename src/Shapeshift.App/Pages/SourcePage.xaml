@@ -180,6 +180,11 @@
                             </ItemsRepeater>
                         </StackPanel>
 
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <CheckBox x:Uid="UupLatestUpdate" IsChecked="{x:Bind Wizard.Download.LatestUpdate, Mode=TwoWay}" />
+                            <c:InfoTip x:Uid="UupLatestUpdateTip" />
+                        </StackPanel>
+
                         <!-- Объём и скачивание в кэш. -->
                         <StackPanel Spacing="8">
                             <StackPanel Orientation="Horizontal" Spacing="8">

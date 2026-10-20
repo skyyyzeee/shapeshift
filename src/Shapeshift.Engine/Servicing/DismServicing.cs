@@ -66,7 +66,58 @@ public static class DismServicing
     /// <exception cref="ServicingException">DISM не смог обслужить образ.</exception>
     public static void RemoveApps(
         string wimPath, IReadOnlyList<int> imageIndices, IReadOnlyList<string> appNames, string mountDirectory,
-        IBuildReporter reporter, CancellationToken ct)
+        IBuildReporter reporter, CancellationToken ct) =>
+        Service(wimPath, imageIndices, mountDirectory, reporter, ct, (session, imageIndex, _) =>
+        {
+            var installed = DismApi.GetProvisionedAppxPackages(session);
+            foreach (var name in appNames)
+            {
+                ct.ThrowIfCancellationRequested();
+                var package = installed.FirstOrDefault(p => string.Equals(p.DisplayName, name, StringComparison.OrdinalIgnoreCase));
+                if (package is null)
+                {
+                    reporter.Log($"warning: {name} is not in image {imageIndex}; skipped.");
+                    continue;
+                }
+                DismApi.RemoveProvisionedAppxPackage(session, package.PackageName);
+                reporter.Log($"Removed {name}");
+            }
+        });
+
+    /// <summary>
+    /// Встраивает пакеты (.msu, .cab) в каждый образ WIM по порядку. Накопительное обновление с контрольными
+    /// точками: DISM сам находит более ранние .msu в той же папке и ставит их первыми.
+    /// </summary>
+    /// <exception cref="OperationCanceledException">Отменили; образ отключён без сохранения.</exception>
+    /// <exception cref="ServicingException">DISM не смог обслужить образ или пакет не подошёл.</exception>
+    public static void AddPackages(
+        string wimPath, IReadOnlyList<int> imageIndices, IReadOnlyList<string> packages, string mountDirectory,
+        IBuildReporter reporter, CancellationToken ct) =>
+        Service(wimPath, imageIndices, mountDirectory, reporter, ct, (session, imageIndex, progress) =>
+        {
+            for (var i = 0; i < packages.Count; i++)
+            {
+                ct.ThrowIfCancellationRequested();
+                var part = i;
+                reporter.Log($"Adding {Path.GetFileName(packages[i])} to image {imageIndex}");
+                DismApi.AddPackage(session, packages[i], ignoreCheck: false, preventPending: false, p =>
+                {
+                    if (ct.IsCancellationRequested)
+                        p.Cancel = true;
+                    else if (p.Total > 0)
+                        progress((part + (double)p.Current / p.Total) / packages.Count);
+                });
+            }
+        });
+
+    /// <summary>
+    /// Монтирование каждого образа → работа в офлайн-сессии → сохранение. При ошибке или отмене образ
+    /// отключается без сохранения. Каждое монтирование помечается <see cref="MountMarker"/>.
+    /// </summary>
+    /// <param name="work">Сессия, номер образа и доля выполнения работы (0..1).</param>
+    static void Service(
+        string wimPath, IReadOnlyList<int> imageIndices, string mountDirectory, IBuildReporter reporter, CancellationToken ct,
+        Action<DismSession, int, Action<double>> work)
     {
         Directory.CreateDirectory(mountDirectory);
         File.WriteAllText(Path.Combine(Path.GetDirectoryName(mountDirectory.TrimEnd('\\'))!, MountMarker), wimPath);
@@ -76,12 +127,10 @@ public static class DismServicing
         {
             for (var i = 0; i < imageIndices.Count; i++)
             {
+                // На образ: монтирование — 15 %, работа — 70 %, сохранение — 15 %.
                 var part = i;
-                void Report(double stage, DismProgress p)
-                {
-                    if (p.Total > 0)
-                        reporter.Progress((part + stage + 0.5 * p.Current / p.Total) / imageIndices.Count);
-                }
+                void Report(double from, double share, double fraction) =>
+                    reporter.Progress((part + from + share * Math.Clamp(fraction, 0, 1)) / imageIndices.Count);
 
                 var commit = false;
                 try
@@ -92,15 +141,18 @@ public static class DismServicing
                         // Монтирование долгое — отмена прерывает его; отключение ниже не прерывается никогда.
                         if (ct.IsCancellationRequested)
                             p.Cancel = true;
-                        Report(0, p);
+                        else if (p.Total > 0)
+                            Report(0, 0.15, (double)p.Current / p.Total);
                     });
                     ct.ThrowIfCancellationRequested();
-                    RemoveFromMounted(mountDirectory, imageIndices[i], appNames, reporter, ct);
+                    using (var session = OpenSession(mountDirectory))
+                        work(session, imageIndices[i], fraction => Report(0.15, 0.7, fraction));
                     commit = true;
                 }
                 finally
                 {
-                    Unmount(mountDirectory, commit && !ct.IsCancellationRequested, reporter, p => Report(0.5, p));
+                    Unmount(mountDirectory, commit && !ct.IsCancellationRequested, reporter,
+                        p => { if (p.Total > 0) Report(0.85, 0.15, (double)p.Current / p.Total); });
                 }
                 ct.ThrowIfCancellationRequested();
             }
@@ -119,13 +171,11 @@ public static class DismServicing
         }
     }
 
-    static void RemoveFromMounted(
-        string mountDirectory, int imageIndex, IReadOnlyList<string> appNames, IBuildReporter reporter, CancellationToken ct)
+    static DismSession OpenSession(string mountDirectory)
     {
-        DismSession session;
         try
         {
-            session = DismApi.OpenOfflineSession(mountDirectory);
+            return DismApi.OpenOfflineSession(mountDirectory);
         }
         catch (DismException e) when (e.HResult == E_INVALIDARG)
         {
@@ -133,23 +183,6 @@ public static class DismServicing
             throw new ServicingException(
                 $"DISM could not open the mounted image (0x{e.HResult:X8}): this Windows cannot load the image's registry. " +
                 "Check that 'reg load' works on this computer, or build on another one.", e);
-        }
-
-        using (session)
-        {
-            var installed = DismApi.GetProvisionedAppxPackages(session);
-            foreach (var name in appNames)
-            {
-                ct.ThrowIfCancellationRequested();
-                var package = installed.FirstOrDefault(p => string.Equals(p.DisplayName, name, StringComparison.OrdinalIgnoreCase));
-                if (package is null)
-                {
-                    reporter.Log($"warning: {name} is not in image {imageIndex}; skipped.");
-                    continue;
-                }
-                DismApi.RemoveProvisionedAppxPackage(session, package.PackageName);
-                reporter.Log($"Removed {name}");
-            }
         }
     }
 

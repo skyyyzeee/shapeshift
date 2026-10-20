@@ -286,7 +286,7 @@ Date formats, keyboards and the time zone are set separately, on the Setup step.
 Education, Enterprise, Pro for Workstations and others are made from Pro and will come later.
 Pick the one you have a license for.</value></data>
   <data name="UupNotYetBar.Title" xml:space="preserve"><value>What you get</value></data>
-  <data name="UupNotYetBar.Message" xml:space="preserve"><value>From here it works as with your own ISO: the image is built from Windows Update files. For now it is the original build of the version (for example, 26100.1 for 24H2 and 25H2) without built-in apps; the latest update and the apps come in later versions of Shapeshift. You can download the files in advance, or the build downloads them itself.</value></data>
+  <data name="UupNotYetBar.Message" xml:space="preserve"><value>From here it works as with your own ISO: the image is built from Windows Update files, with the latest update if it is checked. Such an image has no built-in apps (Store, Photos and so on) yet; they come in later versions of Shapeshift. You can download the files in advance, or the build downloads them itself.</value></data>
   <data name="UupError" xml:space="preserve"><value>Couldn&apos;t get the list of releases from Windows Update. Check the internet connection, or choose your own ISO. Details: {0}</value></data>
   <data name="UupReleaseDetail" xml:space="preserve"><value>Build {0} · {1}</value></data>
   <data name="UupChannel_windows11" xml:space="preserve"><value>latest version</value></data>
@@ -324,4 +324,8 @@ What is downloaded once is not downloaded again, even for another edition of the
   <data name="StepKind_AssembleImage" xml:space="preserve"><value>Building the image from UUP files</value></data>
   <data name="StepKind_DownloadMetadata" xml:space="preserve"><value>Getting the file list</value></data>
   <data name="AppsNoIso" xml:space="preserve"><value>An image built from Windows Update has no built-in apps yet, so there is nothing to remove.</value></data>
+  <data name="UupLatestUpdate.Content" xml:space="preserve"><value>Integrate the latest update (recommended)</value></data>
+  <data name="UupLatestUpdateTip.Text" xml:space="preserve"><value>Windows is up to date right away — no cumulative update to install afterwards.
+For 25H2 it is required: without the update you get the original build 26100.1 (essentially 24H2).
+Adds about 5 GB to the download and from 20 minutes to an hour or more to the build, depending on the computer; needs administrator rights (the app asks).</value></data>
 </root>

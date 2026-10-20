@@ -35,9 +35,9 @@ public sealed class BuildSession : IAsyncDisposable
 
     /// <summary>Скачивание выпуска UUP в кэш: движок без повышения.</summary>
     public static async Task<BuildSession> StartDownloadAsync(
-        string enginePath, string updateId, string language, IReadOnlyList<string> editions, string workspace, CancellationToken ct) =>
+        string enginePath, string updateId, string language, IReadOnlyList<string> editions, string workspace, bool withUpdates, CancellationToken ct) =>
         (await StartAsync(enginePath,
-            ["uup", "download", "--update", updateId, "--lang", language, .. editions.SelectMany(e => new[] { "--edition", e }), "--workspace", workspace, "--media-only"],
+            ["uup", "download", "--update", updateId, "--lang", language, .. editions.SelectMany(e => new[] { "--edition", e }), "--workspace", workspace, "--media-only", .. withUpdates ? new[] { "--with-updates" } : []],
             elevated: false, ct))!;
 
     static async Task<BuildSession?> StartAsync(string enginePath, IReadOnlyList<string> arguments, bool elevated, CancellationToken ct)

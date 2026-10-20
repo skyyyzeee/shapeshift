@@ -9,6 +9,7 @@ public enum BuildStepKind
     DownloadMetadata,
     DownloadFiles,
     AssembleImage,
+    IntegrateUpdates,
     ExtractImage,
     KeepEditions,
     RemoveApps,
@@ -52,7 +53,7 @@ public sealed record BuildPlan(
     public bool FitsMaxPath => LongestExtractedPath <= MaxPath;
 
     /// <summary>Есть шаги через DISM — сборке нужны права администратора.</summary>
-    public bool NeedsElevation => Steps.Any(s => s.Kind == BuildStepKind.RemoveApps);
+    public bool NeedsElevation => Steps.Any(s => s.Kind is BuildStepKind.RemoveApps or BuildStepKind.IntegrateUpdates);
 
     /// <summary>Сюда DISM монтирует образ; путь короткий — из-за того же предела длины пути.</summary>
     public string MountDirectory => Path.Combine(BuildDirectory, "mnt");
@@ -85,6 +86,12 @@ public static class BuildPlanner
             // Кэш скачанного — в рабочей папке; носитель собирается из него, перепакованные CAB — во временной папке.
             steps.Add(new(BuildStepKind.DownloadFiles, "Download files", workspaceVolume, uup.BytesToDownload));
             steps.Add(new(BuildStepKind.AssembleImage, "Assemble image", workspaceVolume, mediaBytes + (1L << 30)));
+            // DISM дописывает в WIM изменённые файлы — до размера обновлений на каждую редакцию, плюс распаковка обновления.
+            if (uup.Updates is { } updates)
+            {
+                var updateBytes = updates.All.Sum(f => f.Size);
+                steps.Add(new(BuildStepKind.IntegrateUpdates, "Integrate updates", workspaceVolume, updateBytes * (source.Info.Editions.Count + 1)));
+            }
         }
         else
         {

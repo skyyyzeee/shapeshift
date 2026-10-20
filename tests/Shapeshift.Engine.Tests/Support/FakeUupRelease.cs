@@ -34,6 +34,8 @@ public sealed class FakeUupRelease
         "Microsoft.VCLibs.140.00_x64.appx",
         "Windows11.0-KB5000001-x64.msu",
         "Windows11.0-KB5000002-x64.cab",
+        "Windows11.0-KB5000003-x64.cab",
+        "Windows11.0-KB5000004-x64-NDP481.cab",
         "DesktopDeployment.cab",
         $"{UpdateId}.AggregatedMetadata.cab",
     ];
@@ -79,6 +81,9 @@ public sealed class FakeUupRelease
         Add("SSU-26100.1-x64.psf", 1024);
         Add("SSU-26100.1-x64-express.cab", 1024);
         Add("DesktopDeployment.cab", 1024);
+        // Обновление среды восстановления (не для Windows) и .NET.
+        Add("Windows11.0-KB5000003-x64.cab", 1024);
+        Add("Windows11.0-KB5000004-x64-NDP481.cab", 1024);
         Files[$"{UpdateId}.AggregatedMetadata.cab"] = Metadata(scratch);
     }
 
@@ -236,6 +241,15 @@ public sealed class FakeUupRelease
             var source = Path.Combine(folder, name.ToLowerInvariant() + ".xml.cab");
             File.WriteAllText(source, xml.TrimStart());
             var cab = Path.Combine(folder, "cabs", name + ".xml.cab");
+            MakeCab([source], cab);
+            inner.Add(cab);
+        }
+        // Метаданные обновлений: по их именам движок узнаёт накопительное, пакет включения и SafeOS.
+        foreach (var name in new[] { "outer.AggregatedMetadata_KB5000001.cab", "EKBUpdateCompDB_KB5000002.xml.cab", "SafeOSDUCompDB_KB5000003.xml.cab" })
+        {
+            var source = Path.Combine(folder, "update-" + name + ".xml");
+            File.WriteAllText(source, "<CompDB />");
+            var cab = Path.Combine(folder, "cabs", name);
             MakeCab([source], cab);
             inner.Add(cab);
         }

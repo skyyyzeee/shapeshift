@@ -5,6 +5,7 @@ namespace Shapeshift.Core;
 /// <param name="Editions">Какие редакции оставить в образе (EditionId); пусто — все.</param>
 /// <param name="RemoveApps">Встроенные приложения, которые удалить из образа (имя пакета без версии).</param>
 /// <param name="Programs">Программы, которые поставятся при первом входе, в порядке установки.</param>
+/// <param name="LatestUpdate">Встроить последнее накопительное обновление; null — по умолчанию (для UUP — да, для своего ISO — нет).</param>
 public sealed record Profile(
     Architecture Architecture,
     IReadOnlyList<string> Tweaks,
@@ -14,7 +15,8 @@ public sealed record Profile(
     SetupOptions Setup,
     RegionalOptions Regional,
     SourceOptions Source,
-    OutputOptions Output);
+    OutputOptions Output,
+    bool? LatestUpdate = null);
 
 /// <summary>Откуда берётся исходный образ: свой ISO или выпуск из Windows Update (UUP).</summary>
 public sealed record SourceOptions(string? IsoPath, UupSourceOptions? Uup = null)

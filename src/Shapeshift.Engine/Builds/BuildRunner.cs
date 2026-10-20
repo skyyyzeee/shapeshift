@@ -29,7 +29,8 @@ public static class BuildRunner
 
     static Task RunStepAsync(BuildPlan plan, BuildStep step, IBuildReporter reporter, CancellationToken ct) => step.Kind switch
     {
-        BuildStepKind.DownloadFiles => plan.Uup!.Downloader.DownloadAsync(plan.Uup.MediaFiles, plan.Uup.Links, reporter.Transfer, ct),
+        BuildStepKind.DownloadFiles => plan.Uup!.Downloader.DownloadAsync(plan.Uup.DownloadFiles, plan.Uup.Links, reporter.Transfer, ct),
+        BuildStepKind.IntegrateUpdates => Task.Run(() => IntegrateUpdates(plan, reporter, ct), ct),
         BuildStepKind.AssembleImage => Task.Run(() => Assemble(plan, reporter, ct), ct),
         BuildStepKind.ExtractImage => Task.Run(() => Extract(plan, reporter, ct), ct),
         BuildStepKind.KeepEditions => Task.Run(() => KeepEditions(plan, reporter, ct), ct),
@@ -84,6 +85,37 @@ public static class BuildRunner
             reporter.Log,
             reporter.Progress,
             ct);
+    }
+
+    // Обновления выпуска — в каждую редакцию (DISM). Файлы кэша названы по SHA-1, а DISM нужны настоящие имена
+    // (.msu/.cab) и все контрольные точки в одной папке — жёсткие ссылки в папке сборки, без копирования гигабайт.
+    static void IntegrateUpdates(BuildPlan plan, IBuildReporter reporter, CancellationToken ct)
+    {
+        var uup = plan.Uup!;
+        var updates = uup.Updates!;
+        var folder = Path.Combine(plan.BuildDirectory, "upd");
+        Directory.CreateDirectory(folder);
+        string Place(Uup.UupFile file)
+        {
+            var target = Path.Combine(folder, file.Name);
+            if (!File.Exists(target))
+                FileLinks.LinkOrCopy(uup.Downloader.PathOf(file), target);
+            return target;
+        }
+
+        var packages = new List<string>();
+        foreach (var cumulative in updates.Cumulative)
+            Place(cumulative);
+        if (updates.Cumulative.Count > 0)
+            packages.Add(Place(updates.Cumulative[^1]));
+        if (updates.Enablement is { } enablement)
+            packages.Add(Place(enablement));
+        if (updates.NetFramework is { } netFramework)
+            packages.Add(Place(netFramework));
+
+        var installImage = Path.Combine(plan.MediaDirectory, plan.Source.InstallImagePath);
+        Servicing.DismServicing.AddPackages(
+            installImage, Enumerable.Range(1, plan.Source.Info.Editions.Count).ToList(), packages, plan.MountDirectory, reporter, ct);
     }
 
     // Только выбранные редакции: экспорт в новый WIM рядом и замена старого. Без DISM и монтирования.

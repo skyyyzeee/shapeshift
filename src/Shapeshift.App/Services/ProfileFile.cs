@@ -17,7 +17,8 @@ public sealed record ProfileDraft(
     UupSourceDraft? Uup = null);
 
 /// <summary>Выпуск из Windows Update: канал, язык и конкретный выпуск (null — самый новый в канале при сборке).</summary>
-public sealed record UupSourceDraft(string Channel, string Language, string? UpdateId);
+/// <param name="LatestUpdate">Встроить последнее накопительное обновление выпуска.</param>
+public sealed record UupSourceDraft(string Channel, string Language, string? UpdateId, bool LatestUpdate = true);
 
 /// <summary>Программа профиля: <paramref name="Winget"/> или <paramref name="Path"/> (с <paramref name="Run"/> для папки).</summary>
 public sealed record ProgramDraft(string? Winget, string? Path, string? Run, string? Args, string? Name);
@@ -61,6 +62,7 @@ public static class ProfileFile
         tweaks = draft.Tweaks.Count > 0 ? draft.Tweaks : null,
         editions = draft.Editions,
         removeApps = draft.RemoveApps is { Count: > 0 } ? draft.RemoveApps : null,
+        latestUpdate = draft.Uup?.LatestUpdate,
         programs = draft.Programs is { Count: > 0 }
             ? draft.Programs.Select(p => new { winget = p.Winget, path = p.Path, run = p.Run, args = p.Args, name = p.Name })
             : null,

@@ -3,6 +3,19 @@ using System.Xml.Linq;
 
 namespace Shapeshift.Engine.Uup;
 
+/// <summary>
+/// Обновления выпуска для образа Windows, в порядке встраивания: накопительные (последнее — после контрольных точек),
+/// пакет включения версии (например, 25H2 поверх 24H2), обновление .NET. Обновления среды восстановления и
+/// установщика (SafeOS, SetupDU) сюда не входят.
+/// </summary>
+/// <param name="Cumulative">Накопительные .msu/.cab по возрастанию номера KB; встраивается последний, DISM сам ставит контрольные точки из той же папки.</param>
+public sealed record UupUpdates(IReadOnlyList<UupFile> Cumulative, UupFile? Enablement, UupFile? NetFramework)
+{
+    public bool IsEmpty => Cumulative.Count == 0 && Enablement is null && NetFramework is null;
+
+    public IEnumerable<UupFile> All => Cumulative.Concat(new[] { Enablement, NetFramework }.OfType<UupFile>());
+}
+
 /// <summary>Файлы для языка и редакций и версия, которую дают образы редакций (без обновлений).</summary>
 /// <param name="BaseVersion">Например, 10.0.26100.1 — из CompDB редакции; null — не указана.</param>
 public sealed record UupSelection(IReadOnlyList<UupFile> Files, IReadOnlyList<string> Problems, string? BaseVersion);
@@ -129,6 +142,52 @@ public static partial class UupFileSet
 
     [GeneratedRegex(@"^(Windows1[01]\.0-KB.*\.(cab|msu|wim)|.*AggregatedMetadata.*\.cab|DesktopDeployment.*\.cab)$", RegexOptions.IgnoreCase)]
     private static partial Regex UpdatePattern();
+
+    /// <summary>
+    /// Какие обновления встраивать в Windows: номера KB — из имён CompDB в метаданных (<c>outer.AggregatedMetadata_KB…</c> —
+    /// накопительные, <c>EKBUpdateCompDB_KB…</c> — пакет включения, <c>SafeOSDUCompDB</c>/<c>SetupDUCompDB</c> — не для Windows).
+    /// </summary>
+    public static UupUpdates ClassifyUpdates(IReadOnlyList<UupFile> files, string compDbs)
+    {
+        var names = Directory.Exists(compDbs) ? Directory.EnumerateFiles(compDbs).Select(Path.GetFileName).ToList() : [];
+        IEnumerable<string> Kbs(Regex pattern) => names.Select(n => pattern.Match(n!)).Where(m => m.Success).Select(m => m.Groups[1].Value);
+        var notForWindows = Kbs(SafeOsOrSetupPattern()).ToHashSet();
+        var enablementKb = Kbs(EnablementPattern()).FirstOrDefault();
+        var cumulativeKbs = Kbs(CumulativePattern()).ToList();
+
+        var updates = Updates(files).Where(f => KbOf(f.Name) is { } kb && !notForWindows.Contains(kb)).ToList();
+        UupFile? Package(string kb) =>
+            updates.Where(f => KbOf(f.Name) == kb).OrderBy(f => f.Name.EndsWith(".msu", StringComparison.OrdinalIgnoreCase) ? 0 : 1).FirstOrDefault();
+
+        // Без списка накопительных в метаданных (Windows 10, старые выпуски) — все .msu, кроме пакета включения.
+        if (cumulativeKbs.Count == 0)
+        {
+            cumulativeKbs = updates.Where(f => f.Name.EndsWith(".msu", StringComparison.OrdinalIgnoreCase) && KbOf(f.Name) != enablementKb)
+                .Select(f => KbOf(f.Name)!).ToList();
+        }
+        var cumulative = cumulativeKbs.Distinct().OrderBy(kb => long.Parse(kb)).Select(Package).OfType<UupFile>().ToList();
+        var enablement = enablementKb is null ? null
+            : updates.FirstOrDefault(f => KbOf(f.Name) == enablementKb && f.Name.EndsWith(".cab", StringComparison.OrdinalIgnoreCase)) ?? Package(enablementKb);
+        var netFramework = updates.FirstOrDefault(f => NetFrameworkPattern().IsMatch(f.Name));
+        return new UupUpdates(cumulative, enablement, netFramework);
+    }
+
+    static string? KbOf(string name) => KbPattern().Match(name) is { Success: true } m ? m.Groups[1].Value : null;
+
+    [GeneratedRegex(@"-KB(\d+)-", RegexOptions.IgnoreCase)]
+    private static partial Regex KbPattern();
+
+    [GeneratedRegex(@"^outer\.AggregatedMetadata_KB(\d+)\.cab$", RegexOptions.IgnoreCase)]
+    private static partial Regex CumulativePattern();
+
+    [GeneratedRegex(@"^EKBUpdateCompDB_KB(\d+)", RegexOptions.IgnoreCase)]
+    private static partial Regex EnablementPattern();
+
+    [GeneratedRegex(@"^(?:SafeOSDUCompDB|SetupDUCompDB)_KB(\d+)", RegexOptions.IgnoreCase)]
+    private static partial Regex SafeOsOrSetupPattern();
+
+    [GeneratedRegex(@"-NDP\d+\.(cab|msu)$", RegexOptions.IgnoreCase)]
+    private static partial Regex NetFrameworkPattern();
 
     [GeneratedRegex(@"\.(esd|wim|cab)$", RegexOptions.IgnoreCase)]
     private static partial Regex MediaPattern();

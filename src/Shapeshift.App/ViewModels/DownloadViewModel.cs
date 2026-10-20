@@ -199,8 +199,14 @@ public sealed partial class DownloadViewModel(EngineClient engine) : ObservableO
 
     /// <summary>Источник для профиля; null — выбор не закончен (нет редакций).</summary>
     public UupSourceDraft? Draft => Release is { } release && Language is { } language && ChosenEditions.Count > 0
-        ? new UupSourceDraft(release.Release.Channel, language.Code, release.Release.UpdateId)
+        ? new UupSourceDraft(release.Release.Channel, language.Code, release.Release.UpdateId, LatestUpdate)
         : null;
+
+    /// <summary>Встроить последнее обновление: без него 25H2 остаётся исходной сборкой 26100.1. Нужен DISM.</summary>
+    [ObservableProperty]
+    public partial bool LatestUpdate { get; set; } = true;
+
+    partial void OnLatestUpdateChanged(bool value) => SelectionChanged();
 
     /// <summary>Образ, каким он получится: для шагов «Редакции» и «Установка».</summary>
     public ImageSummary? Image => Draft is null
@@ -229,7 +235,7 @@ public sealed partial class DownloadViewModel(EngineClient engine) : ObservableO
         IsMeasuring = true;
         try
         {
-            var result = await engine.UupFilesAsync(release.Release.UpdateId, language.Code, editions, AppSettings.Current.EffectiveWorkspace, measuring.Token);
+            var result = await engine.UupFilesAsync(release.Release.UpdateId, language.Code, editions, AppSettings.Current.EffectiveWorkspace, LatestUpdate, measuring.Token);
             if (measuring.IsCancellationRequested)
                 return;
             SizeText = result.Error is { } error ? Text.Format("UupError", error)
@@ -259,7 +265,7 @@ public sealed partial class DownloadViewModel(EngineClient engine) : ObservableO
         _filesStep = false;
         try
         {
-            _session = await BuildSession.StartDownloadAsync(engine.EnginePath, release.Release.UpdateId, language.Code, ChosenEditions, AppSettings.Current.EffectiveWorkspace, CancellationToken.None);
+            _session = await BuildSession.StartDownloadAsync(engine.EnginePath, release.Release.UpdateId, language.Code, ChosenEditions, AppSettings.Current.EffectiveWorkspace, LatestUpdate, CancellationToken.None);
             var errors = new List<string>();
             var exitCode = -1;
             await foreach (var message in _session.ReadAsync())

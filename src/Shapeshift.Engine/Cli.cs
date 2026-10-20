@@ -321,6 +321,11 @@ public static partial class Cli
             else
             {
                 var sourceIso = profile.Source.IsoPath!;
+                if (profile.LatestUpdate == true)
+                {
+                    return (await FailAsync(context, ExitCodes.InvalidInput,
+                        "'latestUpdate' works only with a release from Windows Update ('source.uup') for now."), null);
+                }
                 if (string.Equals(Path.GetFullPath(sourceIso), Path.GetFullPath(outputIso), StringComparison.OrdinalIgnoreCase))
                     return (await FailAsync(context, ExitCodes.InvalidInput, "'output.iso' must differ from 'source.iso'."), null);
                 source = await TryInspectAsync(sourceIso, context);
@@ -364,7 +369,7 @@ public static partial class Cli
                 if (!options.DryRun && !DismServicing.IsElevated)
                 {
                     return (await FailAsync(context, ExitCodes.NeedsElevation,
-                        "removing built-in apps uses DISM and needs administrator rights; run the engine as administrator."), plan);
+                        "removing built-in apps and integrating updates use DISM and need administrator rights; run the engine as administrator."), plan);
                 }
             }
 

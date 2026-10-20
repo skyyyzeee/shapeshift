@@ -79,7 +79,7 @@ public sealed class AppsTests : IDisposable
         Assert.True(dryRun.ExitCode == Cli.ExitCodes.Success, dryRun.Error);
         Assert.Contains("Remove built-in apps", dryRun.Output);
         Assert.Equal(Cli.ExitCodes.NeedsElevation, real.ExitCode);
-        Assert.Contains("needs administrator rights", real.Error);
+        Assert.Contains("need administrator rights", real.Error);
         Assert.False(File.Exists(_dir.File("out.iso")));
     }
 

@@ -52,7 +52,8 @@ public static partial class ProfileReader
             ParseSetup(dto.Setup),
             ParseRegional(dto.Regional),
             ParseSource(dto.Source, baseDirectory),
-            new OutputOptions(ResolvePath(dto.Output?.Iso, baseDirectory)));
+            new OutputOptions(ResolvePath(dto.Output?.Iso, baseDirectory)),
+            dto.LatestUpdate);
     }
 
     // Существование твиков в каталоге проверяет движок: профиль читается и без каталога.
@@ -294,7 +295,7 @@ public static partial class ProfileReader
     };
 
     sealed record ProfileV1(
-        int FormatVersion, string? Architecture, List<string>? Tweaks, List<string>? Editions, List<string>? RemoveApps, List<ProgramV1?>? Programs, SetupV1? Setup, RegionalV1? Regional, SourceV1? Source, IsoV1? Output);
+        int FormatVersion, string? Architecture, List<string>? Tweaks, List<string>? Editions, List<string>? RemoveApps, List<ProgramV1?>? Programs, SetupV1? Setup, RegionalV1? Regional, SourceV1? Source, IsoV1? Output, bool? LatestUpdate);
 
     sealed record ProgramV1(string? Winget, string? Path, string? Run, string? Args, string? Name);
 

@@ -8,7 +8,7 @@ namespace Shapeshift.Engine;
 // Скачивание выпуска UUP: какие файлы нужны (uup files) и само скачивание в кэш (uup download).
 public static partial class Cli
 {
-    sealed record UupChoice(string UpdateId, string Language, IReadOnlyList<string> Editions, string Workspace, bool MediaOnly = false);
+    sealed record UupChoice(string UpdateId, string Language, IReadOnlyList<string> Editions, string Workspace, bool MediaOnly = false, bool WithUpdates = false);
 
     sealed class UupOptions
     {
@@ -17,6 +17,7 @@ public static partial class Cli
         public Option<string[]> Editions { get; } = new("--edition") { Description = "Edition (EditionID, like Professional); repeat for several.", Required = true, AllowMultipleArgumentsPerToken = true };
         public Option<DirectoryInfo> Workspace { get; } = new("--workspace") { Description = "Workspace; files are cached in its cache\\uup folder." };
         public Option<bool> MediaOnly { get; } = new("--media-only") { Description = "Only what building the installation media needs (no apps and updates)." };
+        public Option<bool> WithUpdates { get; } = new("--with-updates") { Description = "With --media-only: also the updates a build integrates (latestUpdate)." };
 
         public void AddTo(Command command)
         {
@@ -25,6 +26,7 @@ public static partial class Cli
             command.Options.Add(Editions);
             command.Options.Add(Workspace);
             command.Options.Add(MediaOnly);
+            command.Options.Add(WithUpdates);
         }
 
         public UupChoice Read(ParseResult parseResult, Context context) => new(
@@ -32,7 +34,8 @@ public static partial class Cli
             parseResult.GetRequiredValue(Language),
             parseResult.GetRequiredValue(Editions),
             parseResult.GetValue(Workspace)?.FullName ?? context.Host.DefaultWorkspace,
-            parseResult.GetValue(MediaOnly));
+            parseResult.GetValue(MediaOnly),
+            parseResult.GetValue(WithUpdates));
     }
 
     static Command UupFilesCommand(Context context)
@@ -115,7 +118,7 @@ public static partial class Cli
 
     sealed record UupPlan(
         UupRelease Release, string Language, IReadOnlyList<string> Editions, IReadOnlyList<UupFile> Files,
-        UupDownloader Downloader, UupLinks Urls, string? BaseVersion);
+        UupDownloader Downloader, UupLinks Urls, string? BaseVersion, string CompDbs);
 
     /// <summary>
     /// Выпуск из кэша → проверка языка и редакций → метаданные (скачиваются, если их ещё нет) → список файлов.
@@ -166,10 +169,12 @@ public static partial class Cli
             var selected = UupFileSet.Resolve(release, compDbs, language.Code, editions);
             foreach (var problem in selected.Problems)
                 await context.Error.WriteLineAsync($"error: {problem}");
-            var files = selection.MediaOnly ? UupFileSet.MediaFiles(selected.Files) : selected.Files;
+            IReadOnlyList<UupFile> files = selection.MediaOnly
+                ? [.. UupFileSet.MediaFiles(selected.Files), .. selection.WithUpdates ? UupFileSet.ClassifyUpdates(selected.Files, compDbs).All : []]
+                : selected.Files;
             return selected.Problems.Count > 0
                 ? (ExitCodes.Failure, null)
-                : (ExitCodes.Success, new UupPlan(release, language.Code, editions, files, downloader, urls, selected.BaseVersion));
+                : (ExitCodes.Success, new UupPlan(release, language.Code, editions, files, downloader, urls, selected.BaseVersion, compDbs));
         }
         catch (Exception e) when (e is UupDownloadException or WindowsUpdateException or InvalidDataException)
         {
@@ -216,7 +221,18 @@ public static partial class Cli
         if (plan is null)
             return (exitCode, null);
         await context.Output.WriteLineAsync($"Release: {release.Title} ({release.Build}), channel {release.Channel}, {plan.Language}");
-        return (ExitCodes.Success, new UupBuildSource(plan.Release, plan.Language, plan.Editions, plan.Files, plan.Downloader, plan.Urls, plan.BaseVersion));
+
+        // Последнее обновление — по умолчанию для UUP: иначе 25H2 остаётся исходной 26100.1.
+        UupUpdates? updates = null;
+        if (profile.LatestUpdate ?? true)
+        {
+            updates = UupFileSet.ClassifyUpdates(plan.Files, plan.CompDbs);
+            if (updates.IsEmpty)
+                await context.Error.WriteLineAsync($"warning: release {release.Build} has no updates; the image stays at its original build.");
+            else
+                await context.Output.WriteLineAsync($"Updates: {string.Join(", ", updates.All.Select(f => f.Name))}");
+        }
+        return (ExitCodes.Success, new UupBuildSource(plan.Release, plan.Language, plan.Editions, plan.Files, plan.Downloader, plan.Urls, plan.BaseVersion, updates));
     }
 
     static string Problems(TextWriter errors) => string.Join("\n", errors.ToString()!
