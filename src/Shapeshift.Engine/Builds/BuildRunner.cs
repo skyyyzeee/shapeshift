@@ -1,5 +1,6 @@
 using Shapeshift.Engine.AnswerFiles;
 using Shapeshift.Engine.Images;
+using Shapeshift.Engine.Programs;
 
 namespace Shapeshift.Engine.Builds;
 
@@ -31,6 +32,7 @@ public static class BuildRunner
         BuildStepKind.ExtractImage => Task.Run(() => Extract(plan, reporter, ct), ct),
         BuildStepKind.KeepEditions => Task.Run(() => KeepEditions(plan, reporter, ct), ct),
         BuildStepKind.RemoveApps => Task.Run(() => RemoveApps(plan, reporter, ct), ct),
+        BuildStepKind.AddPrograms => Task.Run(() => AddPrograms(plan, reporter, ct), ct),
         BuildStepKind.WriteAnswerFile => AnswerFileWriter.WriteAsync(
             AnswerFileGenerator.Generate(plan.Profile, plan.Catalog, plan.Source.Info),
             Path.Combine(plan.MediaDirectory, AnswerFileWriter.FileName),
@@ -101,6 +103,38 @@ public static class BuildRunner
         var editions = plan.Source.Info.KeepEditions(plan.Profile.Editions).Editions;
         Servicing.DismServicing.RemoveApps(
             installImage, editions.Select(e => e.Index).ToList(), plan.Profile.RemoveApps, plan.MountDirectory, reporter, ct);
+    }
+
+    // Сценарий установки и установщики — в sources\$OEM$\$$: Windows Setup перенесёт их в папку Windows.
+    static void AddPrograms(BuildPlan plan, IBuildReporter reporter, CancellationToken ct)
+    {
+        var root = Path.Combine(plan.MediaDirectory, ProgramPayload.MediaFolder);
+        Directory.CreateDirectory(root);
+        File.WriteAllText(Path.Combine(root, ProgramPayload.ScriptName), InstallScript.Generate(plan.Programs), InstallScript.FileEncoding);
+
+        var total = Math.Max(1, plan.Programs.Bytes);
+        long copied = 0;
+        var buffer = new byte[4 << 20];
+        foreach (var item in plan.Programs.Items.Where(i => i.Folder is not null))
+        {
+            reporter.Log($"Adding {item.Program.Name}");
+            foreach (var file in item.Files)
+            {
+                ct.ThrowIfCancellationRequested();
+                var target = Path.Combine(root, ProgramPayload.ProgramsFolder, item.Folder!, file.RelativePath);
+                Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+                using var source = new FileStream(file.Source, FileMode.Open, FileAccess.Read, FileShare.Read, 1 << 20);
+                using var destination = new FileStream(target, FileMode.CreateNew, FileAccess.Write, FileShare.None, 1 << 20);
+                int n;
+                while ((n = source.Read(buffer, 0, buffer.Length)) > 0)
+                {
+                    ct.ThrowIfCancellationRequested();
+                    destination.Write(buffer, 0, n);
+                    copied += n;
+                    reporter.Progress((double)copied / total);
+                }
+            }
+        }
     }
 
     static void Pack(BuildPlan plan, IBuildReporter reporter, CancellationToken ct)

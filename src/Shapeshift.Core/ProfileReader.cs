@@ -48,6 +48,7 @@ public static partial class ProfileReader
             ParseTweaks(dto.Tweaks),
             ParseEditions(dto.Editions),
             ParseNames(dto.RemoveApps, "removeApps"),
+            ParsePrograms(dto.Programs, baseDirectory),
             ParseSetup(dto.Setup),
             ParseRegional(dto.Regional),
             new SourceOptions(ResolvePath(dto.Source?.Iso, baseDirectory)),
@@ -76,6 +77,55 @@ public static partial class ProfileReader
         if (names.Distinct(StringComparer.OrdinalIgnoreCase).Count() != names.Count)
             throw new ProfileFormatException($"'{field}' lists the same name twice.");
         return names;
+    }
+
+    // Что лежит по путям, проверяет движок при сборке: профиль читается и на другом компьютере.
+    static IReadOnlyList<ProgramSpec> ParsePrograms(List<ProgramV1?>? programs, string? baseDirectory)
+    {
+        if (programs is null)
+            return [];
+
+        var result = new List<ProgramSpec>();
+        for (var i = 0; i < programs.Count; i++)
+        {
+            var where = $"'programs[{i}]'";
+            var p = programs[i] ?? throw new ProfileFormatException($"{where} is empty.");
+            if (p.Name is { } name && (string.IsNullOrWhiteSpace(name) || name.Length > ProgramRules.MaxNameLength || !ProgramRules.IsSingleLine(name)))
+                throw new ProfileFormatException($"{where}.name must be one line of 1 to {ProgramRules.MaxNameLength} characters.");
+            if (p.Args is { } args && (args.Length > ProgramRules.MaxArgsLength || !ProgramRules.IsSingleLine(args)))
+                throw new ProfileFormatException($"{where}.args must be one line of at most {ProgramRules.MaxArgsLength} characters.");
+            if (p.Winget is not null == p.Path is not null)
+                throw new ProfileFormatException($"{where} needs exactly one of 'winget' (package id) or 'path' (installer file or folder).");
+
+            if (p.Winget is { } id)
+            {
+                if (!ProgramRules.IsWingetId(id))
+                    throw new ProfileFormatException($"{where}.winget: '{id}' is not a winget package id like Telegram.TelegramDesktop.");
+                if (p.Run is not null || p.Args is not null)
+                    throw new ProfileFormatException($"{where}: 'run' and 'args' are only for 'path'; winget installs silently by itself.");
+                result.Add(new WingetProgram(id, p.Name ?? id));
+                continue;
+            }
+
+            var path = ResolvePath(p.Path, baseDirectory) ?? throw new ProfileFormatException($"{where}.path is empty.");
+            if (p.Run is { } run)
+            {
+                if (string.IsNullOrWhiteSpace(run) || Path.IsPathRooted(run) || !ProgramRules.IsSingleLine(run) ||
+                    run.Split('\\', '/').Any(part => part is ".." or "."))
+                    throw new ProfileFormatException($"{where}.run must be a path inside the folder, like setup.exe or bin\\setup.exe.");
+                if (!ProgramRules.Runnable.Contains(Path.GetExtension(run).ToLowerInvariant()))
+                    throw new ProfileFormatException($"{where}.run: only {string.Join(", ", ProgramRules.Runnable)} files can be run.");
+            }
+            result.Add(new LocalProgram(p.Name ?? Path.GetFileNameWithoutExtension(p.Run ?? path), path, p.Run, p.Args));
+        }
+
+        var winget = result.OfType<WingetProgram>().Select(w => w.Id).ToList();
+        if (winget.Distinct(StringComparer.OrdinalIgnoreCase).Count() != winget.Count)
+            throw new ProfileFormatException("'programs' lists the same winget package twice.");
+        var local = result.OfType<LocalProgram>().Select(l => $"{l.Path}|{l.Run}").ToList();
+        if (local.Distinct(StringComparer.OrdinalIgnoreCase).Count() != local.Count)
+            throw new ProfileFormatException("'programs' lists the same installer twice.");
+        return result;
     }
 
     // Существование редакций в образе проверяет движок: профиль читается и без образа.
@@ -228,7 +278,9 @@ public static partial class ProfileReader
     };
 
     sealed record ProfileV1(
-        int FormatVersion, string? Architecture, List<string>? Tweaks, List<string>? Editions, List<string>? RemoveApps, SetupV1? Setup, RegionalV1? Regional, IsoV1? Source, IsoV1? Output);
+        int FormatVersion, string? Architecture, List<string>? Tweaks, List<string>? Editions, List<string>? RemoveApps, List<ProgramV1?>? Programs, SetupV1? Setup, RegionalV1? Regional, IsoV1? Source, IsoV1? Output);
+
+    sealed record ProgramV1(string? Winget, string? Path, string? Run, string? Args, string? Name);
 
     sealed record SetupV1(
         UserV1? User, string? ComputerName, bool? SkipOobe, bool? BypassOnlineAccount, bool? WipeDisk0,

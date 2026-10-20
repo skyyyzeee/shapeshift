@@ -1,6 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
+using Microsoft.Windows.Storage.Pickers;
 using Shapeshift.App.Services;
 using Shapeshift.App.ViewModels;
 
@@ -29,6 +30,42 @@ public sealed partial class CustomizePage : Page
     void AppsRecommended_Click(object sender, RoutedEventArgs e) => ViewModel.SelectRecommendedApps();
 
     void AppsClear_Click(object sender, RoutedEventArgs e) => ViewModel.ClearApps();
+
+    void AddWinget_Click(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel.Programs.AddWinget(WingetIdBox.Text))
+            WingetIdBox.Text = "";
+    }
+
+    void WingetIdBox_KeyDown(object sender, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs e)
+    {
+        if (e.Key != Windows.System.VirtualKey.Enter)
+            return;
+        e.Handled = true;
+        AddWinget_Click(sender, e);
+    }
+
+    async void AddInstaller_Click(object sender, RoutedEventArgs e)
+    {
+        var picker = new FileOpenPicker(XamlRoot.ContentIslandEnvironment.AppWindowId);
+        foreach (var extension in Shapeshift.Core.ProgramRules.Runnable)
+            picker.FileTypeFilter.Add(extension);
+        if (await picker.PickSingleFileAsync() is { } file)
+            ViewModel.Programs.AddFile(file.Path);
+    }
+
+    async void AddInstallerFolder_Click(object sender, RoutedEventArgs e)
+    {
+        var picker = new FolderPicker(XamlRoot.ContentIslandEnvironment.AppWindowId);
+        if (await picker.PickSingleFolderAsync() is { } folder)
+            ViewModel.Programs.AddFolder(folder.Path);
+    }
+
+    void RemoveProgram_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: ProgramItem item })
+            ViewModel.Programs.Remove(item);
+    }
 
     // Включили твик, который конфликтует с уже включёнными, — предлагаем выключить те.
     async void Tweak_Toggled(object sender, RoutedEventArgs e)

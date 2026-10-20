@@ -1,6 +1,7 @@
 using System.Text;
 using System.Xml.Linq;
 using Shapeshift.Core;
+using Shapeshift.Engine.Programs;
 using Shapeshift.Engine.Tweaks;
 using static Shapeshift.Engine.AnswerFiles.AnswerFileBuilder;
 
@@ -16,6 +17,9 @@ public static class AnswerFileGenerator
 
     /// <summary>Нулевой ключ: установщик не спрашивает ключ, редакция берётся из InstallFrom. Ничего не активирует.</summary>
     const string NoProductKey = "00000-00000-00000-00000-00000";
+
+    /// <summary>Встроенное приложение, в котором живёт winget.</summary>
+    const string WingetPackage = "Microsoft.DesktopAppInstaller";
 
     /// <param name="profile">Выборы пользователя; <see cref="Problems"/> для него должен быть пуст.</param>
     /// <param name="catalog">Каталог, в котором ищутся твики профиля.</param>
@@ -35,6 +39,9 @@ public static class AnswerFileGenerator
         AddComputerName(file, profile.Setup);
         AddOobe(file, profile.Setup);
         AddRegional(file, profile.Regional);
+        // Программы — до выхода из сеанса ради смены пароля (его добавляет AddUser).
+        if (profile.Programs.Count > 0)
+            file.FirstLogonCommand(InstallScript.Command, "Install programs");
         if (profile.Setup.User is { } user)
             AddUser(file, user);
         return file.ToDocument();
@@ -71,6 +78,9 @@ public static class AnswerFileGenerator
             yield return "the user's password is stored in the answer file; anyone with the image can read it.";
         if (profile.Setup.WipeDisk0)
             yield return "the installation will erase disk 0 without asking.";
+        if (profile.Programs.OfType<WingetProgram>().Any() &&
+            profile.RemoveApps.Contains(WingetPackage, StringComparer.OrdinalIgnoreCase))
+            yield return $"winget programs need App Installer, but 'removeApps' removes {WingetPackage}; they will be skipped.";
         if (NeedsSetupLanguage(profile) && image?.Language is null)
             yield return "the image language is unknown, so the installer will still ask for its language (pass --iso).";
     }

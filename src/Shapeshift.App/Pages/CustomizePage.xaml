@@ -94,13 +94,13 @@
                     <TextBlock x:Uid="AppsHint" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" TextWrapping="Wrap" />
                     <ProgressRing HorizontalAlignment="Left" IsActive="{x:Bind ViewModel.IsLoadingApps, Mode=OneWay}" Visibility="{x:Bind ViewModel.IsLoadingApps, Mode=OneWay}" />
                     <InfoBar IsClosable="False" IsOpen="{x:Bind ViewModel.HasAppsError, Mode=OneWay}" Message="{x:Bind ViewModel.AppsError, Mode=OneWay}" Severity="Error" />
-                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.Apps}">
+                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.ShownApps}">
                         <ItemsRepeater.Layout>
                             <UniformGridLayout ItemsStretch="Fill" MinColumnSpacing="16" MinItemWidth="320" MinRowSpacing="0" />
                         </ItemsRepeater.Layout>
                         <ItemsRepeater.ItemTemplate>
                             <DataTemplate x:DataType="vm:AppItem">
-                                <CheckBox IsChecked="{x:Bind IsOn, Mode=TwoWay}" ToolTipService.ToolTip="{x:Bind Name}" Visibility="{x:Bind IsVisible, Mode=OneWay}">
+                                <CheckBox IsChecked="{x:Bind IsOn, Mode=TwoWay}" ToolTipService.ToolTip="{x:Bind Name}">
                                     <StackPanel>
                                         <TextBlock Text="{x:Bind Title}" TextWrapping="Wrap" />
                                         <TextBlock
@@ -111,6 +111,67 @@
                                             Visibility="{x:Bind HasNote}" />
                                     </StackPanel>
                                 </CheckBox>
+                            </DataTemplate>
+                        </ItemsRepeater.ItemTemplate>
+                    </ItemsRepeater>
+                </StackPanel>
+            </Border>
+
+            <!-- Программы: ставятся при первом входе — из winget (нужен интернет) или из своих установщиков в образе. -->
+            <Border Style="{StaticResource CardStyle}">
+                <StackPanel Spacing="8">
+                    <TextBlock x:Uid="ProgramsHeader" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                    <TextBlock x:Uid="ProgramsHint" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" TextWrapping="Wrap" />
+                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.Programs.Suggestions}">
+                        <ItemsRepeater.Layout>
+                            <UniformGridLayout ItemsStretch="Fill" MinColumnSpacing="16" MinItemWidth="200" MinRowSpacing="0" />
+                        </ItemsRepeater.Layout>
+                        <ItemsRepeater.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ProgramSuggestionItem">
+                                <CheckBox Content="{x:Bind Title}" IsChecked="{x:Bind IsOn, Mode=TwoWay}" ToolTipService.ToolTip="{x:Bind WingetId}" />
+                            </DataTemplate>
+                        </ItemsRepeater.ItemTemplate>
+                    </ItemsRepeater>
+
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="WingetIdBox" x:Uid="WingetIdBox" KeyDown="WingetIdBox_KeyDown" />
+                        <Button x:Uid="AddWinget" Grid.Column="1" Click="AddWinget_Click" />
+                    </Grid>
+                    <InfoBar IsClosable="False" IsOpen="{x:Bind ViewModel.Programs.HasAddError, Mode=OneWay}" Message="{x:Bind ViewModel.Programs.AddError, Mode=OneWay}" Severity="Warning" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button x:Uid="AddInstaller" Click="AddInstaller_Click" />
+                        <Button x:Uid="AddInstallerFolder" Click="AddInstallerFolder_Click" />
+                    </StackPanel>
+
+                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.Programs.Added}">
+                        <ItemsRepeater.Layout>
+                            <StackLayout Spacing="8" />
+                        </ItemsRepeater.Layout>
+                        <ItemsRepeater.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ProgramItem">
+                                <Grid Padding="0,6,0,0" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="0,1,0,0" ColumnSpacing="8" RowSpacing="6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Text="{x:Bind Name}" TextWrapping="Wrap" />
+                                        <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" Text="{x:Bind Detail}" TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                    <Button x:Uid="RemoveProgram" Grid.Column="1" VerticalAlignment="Top" Click="RemoveProgram_Click" Tag="{x:Bind}" />
+                                    <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="8" Visibility="{x:Bind IsLocal}">
+                                        <ComboBox MinWidth="160" ItemsSource="{x:Bind RunChoices}" SelectedItem="{x:Bind Run, Mode=TwoWay}" Visibility="{x:Bind IsFolder}" />
+                                        <TextBox MinWidth="320" PlaceholderText="{x:Bind ArgsHint, Mode=OneWay}" Text="{x:Bind Args, Mode=TwoWay}" />
+                                    </StackPanel>
+                                </Grid>
                             </DataTemplate>
                         </ItemsRepeater.ItemTemplate>
                     </ItemsRepeater>

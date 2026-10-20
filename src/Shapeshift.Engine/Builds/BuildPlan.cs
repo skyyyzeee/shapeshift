@@ -1,5 +1,6 @@
 using Shapeshift.Core;
 using Shapeshift.Engine.Images;
+using Shapeshift.Engine.Programs;
 
 namespace Shapeshift.Engine.Builds;
 
@@ -8,6 +9,7 @@ public enum BuildStepKind
     ExtractImage,
     KeepEditions,
     RemoveApps,
+    AddPrograms,
     WriteAnswerFile,
     PackIso,
 }
@@ -26,6 +28,7 @@ public sealed record BuildPlan(
     Profile Profile,
     TweakCatalog Catalog,
     SourceImage Source,
+    ProgramPayload Programs,
     string OutputIso,
     string BuildDirectory,
     IReadOnlyList<BuildStep> Steps,
@@ -40,7 +43,7 @@ public sealed record BuildPlan(
     public bool HasEnoughSpace => Space.All(s => s.IsSatisfied);
 
     /// <summary>Длина самого длинного пути после распаковки.</summary>
-    public int LongestExtractedPath => MediaDirectory.Length + 1 + Source.LongestPathLength;
+    public int LongestExtractedPath => MediaDirectory.Length + 1 + Math.Max(Source.LongestPathLength, Programs.LongestMediaPath);
 
     public bool FitsMaxPath => LongestExtractedPath <= MaxPath;
 
@@ -58,12 +61,14 @@ public static class BuildPlanner
     const long Headroom = 512L * 1024 * 1024;
     const long PerFileSlack = 4096;
 
-    public static BuildPlan Plan(Profile profile, TweakCatalog catalog, SourceImage source, string outputIso, string workspace, EngineHost host)
+    public static BuildPlan Plan(
+        Profile profile, TweakCatalog catalog, SourceImage source, ProgramPayload programs, string outputIso, string workspace, EngineHost host)
     {
         var buildDirectory = Path.Combine(Path.GetFullPath(workspace), Guid.NewGuid().ToString("N")[..8]);
 
         var mediaBytes = source.ContentBytes + source.FileCount * PerFileSlack;
-        var isoBytes = mediaBytes; // UDF добавляет немного; покрывается запасом
+        var programBytes = programs.Bytes + programs.FileCount * PerFileSlack;
+        var isoBytes = mediaBytes + programBytes; // UDF добавляет немного; покрывается запасом
 
         var workspaceVolume = EngineHost.VolumeOf(buildDirectory);
         var outputVolume = EngineHost.VolumeOf(outputIso);
@@ -78,6 +83,10 @@ public static class BuildPlanner
         if (profile.RemoveApps.Count > 0)
             steps.Add(new(BuildStepKind.RemoveApps, "Remove built-in apps", workspaceVolume, 1L << 30));
 
+        // Установщики своих программ копируются в образ; winget ставит из интернета при первом входе.
+        if (!programs.IsEmpty)
+            steps.Add(new(BuildStepKind.AddPrograms, "Add programs", workspaceVolume, programBytes));
+
         steps.Add(new(BuildStepKind.WriteAnswerFile, "Write answer file"));
         steps.Add(new(BuildStepKind.PackIso, "Pack ISO", outputVolume, isoBytes));
 
@@ -87,6 +96,6 @@ public static class BuildPlanner
             .Select(g => new SpaceRequirement(g.Key, g.Sum(s => s.Bytes) + Headroom, host.AvailableFreeSpace(g.Key)))
             .ToList();
 
-        return new BuildPlan(profile, catalog, source, Path.GetFullPath(outputIso), buildDirectory, steps, space);
+        return new BuildPlan(profile, catalog, source, programs, Path.GetFullPath(outputIso), buildDirectory, steps, space);
     }
 }

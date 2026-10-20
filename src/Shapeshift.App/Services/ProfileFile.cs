@@ -11,7 +11,11 @@ public sealed record ProfileDraft(
     IReadOnlyList<string>? Editions,
     SetupDraft? Setup,
     RegionalDraft? Regional,
-    IReadOnlyList<string>? RemoveApps = null);
+    IReadOnlyList<string>? RemoveApps = null,
+    IReadOnlyList<ProgramDraft>? Programs = null);
+
+/// <summary>Программа профиля: <paramref name="Winget"/> или <paramref name="Path"/> (с <paramref name="Run"/> для папки).</summary>
+public sealed record ProgramDraft(string? Winget, string? Path, string? Run, string? Args, string? Name);
 
 public sealed record SetupDraft(
     UserDraft? User,
@@ -52,6 +56,9 @@ public static class ProfileFile
         tweaks = draft.Tweaks.Count > 0 ? draft.Tweaks : null,
         editions = draft.Editions,
         removeApps = draft.RemoveApps is { Count: > 0 } ? draft.RemoveApps : null,
+        programs = draft.Programs is { Count: > 0 }
+            ? draft.Programs.Select(p => new { winget = p.Winget, path = p.Path, run = p.Run, args = p.Args, name = p.Name })
+            : null,
         setup = draft.Setup is { } s
             ? new
             {

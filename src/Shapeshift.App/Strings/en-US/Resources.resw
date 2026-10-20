@@ -209,4 +209,18 @@
   <data name="AppUnknown" xml:space="preserve"><value>Not in the Shapeshift catalog — remove only if you know what it is</value></data>
   <data name="AppNotInImage" xml:space="preserve"><value>App {0} — not in the image</value></data>
   <data name="CustomizeSummary_Apps" xml:space="preserve"><value>Remove apps ({0}): {1}</value></data>
+  <data name="StepKind_AddPrograms" xml:space="preserve"><value>Adding programs</value></data>
+  <data name="ProgramsHeader.Text" xml:space="preserve"><value>Programs</value></data>
+  <data name="ProgramsHint.Text" xml:space="preserve"><value>Installed by themselves at the first sign-in, in order. Programs from winget are downloaded at the first sign-in, so they need the internet and are skipped without it. Your own installers are copied into the image and install offline; give them silent install options. Log: C:\Windows\Setup\Shapeshift\programs.log.</value></data>
+  <data name="WingetIdBox.PlaceholderText" xml:space="preserve"><value>Another winget program — package id, like Mozilla.Thunderbird</value></data>
+  <data name="AddWinget.Content" xml:space="preserve"><value>Add</value></data>
+  <data name="AddInstaller.Content" xml:space="preserve"><value>Add installer…</value></data>
+  <data name="AddInstallerFolder.Content" xml:space="preserve"><value>Add installer folder…</value></data>
+  <data name="RemoveProgram.Content" xml:space="preserve"><value>Remove</value></data>
+  <data name="ProgramArgsMsi" xml:space="preserve"><value>Extra options (silent /qn is added automatically)</value></data>
+  <data name="ProgramArgsExe" xml:space="preserve"><value>Silent install options, like /S, /quiet or /VERYSILENT</value></data>
+  <data name="ProgramArgsScript" xml:space="preserve"><value>Script arguments</value></data>
+  <data name="ProgramBadWingetId" xml:space="preserve"><value>"{0}" doesn't look like a winget package id (like Telegram.TelegramDesktop). Find it with: winget search &lt;name&gt;.</value></data>
+  <data name="ProgramNoInstallerInFolder" xml:space="preserve"><value>There is no installer (.exe, .msi, .cmd, .bat, .ps1) in {0}.</value></data>
+  <data name="CustomizeSummary_Programs" xml:space="preserve"><value>Programs ({0}): {1}</value></data>
 </root>

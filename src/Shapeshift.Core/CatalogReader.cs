@@ -44,7 +44,8 @@ public static class CatalogReader
         return new TweakCatalog(
             (dto.Categories ?? []).Select(c => new TweakCategory(Require(c.Id, "category id"), Text(c.Name))).ToList(),
             (dto.Tweaks ?? []).Select(ToTweak).ToList(),
-            (dto.Apps ?? []).Select(ToApp).ToList());
+            (dto.Apps ?? []).Select(ToApp).ToList(),
+            (dto.Programs ?? []).Select(p => new ProgramSuggestion(Require(p.Winget, "program winget id"), Text(p.Title))).ToList());
     }
 
     static AppMarkup ToApp(AppV1 a)
@@ -144,7 +145,9 @@ public static class CatalogReader
     static string Require(string? value, string what) =>
         string.IsNullOrWhiteSpace(value) ? throw new CatalogFormatException($"Missing {what}.") : value;
 
-    sealed record CatalogV1(int FormatVersion, List<CategoryV1>? Categories, List<TweakV1>? Tweaks, List<AppV1>? Apps);
+    sealed record CatalogV1(int FormatVersion, List<CategoryV1>? Categories, List<TweakV1>? Tweaks, List<AppV1>? Apps, List<ProgramV1>? Programs);
+
+    sealed record ProgramV1(string? Winget, Dictionary<string, string>? Title);
 
     sealed record AppV1(string? Name, Dictionary<string, string>? Title, string? Safety, bool? Recommended);
 

@@ -299,5 +299,21 @@
     { "name": "Microsoft.VP9VideoExtensions", "title": { "en": "VP9 video codec", "ru": "Кодек видео VP9" }, "safety": "risky", "recommended": false },
     { "name": "Microsoft.WebMediaExtensions", "title": { "en": "Web media extensions", "ru": "Расширения веб-мультимедиа" }, "safety": "risky", "recommended": false },
     { "name": "Microsoft.WebpImageExtension", "title": { "en": "WebP image codec", "ru": "Кодек изображений WebP" }, "safety": "risky", "recommended": false }
+  ],
+  // Популярные программы winget — для быстрого выбора в окне; любую другую пользователь указывает по id.
+  "programs": [
+    { "winget": "Telegram.TelegramDesktop", "title": { "en": "Telegram", "ru": "Telegram" } },
+    { "winget": "7zip.7zip", "title": { "en": "7-Zip", "ru": "7-Zip" } },
+    { "winget": "Google.Chrome", "title": { "en": "Google Chrome", "ru": "Google Chrome" } },
+    { "winget": "Mozilla.Firefox", "title": { "en": "Mozilla Firefox", "ru": "Mozilla Firefox" } },
+    { "winget": "VideoLAN.VLC", "title": { "en": "VLC media player", "ru": "Медиаплеер VLC" } },
+    { "winget": "Notepad++.Notepad++", "title": { "en": "Notepad++", "ru": "Notepad++" } },
+    { "winget": "SumatraPDF.SumatraPDF", "title": { "en": "SumatraPDF", "ru": "SumatraPDF" } },
+    { "winget": "Microsoft.VisualStudioCode", "title": { "en": "Visual Studio Code", "ru": "Visual Studio Code" } },
+    { "winget": "Microsoft.PowerToys", "title": { "en": "PowerToys", "ru": "PowerToys" } },
+    { "winget": "Discord.Discord", "title": { "en": "Discord", "ru": "Discord" } },
+    { "winget": "Valve.Steam", "title": { "en": "Steam", "ru": "Steam" } },
+    { "winget": "AnyDesk.AnyDesk", "title": { "en": "AnyDesk", "ru": "AnyDesk" } },
+    { "winget": "qBittorrent.qBittorrent", "title": { "en": "qBittorrent", "ru": "qBittorrent" } }
   ]
 }

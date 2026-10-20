@@ -20,6 +20,13 @@
     { "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", "name": "TaskbarAl", "value": 0 },
     { "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", "name": "HideFileExt", "value": 0 },
     { "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", "name": "AppsUseLightTheme", "value": 0 },
-    { "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", "name": "SystemUsesLightTheme", "value": 0 }
+    { "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", "name": "SystemUsesLightTheme", "value": 0 },
+    { "path": "HKLM:\\SOFTWARE\\ShapeshiftBench", "name": "Elevated", "value": "1" }
+  ],
+  "files": [
+    { "path": "C:\\ProgramData\\ShapeshiftBench\\marker.txt", "contains": "installed" },
+    { "path": "C:\\Windows\\Setup\\Shapeshift\\programs.log", "contains": "OK Bench marker" },
+    { "path": "C:\\Windows\\Setup\\Shapeshift\\programs.log", "contains": "SKIPPED 7zip.7zip: no internet connection" },
+    { "path": "C:\\Windows\\Setup\\Shapeshift\\Programs", "absent": true }
   ]
 }

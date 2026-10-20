@@ -209,4 +209,18 @@
   <data name="AppUnknown" xml:space="preserve"><value>Нет в каталоге Shapeshift — удаляйте, если знаете, что это</value></data>
   <data name="AppNotInImage" xml:space="preserve"><value>Приложение {0} — нет в образе</value></data>
   <data name="CustomizeSummary_Apps" xml:space="preserve"><value>Удалить приложения ({0}): {1}</value></data>
+  <data name="StepKind_AddPrograms" xml:space="preserve"><value>Добавление программ</value></data>
+  <data name="ProgramsHeader.Text" xml:space="preserve"><value>Программы</value></data>
+  <data name="ProgramsHint.Text" xml:space="preserve"><value>Поставятся сами при первом входе в Windows, по порядку. Программы из winget скачиваются при первом входе — нужен интернет, без него они пропускаются. Свои установщики копируются в образ и ставятся без интернета; укажите параметры тихой установки. Журнал — C:\Windows\Setup\Shapeshift\programs.log.</value></data>
+  <data name="WingetIdBox.PlaceholderText" xml:space="preserve"><value>Другая программа из winget — id пакета, например Mozilla.Thunderbird</value></data>
+  <data name="AddWinget.Content" xml:space="preserve"><value>Добавить</value></data>
+  <data name="AddInstaller.Content" xml:space="preserve"><value>Добавить установщик…</value></data>
+  <data name="AddInstallerFolder.Content" xml:space="preserve"><value>Добавить папку с установщиком…</value></data>
+  <data name="RemoveProgram.Content" xml:space="preserve"><value>Убрать</value></data>
+  <data name="ProgramArgsMsi" xml:space="preserve"><value>Дополнительные параметры (тихая установка /qn добавится сама)</value></data>
+  <data name="ProgramArgsExe" xml:space="preserve"><value>Параметры тихой установки, например /S, /quiet или /VERYSILENT</value></data>
+  <data name="ProgramArgsScript" xml:space="preserve"><value>Параметры сценария</value></data>
+  <data name="ProgramBadWingetId" xml:space="preserve"><value>«{0}» не похоже на id пакета winget (например, Telegram.TelegramDesktop). Найти id: winget search &lt;название&gt;.</value></data>
+  <data name="ProgramNoInstallerInFolder" xml:space="preserve"><value>В папке {0} нет установщика (.exe, .msi, .cmd, .bat, .ps1).</value></data>
+  <data name="CustomizeSummary_Programs" xml:space="preserve"><value>Программы ({0}): {1}</value></data>
 </root>

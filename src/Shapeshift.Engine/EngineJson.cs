@@ -65,6 +65,7 @@ public static class EngineJson
             },
             applicable = release is null ? (bool?)null : t.Releases.Matches(release),
         }),
+        programs = catalog.Programs.Select(p => new { winget = p.WingetId, title = p.Title.Values }),
     }, Options);
 
     /// <summary>Встроенные приложения редакции с разметкой каталога (<c>apps list --json</c>).</summary>

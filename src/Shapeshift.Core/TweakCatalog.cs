@@ -84,8 +84,18 @@ public enum AppSafety
 /// <param name="Name">Имя пакета без версии, например Microsoft.BingNews.</param>
 public sealed record AppMarkup(string Name, LocalizedText Title, AppSafety Safety, bool Recommended);
 
-/// <summary>Полный набор описаний твиков и разметка встроенных приложений. Порядок твиков задаёт порядок их действий.</summary>
-public sealed record TweakCatalog(IReadOnlyList<TweakCategory> Categories, IReadOnlyList<Tweak> Tweaks, IReadOnlyList<AppMarkup> Apps)
+/// <summary>Популярная программа из winget — для быстрого выбора в окне; любую другую можно указать по id.</summary>
+public sealed record ProgramSuggestion(string WingetId, LocalizedText Title);
+
+/// <summary>
+/// Полный набор описаний твиков, разметка встроенных приложений и популярные программы.
+/// Порядок твиков задаёт порядок их действий.
+/// </summary>
+public sealed record TweakCatalog(
+    IReadOnlyList<TweakCategory> Categories,
+    IReadOnlyList<Tweak> Tweaks,
+    IReadOnlyList<AppMarkup> Apps,
+    IReadOnlyList<ProgramSuggestion> Programs)
 {
     public AppMarkup? FindApp(string name) => Apps.FirstOrDefault(a => string.Equals(a.Name, name, StringComparison.OrdinalIgnoreCase));
 

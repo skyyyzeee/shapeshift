@@ -35,6 +35,15 @@ public static partial class CatalogValidator
                 problems.Add($"app '{app.Name}': a risky app cannot be recommended for removal.");
         }
 
+        foreach (var id in Duplicates(catalog.Programs.Select(p => p.WingetId.ToLowerInvariant())))
+            problems.Add($"program '{id}' is listed more than once.");
+        foreach (var program in catalog.Programs)
+        {
+            if (!ProgramRules.IsWingetId(program.WingetId))
+                problems.Add($"program '{program.WingetId}': not a winget package id like Telegram.TelegramDesktop.");
+            CheckText(problems, $"program '{program.WingetId}'", "title", program.Title);
+        }
+
         var categories = catalog.Categories.Select(c => c.Id).ToHashSet();
         var ids = catalog.Tweaks.Select(t => t.Id).ToHashSet();
         foreach (var tweak in catalog.Tweaks)

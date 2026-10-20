@@ -5,6 +5,7 @@ using Shapeshift.Engine.AnswerFiles;
 using Shapeshift.Engine.Builds;
 using Shapeshift.Engine.Images;
 using Shapeshift.Engine.Pipes;
+using Shapeshift.Engine.Programs;
 using Shapeshift.Engine.Servicing;
 using Shapeshift.Engine.Tweaks;
 
@@ -91,6 +92,11 @@ public static class Cli
 
             if (!await CheckAnswerFileAsync(profile, catalog, image, context))
                 return ExitCodes.InvalidInput;
+            if (profile.Programs.Count > 0)
+            {
+                await context.Error.WriteLineAsync(
+                    "warning: programs are installed by a script that 'build' puts into the image; this answer file alone does not install them.");
+            }
 
             await AnswerFileWriter.WriteAsync(
                 AnswerFileGenerator.Generate(profile, catalog, image), parseResult.GetRequiredValue(outOption).FullName, ct);
@@ -298,8 +304,14 @@ public static class Cli
             if (source is null)
                 return (ExitCodes.InvalidInput, null);
 
+            var (programs, programProblems) = ProgramPayload.Inspect(profile.Programs);
+            foreach (var problem in programProblems)
+                await context.Error.WriteLineAsync($"error: {problem}");
+            if (programProblems.Count > 0)
+                return (ExitCodes.InvalidInput, null);
+
             var workspace = options.Workspace ?? context.Host.DefaultWorkspace;
-            var plan = BuildPlanner.Plan(profile, catalog, source, outputIso, workspace, context.Host);
+            var plan = BuildPlanner.Plan(profile, catalog, source, programs, outputIso, workspace, context.Host);
             await WritePlanAsync(plan, context.Output);
             if (!await CheckAnswerFileAsync(profile, catalog, source.Info, context))
                 return (ExitCodes.InvalidInput, plan);

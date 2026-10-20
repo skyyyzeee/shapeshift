@@ -72,6 +72,9 @@ public sealed partial class CustomizeViewModel(EngineClient engine) : Observable
 
     public ObservableCollection<TweakCategoryItem> Categories { get; } = [];
 
+    /// <summary>Программы для установки при первом входе; популярные приходят вместе с каталогом.</summary>
+    public ProgramsViewModel Programs { get; } = new();
+
     [ObservableProperty]
     public partial bool IsLoading { get; private set; }
 
@@ -183,6 +186,7 @@ public sealed partial class CustomizeViewModel(EngineClient engine) : Observable
             Categories.Add(item);
         }
         ApplyVisibility();
+        Programs.FillSuggestions(root);
 
         // Только после загрузки профиля: что из него не подошло к этому образу.
         if (_reportDropped)
@@ -209,6 +213,10 @@ public sealed partial class CustomizeViewModel(EngineClient engine) : Observable
             tweak.IsVisible = AdvancedMode || !tweak.Advanced;
         foreach (var app in Apps)
             app.IsVisible = AdvancedMode || app.Safety == "safe";
+        // Скрытые элементы сетки всё равно занимают ячейки — на экране только видимые.
+        ShownApps.Clear();
+        foreach (var app in Apps.Where(a => a.IsVisible))
+            ShownApps.Add(app);
     }
 
     string? _appsLoadedFor;
@@ -216,6 +224,9 @@ public sealed partial class CustomizeViewModel(EngineClient engine) : Observable
     bool _reportDroppedApps;
 
     public ObservableCollection<AppItem> Apps { get; } = [];
+
+    /// <summary>Приложения, видимые в текущем режиме, — для экрана.</summary>
+    public ObservableCollection<AppItem> ShownApps { get; } = [];
 
     [ObservableProperty]
     public partial bool IsLoadingApps { get; private set; }
@@ -239,6 +250,7 @@ public sealed partial class CustomizeViewModel(EngineClient engine) : Observable
         _rememberedApps.Clear();
         _rememberedApps.UnionWith(names);
         Apps.Clear();
+        ShownApps.Clear();
         _appsLoadedFor = null;
         _reportDroppedApps = true;
     }
@@ -266,6 +278,7 @@ public sealed partial class CustomizeViewModel(EngineClient engine) : Observable
             if (list is null)
             {
                 Apps.Clear();
+                ShownApps.Clear();
                 AppsError = Text.Get("AppsError");
                 return;
             }

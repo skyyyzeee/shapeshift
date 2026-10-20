@@ -67,13 +67,16 @@ public sealed partial class OutputViewModel(
         var apps = customize.SelectedAppTitles.ToList();
         if (apps.Count > 0)
             yield return Text.Format("CustomizeSummary_Apps", apps.Count, string.Join(", ", apps));
+        var programs = customize.Programs.SelectedNames.ToList();
+        if (programs.Count > 0)
+            yield return Text.Format("CustomizeSummary_Programs", programs.Count, string.Join(", ", programs));
     }
 
     ProfileDraft Draft(string sourceIso, string outputIso)
     {
         var (tweaks, setupDraft, regional) = setup.ToDraft();
         var (keep, install) = editions.ToDraft();
-        return new ProfileDraft(sourceIso, outputIso, [.. tweaks, .. customize.SelectedTweaks], keep, setupDraft with { Edition = install }, regional, customize.SelectedApps);
+        return new ProfileDraft(sourceIso, outputIso, [.. tweaks, .. customize.SelectedTweaks], keep, setupDraft with { Edition = install }, regional, customize.SelectedApps, customize.Programs.ToDraft());
     }
 
     public ObservableCollection<string> Warnings { get; } = [];

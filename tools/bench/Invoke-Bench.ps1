@@ -122,6 +122,13 @@ try {
         throw 'Scenario profile must define setup.user with password mode "store" (the bench signs in with it).'
     }
 
+    # Пути установщиков в сценарии — от его папки, а профиль сборки лежит в рабочей папке.
+    if ($scenarioProfile.PSObject.Properties['programs']) {
+        foreach ($program in $scenarioProfile.programs) {
+            if ($program.PSObject.Properties['path']) { $program.path = Join-Path $scenarioDir $program.path }
+        }
+    }
+
     $outputIso = Join-Path $work 'bench.iso'
     $scenarioProfile | Add-Member -NotePropertyName source -NotePropertyValue @{ iso = $Iso } -Force
     $scenarioProfile | Add-Member -NotePropertyName output -NotePropertyValue @{ iso = $outputIso } -Force
@@ -204,8 +211,9 @@ try {
     # 5. Факты об установленной системе. Культуру читаем из реестра пользователя: Get-Culture
     #    в удалённом сеансе возвращает культуру хоста.
     $registryChecks = @(if ($expect.PSObject.Properties['registry']) { $expect.registry })
-    $facts = Invoke-Command -VMName $vmName -Credential $credential -ErrorAction Stop -ArgumentList (, $registryChecks) -ScriptBlock {
-        param($registryChecks)
+    $fileChecks = @(if ($expect.PSObject.Properties['files']) { $expect.files })
+    $facts = Invoke-Command -VMName $vmName -Credential $credential -ErrorAction Stop -ArgumentList $registryChecks, $fileChecks -ScriptBlock {
+        param($registryChecks, $fileChecks)
         $version = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
         $preload = Get-ItemProperty 'HKCU:\Keyboard Layout\Preload' -ErrorAction SilentlyContinue
         $layouts = @()
@@ -227,6 +235,13 @@ try {
                 if ($null -eq $item) { '<no key>' }
                 elseif ($item.PSObject.Properties[$check.name]) { [string]$item.PSObject.Properties[$check.name].Value }
                 else { '<no value>' }
+            })
+            # Для каждой проверки файла: есть ли он и (если задано) есть ли в нём строка.
+            Files = @(foreach ($check in $fileChecks) {
+                if (-not (Test-Path -LiteralPath $check.path)) { 'absent' }
+                elseif (-not $check.PSObject.Properties['contains']) { 'present' }
+                elseif ((Get-Content -LiteralPath $check.path -Raw -Encoding UTF8).Contains($check.contains)) { 'contains' }
+                else { 'without the text' }
             })
         }
     }
@@ -252,6 +267,15 @@ try {
                 for ($i = 0; $i -lt $registryChecks.Count; $i++) {
                     $check = $registryChecks[$i]
                     Add-Check "$($check.path)\$($check.name)" ([string]$check.value) @($facts.Registry)[$i]
+                }
+            }
+            'files' {
+                for ($i = 0; $i -lt $fileChecks.Count; $i++) {
+                    $check = $fileChecks[$i]
+                    $expected = if ($check.PSObject.Properties['absent'] -and $check.absent) { 'absent' }
+                        elseif ($check.PSObject.Properties['contains']) { 'contains' } else { 'present' }
+                    $name = if ($check.PSObject.Properties['contains']) { "$($check.path) has '$($check.contains)'" } else { $check.path }
+                    Add-Check $name $expected @($facts.Files)[$i]
                 }
             }
             default { throw "Unknown expectation '$($property.Name)' in expect.json." }

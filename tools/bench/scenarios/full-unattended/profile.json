@@ -21,6 +21,11 @@
     "wipeDisk0": true,
     "edition": "Professional"
   },
+  // Свой установщик (путь — от папки сценария) и пакет winget: в ВМ нет сети, он должен быть пропущен.
+  "programs": [
+    { "path": "programs/marker.cmd", "args": "C:\\ProgramData\\ShapeshiftBench\\marker.txt", "name": "Bench marker" },
+    { "winget": "7zip.7zip" }
+  ],
   "regional": {
     "formats": "ru-RU",
     "keyboards": ["en-US", "ru-RU"],
