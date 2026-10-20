@@ -223,4 +223,47 @@
   <data name="ProgramBadWingetId" xml:space="preserve"><value>«{0}» не похоже на id пакета winget (например, Telegram.TelegramDesktop). Найти id: winget search &lt;название&gt;.</value></data>
   <data name="ProgramNoInstallerInFolder" xml:space="preserve"><value>В папке {0} нет установщика (.exe, .msi, .cmd, .bat, .ps1).</value></data>
   <data name="CustomizeSummary_Programs" xml:space="preserve"><value>Программы ({0}): {1}</value></data>
+  <data name="InfoTipName" xml:space="preserve"><value>Подсказка</value></data>
+  <data name="UserNameTip.Text" xml:space="preserve"><value>До 20 символов; можно по-русски и с пробелом внутри.
+Нельзя: &quot; / \ [ ] : ; | = , + * ? &lt; &gt; @ % и имена встроенных учётных записей (Administrator, Guest, Администратор, Гость).
+Примеры: Алексей, Anna, Ivan Petrov.</value></data>
+  <data name="PasswordModeTip.Text" xml:space="preserve"><value>«Задать при первом входе» — учётная запись создаётся без пароля, при первом входе Windows сразу попросит придумать пароль. В образе пароля нет.
+«Сохранить в образе» — пароль записывается в файл ответов и виден любому, у кого есть этот ISO. Нужен для автовхода и для установки без участия человека.</value></data>
+  <data name="ComputerNameTip.Text" xml:space="preserve"><value>До 15 символов: латинские буквы, цифры и дефис; не из одних цифр.
+Примеры: HOME-PC, OFFICE-01, LAPTOP.
+Пусто — Windows придумает имя вида DESKTOP-ABC1234.</value></data>
+  <data name="RegionalTip.Text" xml:space="preserve"><value>Форматы — как выглядят дата, время, числа и валюта (русский: 31.12.2026, 1 234,5 ₽).
+Раскладки — языки ввода, переключаются Win+Пробел.
+Часовой пояс — время на часах.
+Всё это не меняет язык интерфейса Windows: можно взять английскую Windows с русскими форматами и раскладкой.</value></data>
+  <data name="KeyboardsTip.Text" xml:space="preserve"><value>Первая раскладка — основная: с ней Windows стартует и на ней вводится пароль при входе.
+Пример: «Английская (США)» первой и «Русская» второй — пароль латиницей, переключение Win+Пробел.</value></data>
+  <data name="ProductKeyTip.Text" xml:space="preserve"><value>Ключ из 25 символов: XXXXX-XXXXX-XXXXX-XXXXX-XXXXX — с наклейки, из письма о покупке или из учётной записи Microsoft.
+Не нужен, если на компьютере была активированная Windows той же редакции: лицензия привязана к оборудованию, Windows активируется сама после подключения к интернету.
+Shapeshift ничего не активирует и ключей не содержит.</value></data>
+  <data name="InstallEditionTip.Text" xml:space="preserve"><value>«Спросить при установке» — установщик покажет список редакций, как обычно.
+Конкретная редакция — ставится без вопроса. Выбирайте ту, на которую у вас лицензия: обычно Pro или Домашняя (ноутбуки из магазина чаще всего с Домашней).</value></data>
+  <data name="WorkspaceTip.Text" xml:space="preserve"><value>Нужен локальный диск с местом около 2–3 размеров ISO. Не флешка и не сетевая папка.
+Хороший пример: D:\Shapeshift. Длинные пути вроде C:\Users\Имя\Documents\Проекты\Образы могут не уместиться в предел длины пути Windows.</value></data>
+  <data name="AppsTip.Text" xml:space="preserve"><value>Удаление убирает приложение из образа: его не будет у новых пользователей. Вернуть можно в Microsoft Store.
+Без пометки — безопасно удалять. «Рекомендованные» отмечает рекламные и редко нужные приложения.
+Значок ⚠ — от приложения зависят другие части Windows (Store, «Безопасность Windows», кодеки, winget). Такие видны только в продвинутом режиме.</value></data>
+  <data name="ProgramsTip.Text" xml:space="preserve"><value>Флажки и поле id — программы из winget: скачиваются при первом входе, нужен интернет.
+«Добавить установщик…» — свой .exe, .msi, .cmd, .bat или .ps1: копируется в образ и ставится без интернета.
+«Добавить папку…» — дистрибутив из нескольких файлов, например Office или 1С.
+Ставятся по порядку, сбой одной программы не мешает остальным.</value></data>
+  <data name="WingetIdTip.Text" xml:space="preserve"><value>Id — точное имя пакета в каталоге winget, вида Издатель.Программа.
+Найти: в терминале winget search telegram — нужен столбец «ИД». Или на сайте winstall.app.
+Примеры: Telegram.TelegramDesktop, Mozilla.Thunderbird, 7zip.7zip.</value></data>
+  <data name="AddInstallerTip.Text" xml:space="preserve"><value>Папка нужна, когда установщику нужны соседние файлы.
+Office: папка с setup.exe из Office Deployment Tool и configuration.xml; запустить setup.exe, параметры /configure configuration.xml (Office скачается при первом входе, если в configuration.xml не указан локальный источник).
+1С: папка дистрибутива платформы; запустить setup.exe, параметры обычно /S.</value></data>
+  <data name="ProgramArgsTip.Text" xml:space="preserve"><value>Параметры, чтобы установщик не задавал вопросов. Зависят от того, чем собран установщик:
+• Inno Setup: /VERYSILENT /NORESTART
+• NSIS: /S
+• InstallShield: /s /v&quot;/qn&quot;
+• .msi: ничего — /qn /norestart добавятся сами; можно свойства, например ALLUSERS=1
+• Office (ODT): /configure configuration.xml
+Узнать: setup.exe /? или страница загрузки программы.</value></data>
+  <data name="PasswordHeader.Text" xml:space="preserve"><value>Пароль</value></data>
 </root>

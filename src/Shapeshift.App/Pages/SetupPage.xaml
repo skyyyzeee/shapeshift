@@ -2,7 +2,8 @@
     x:Class="Shapeshift.App.Pages.SetupPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:vm="using:Shapeshift.App.ViewModels">
+    xmlns:vm="using:Shapeshift.App.ViewModels"
+    xmlns:c="using:Shapeshift.App.Controls">
 
     <Page.Resources>
         <!-- Строка в духе «Параметров» Windows: слева что и зачем, справа элемент управления. -->
@@ -65,11 +66,20 @@
 
                     <StackPanel Spacing="12" Visibility="{x:Bind ViewModel.CreateUser, Mode=OneWay}">
                         <StackPanel Spacing="4">
-                            <TextBox x:Uid="UserNameBox" MaxWidth="360" HorizontalAlignment="Left" MinWidth="280" Text="{x:Bind ViewModel.UserName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBox x:Uid="UserNameBox" MaxWidth="360" MinWidth="280" Text="{x:Bind ViewModel.UserName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <c:InfoTip x:Uid="UserNameTip" Margin="0,0,0,8" VerticalAlignment="Bottom" />
+                            </StackPanel>
                             <TextBlock Style="{StaticResource FieldError}" Text="{x:Bind ViewModel.UserNameError, Mode=OneWay}" Visibility="{x:Bind ViewModel.HasUserNameError, Mode=OneWay}" />
                         </StackPanel>
 
-                        <RadioButtons x:Name="PasswordModeButtons" x:Uid="PasswordMode" SelectedIndex="{x:Bind ViewModel.PasswordModeIndex, Mode=TwoWay}" />
+                        <StackPanel Spacing="4">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock x:Uid="PasswordHeader" />
+                                <c:InfoTip x:Uid="PasswordModeTip" />
+                            </StackPanel>
+                            <RadioButtons x:Name="PasswordModeButtons" SelectedIndex="{x:Bind ViewModel.PasswordModeIndex, Mode=TwoWay}" />
+                        </StackPanel>
 
                         <StackPanel Spacing="8" Visibility="{x:Bind ViewModel.StorePassword, Mode=OneWay}">
                             <PasswordBox x:Uid="PasswordBox" MaxWidth="360" HorizontalAlignment="Left" MinWidth="280" Password="{x:Bind ViewModel.Password, Mode=TwoWay}" />
@@ -108,7 +118,10 @@
                         <ToggleSwitch Grid.Column="1" MinWidth="0" IsOn="{x:Bind ViewModel.BypassOnlineAccount, Mode=TwoWay}" OffContent="" OnContent="" />
                     </Grid>
                     <StackPanel Spacing="4">
-                        <TextBox x:Uid="ComputerNameBox" MaxWidth="360" HorizontalAlignment="Left" MinWidth="280" Text="{x:Bind ViewModel.ComputerName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBox x:Uid="ComputerNameBox" MaxWidth="360" MinWidth="280" Text="{x:Bind ViewModel.ComputerName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                            <c:InfoTip x:Uid="ComputerNameTip" Margin="0,0,0,8" VerticalAlignment="Bottom" />
+                        </StackPanel>
                         <TextBlock Style="{StaticResource FieldError}" Text="{x:Bind ViewModel.ComputerNameError, Mode=OneWay}" Visibility="{x:Bind ViewModel.HasComputerNameError, Mode=OneWay}" />
                     </StackPanel>
                 </StackPanel>
@@ -123,7 +136,10 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <StackPanel>
-                            <TextBlock x:Uid="RegionalHeader" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock x:Uid="RegionalHeader" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                <c:InfoTip x:Uid="RegionalTip" />
+                            </StackPanel>
                             <TextBlock x:Uid="RegionalHint" Style="{StaticResource RowHint}" />
                         </StackPanel>
                         <ToggleSwitch Grid.Column="1" MinWidth="0" IsOn="{x:Bind ViewModel.SetRegional, Mode=TwoWay}" OffContent="" OnContent="" />
@@ -137,7 +153,10 @@
                             SelectedItem="{x:Bind ViewModel.Formats, Mode=TwoWay}" />
 
                         <StackPanel Spacing="6">
-                            <TextBlock x:Uid="KeyboardsHeader" />
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock x:Uid="KeyboardsHeader" />
+                                <c:InfoTip x:Uid="KeyboardsTip" />
+                            </StackPanel>
                             <ItemsRepeater ItemsSource="{x:Bind ViewModel.Keyboards}">
                                 <ItemsRepeater.Layout>
                                     <StackLayout Spacing="2" />
@@ -182,7 +201,10 @@
             <!-- Ключ продукта -->
             <Border Style="{StaticResource CardStyle}">
                 <StackPanel Spacing="8">
-                    <TextBlock x:Uid="ProductKeyHeader" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock x:Uid="ProductKeyHeader" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                        <c:InfoTip x:Uid="ProductKeyTip" />
+                    </StackPanel>
                     <TextBlock x:Uid="ProductKeyExplain" Style="{StaticResource RowHint}" />
                     <TextBox x:Uid="ProductKeyBox" MaxWidth="360" HorizontalAlignment="Left" MinWidth="280" Text="{x:Bind ViewModel.ProductKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                     <TextBlock Style="{StaticResource FieldError}" Text="{x:Bind ViewModel.ProductKeyError, Mode=OneWay}" Visibility="{x:Bind ViewModel.HasProductKeyError, Mode=OneWay}" />
