@@ -6,18 +6,19 @@ namespace Shapeshift.Engine.Builds;
 /// <summary>Выполняет план сборки. Исходный образ не меняется; папка сборки удаляется в любом исходе.</summary>
 public static class BuildRunner
 {
-    public static async Task RunAsync(BuildPlan plan, TextWriter log, CancellationToken ct)
+    /// <exception cref="OperationCanceledException">Сборку отменили; результат не создан, папка сборки удалена.</exception>
+    public static async Task RunAsync(BuildPlan plan, IBuildReporter reporter, CancellationToken ct)
     {
         try
         {
             for (var i = 0; i < plan.Steps.Count; i++)
             {
                 var step = plan.Steps[i];
-                await log.WriteLineAsync($"[{i + 1}/{plan.Steps.Count}] {step.Description}...");
-                await RunStepAsync(plan, step, log, ct);
+                reporter.StepStarted(i, plan.Steps.Count, step);
+                await RunStepAsync(plan, step, reporter, ct);
             }
 
-            await log.WriteLineAsync($"Done: {plan.OutputIso}");
+            reporter.Done(plan.OutputIso);
         }
         finally
         {
@@ -25,19 +26,21 @@ public static class BuildRunner
         }
     }
 
-    static Task RunStepAsync(BuildPlan plan, BuildStep step, TextWriter log, CancellationToken ct) => step.Kind switch
+    static Task RunStepAsync(BuildPlan plan, BuildStep step, IBuildReporter reporter, CancellationToken ct) => step.Kind switch
     {
-        BuildStepKind.ExtractImage => Task.Run(() => Extract(plan, ct), ct),
+        BuildStepKind.ExtractImage => Task.Run(() => Extract(plan, reporter, ct), ct),
         BuildStepKind.WriteAnswerFile => AnswerFileWriter.WriteAsync(
             AnswerFileGenerator.Generate(plan.Profile, plan.Catalog, plan.Source.Info),
             Path.Combine(plan.MediaDirectory, AnswerFileWriter.FileName),
             ct),
-        BuildStepKind.PackIso => Task.Run(() => Pack(plan, log, ct), ct),
+        BuildStepKind.PackIso => Task.Run(() => Pack(plan, reporter, ct), ct),
         _ => throw new ArgumentOutOfRangeException(nameof(step), step.Kind, null),
     };
 
-    static void Extract(BuildPlan plan, CancellationToken ct)
+    static void Extract(BuildPlan plan, IBuildReporter reporter, CancellationToken ct)
     {
+        var total = Math.Max(1, plan.Source.ContentBytes);
+        long copied = 0;
         using var iso = IsoImage.Open(plan.Source.IsoPath);
         Directory.CreateDirectory(plan.MediaDirectory);
 
@@ -57,22 +60,15 @@ public static class BuildRunner
             {
                 ct.ThrowIfCancellationRequested();
                 destination.Write(buffer, 0, n);
+                copied += n;
+                reporter.Progress((double)copied / total);
             }
         }
     }
 
-    static void Pack(BuildPlan plan, TextWriter log, CancellationToken ct)
+    static void Pack(BuildPlan plan, IBuildReporter reporter, CancellationToken ct)
     {
-        var lastReported = -1;
-        var progress = new SynchronousProgress<double>(fraction =>
-        {
-            var percent = (int)(fraction * 100) / 10 * 10;
-            if (percent > lastReported)
-            {
-                lastReported = percent;
-                log.WriteLine($"      {percent}%");
-            }
-        });
+        var progress = new SynchronousProgress<double>(reporter.Progress);
 
         IsoWriter.Write(
             plan.MediaDirectory,

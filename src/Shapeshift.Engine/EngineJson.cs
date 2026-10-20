@@ -31,6 +31,17 @@ public static class EngineJson
         editions = info.Editions.Select(e => new { index = e.Index, editionId = e.EditionId, name = e.Name }),
     }, Options);
 
+    /// <summary>План сборки для сводки «что будет сделано» (<c>build --dry-run --json</c>).</summary>
+    public static string Plan(Builds.BuildPlan plan, IReadOnlyList<string> warnings) => JsonSerializer.Serialize(new
+    {
+        image = JsonSerializer.Deserialize<JsonElement>(Image(plan.Source.Info)),
+        outputIso = plan.OutputIso,
+        steps = plan.Steps.Select(s => new { kind = s.Kind.ToString(), description = s.Description, volume = s.Volume, bytes = s.Bytes }),
+        space = plan.Space.Select(s => new { volume = s.Volume, requiredBytes = s.RequiredBytes, availableBytes = s.AvailableBytes }),
+        tweaks = plan.Profile.Tweaks,
+        warnings,
+    }, Options);
+
     public static string Error(string code, string message) =>
         JsonSerializer.Serialize(new { error = new { code, message } }, Options);
 }

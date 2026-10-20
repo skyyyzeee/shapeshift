@@ -4,6 +4,7 @@ using Shapeshift.Core;
 using Shapeshift.Engine.AnswerFiles;
 using Shapeshift.Engine.Builds;
 using Shapeshift.Engine.Images;
+using Shapeshift.Engine.Pipes;
 using Shapeshift.Engine.Tweaks;
 
 namespace Shapeshift.Engine;
@@ -20,6 +21,7 @@ public static class Cli
         public const int Failure = 1;
         public const int InvalidInput = 2;
         public const int NotEnoughSpace = 3;
+        public const int Cancelled = 4;
     }
 
     public static Task<int> RunAsync(
@@ -155,6 +157,14 @@ public static class Cli
         };
 
         var catalogOption = CatalogOption();
+        var jsonOption = new Option<bool>("--json")
+        {
+            Description = "With --dry-run: print the plan as JSON (for the app), or { \"error\": { code, message } }.",
+        };
+        var pipeOption = new Option<string>("--pipe")
+        {
+            Description = "Report to the app over this named pipe instead of the console (the app is the pipe server).",
+        };
 
         var command = new Command("build", "Build an image from a profile.")
         {
@@ -162,34 +172,128 @@ public static class Cli
             workspaceOption,
             dryRunOption,
             catalogOption,
+            jsonOption,
+            pipeOption,
         };
 
         command.SetAction(async (parseResult, ct) =>
         {
-            var profile = await TryReadProfileAsync(parseResult.GetRequiredValue(profileOption), context, ct);
-            if (profile is null)
-                return ExitCodes.InvalidInput;
+            var options = new BuildOptions(
+                parseResult.GetRequiredValue(profileOption),
+                parseResult.GetValue(workspaceOption)?.FullName,
+                parseResult.GetValue(catalogOption),
+                parseResult.GetValue(dryRunOption));
 
-            var catalog = await TryLoadCatalogAsync(parseResult.GetValue(catalogOption), context, ct);
+            if (parseResult.GetValue(pipeOption) is { } pipeName)
+                return await BuildOverPipeAsync(options, pipeName, context, ct);
+
+            if (parseResult.GetValue(jsonOption))
+            {
+                if (!options.DryRun)
+                    return await FailAsync(context, ExitCodes.InvalidInput, "--json works only with --dry-run; the app builds with --pipe.");
+                return await PlanAsJsonAsync(options, context, ct);
+            }
+
+            var (exitCode, _) = await RunBuildAsync(options, context, new ConsoleBuildReporter(context.Output), ct);
+            return exitCode;
+        });
+
+        return command;
+    }
+
+    sealed record BuildOptions(FileInfo Profile, string? Workspace, FileInfo? Catalog, bool DryRun);
+
+    /// <summary>План для сводки в окне: без вывода текстом, ошибки и предупреждения — внутри JSON.</summary>
+    static async Task<int> PlanAsJsonAsync(BuildOptions options, Context context, CancellationToken ct)
+    {
+        var errors = new StringWriter();
+        var quiet = context with { Output = TextWriter.Null, Error = errors };
+        var (exitCode, plan) = await RunBuildAsync(options, quiet, new ConsoleBuildReporter(TextWriter.Null), ct);
+
+        var lines = errors.ToString().Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var warnings = lines.Where(l => l.StartsWith("warning: ")).Select(l => l["warning: ".Length..]).ToList();
+        var problems = lines.Where(l => !l.StartsWith("warning: ")).Select(l => l.StartsWith("error: ") ? l["error: ".Length..] : l).ToList();
+
+        await context.Output.WriteLineAsync(exitCode == ExitCodes.Success && plan is not null
+            ? EngineJson.Plan(plan, warnings)
+            : EngineJson.Error(ExitCodeName(exitCode), string.Join("\n", problems)));
+        return exitCode;
+    }
+
+    /// <summary>Сборка для окна: всё — сообщениями в канал, отмена — командой окна или обрывом канала.</summary>
+    static async Task<int> BuildOverPipeAsync(BuildOptions options, string pipeName, Context context, CancellationToken ct)
+    {
+        await using var pipe = await EnginePipe.ConnectAsync(pipeName, ct);
+        using var cancel = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        using var stopListening = new CancellationTokenSource();
+        var listening = pipe.ListenAsync(cancel.Cancel, stopListening.Token);
+
+        var piped = context with { Output = new PipeTextWriter(pipe, isErrorStream: false), Error = new PipeTextWriter(pipe, isErrorStream: true) };
+        var (exitCode, _) = await RunBuildAsync(options, piped, new PipeBuildReporter(pipe), cancel.Token);
+
+        await piped.Output.FlushAsync(CancellationToken.None);
+        await piped.Error.FlushAsync(CancellationToken.None);
+        if (exitCode == ExitCodes.Cancelled)
+            pipe.Send("cancelled");
+        pipe.Send("exit", new { code = exitCode });
+
+        await stopListening.CancelAsync();
+        await listening;
+        return exitCode;
+    }
+
+    static string ExitCodeName(int exitCode) => exitCode switch
+    {
+        ExitCodes.InvalidInput => "invalid-input",
+        ExitCodes.NotEnoughSpace => "not-enough-space",
+        ExitCodes.Cancelled => "cancelled",
+        _ => "failure",
+    };
+
+    /// <summary>Проверки, план и (если не пробный прогон) сама сборка. План — null, если до него не дошло.</summary>
+    static async Task<(int ExitCode, BuildPlan? Plan)> RunBuildAsync(
+        BuildOptions options, Context context, IBuildReporter reporter, CancellationToken ct)
+    {
+        // Отмена может прийти на любом шаге — и пока читаются профиль и образ, и во время сборки.
+        try
+        {
+            return await RunBuildCoreAsync(options, context, reporter, ct);
+        }
+        catch (OperationCanceledException)
+        {
+            await context.Error.WriteLineAsync("error: the build was cancelled; nothing was written.");
+            return (ExitCodes.Cancelled, null);
+        }
+    }
+
+    static async Task<(int ExitCode, BuildPlan? Plan)> RunBuildCoreAsync(
+        BuildOptions options, Context context, IBuildReporter reporter, CancellationToken ct)
+    {
+        {
+            var profile = await TryReadProfileAsync(options.Profile, context, ct);
+            if (profile is null)
+                return (ExitCodes.InvalidInput, null);
+
+            var catalog = await TryLoadCatalogAsync(options.Catalog, context, ct);
             if (catalog is null)
-                return ExitCodes.InvalidInput;
+                return (ExitCodes.InvalidInput, null);
 
             if (profile.Source.IsoPath is not { } sourceIso)
-                return await FailAsync(context, ExitCodes.InvalidInput, "profile has no 'source.iso'.");
+                return (await FailAsync(context, ExitCodes.InvalidInput, "profile has no 'source.iso'."), null);
             if (profile.Output.IsoPath is not { } outputIso)
-                return await FailAsync(context, ExitCodes.InvalidInput, "profile has no 'output.iso'.");
+                return (await FailAsync(context, ExitCodes.InvalidInput, "profile has no 'output.iso'."), null);
             if (string.Equals(Path.GetFullPath(sourceIso), Path.GetFullPath(outputIso), StringComparison.OrdinalIgnoreCase))
-                return await FailAsync(context, ExitCodes.InvalidInput, "'output.iso' must differ from 'source.iso'.");
+                return (await FailAsync(context, ExitCodes.InvalidInput, "'output.iso' must differ from 'source.iso'."), null);
 
             var source = await TryInspectAsync(sourceIso, context);
             if (source is null)
-                return ExitCodes.InvalidInput;
+                return (ExitCodes.InvalidInput, null);
 
-            var workspace = parseResult.GetValue(workspaceOption)?.FullName ?? context.Host.DefaultWorkspace;
+            var workspace = options.Workspace ?? context.Host.DefaultWorkspace;
             var plan = BuildPlanner.Plan(profile, catalog, source, outputIso, workspace, context.Host);
             await WritePlanAsync(plan, context.Output);
             if (!await CheckAnswerFileAsync(profile, catalog, source.Info, context))
-                return ExitCodes.InvalidInput;
+                return (ExitCodes.InvalidInput, plan);
 
             if (!plan.HasEnoughSpace)
             {
@@ -198,25 +302,24 @@ public static class Cli
                     await context.Error.WriteLineAsync(
                         $"error: not enough space on {s.Volume}: needs {Size(s.RequiredBytes)}, free {Size(s.AvailableBytes)}.");
                 }
-                return ExitCodes.NotEnoughSpace;
+                return (ExitCodes.NotEnoughSpace, plan);
             }
 
             if (!plan.FitsMaxPath)
             {
                 var budget = BuildPlan.MaxPath - (plan.LongestExtractedPath - Path.GetFullPath(workspace).Length);
-                return await FailAsync(context, ExitCodes.InvalidInput,
+                return (await FailAsync(context, ExitCodes.InvalidInput,
                     $"workspace path is too long: the deepest file of the image would need {plan.LongestExtractedPath} characters, " +
-                    $"the limit is {BuildPlan.MaxPath}. Choose a workspace path of at most {budget} characters.");
+                    $"the limit is {BuildPlan.MaxPath}. Choose a workspace path of at most {budget} characters."), plan);
             }
 
-            if (parseResult.GetValue(dryRunOption))
-                return ExitCodes.Success;
+            if (options.DryRun)
+                return (ExitCodes.Success, plan);
 
-            await BuildRunner.RunAsync(plan, context.Output, ct);
-            return ExitCodes.Success;
-        });
-
-        return command;
+            ct.ThrowIfCancellationRequested();
+            await BuildRunner.RunAsync(plan, reporter, ct);
+            return (ExitCodes.Success, plan);
+        }
     }
 
     static Command CatalogCommand(Context context)
