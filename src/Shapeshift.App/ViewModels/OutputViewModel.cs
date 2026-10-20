@@ -16,7 +16,8 @@ public enum BuildState
 
 /// <summary>Шаг «Результат»: куда сохранить ISO, сводка «что будет сделано», сборка и её ход.</summary>
 public sealed partial class OutputViewModel(
-    EngineClient engine, SourceViewModel source, SetupViewModel setup, CustomizeViewModel customize) : ObservableObject
+    EngineClient engine, SourceViewModel source, EditionsViewModel editions, SetupViewModel setup, CustomizeViewModel customize)
+    : ObservableObject
 {
     BuildSession? _session;
     CancellationTokenSource? _planning;
@@ -68,7 +69,8 @@ public sealed partial class OutputViewModel(
     ProfileDraft Draft(string sourceIso, string outputIso)
     {
         var (tweaks, setupDraft, regional) = setup.ToDraft();
-        return new ProfileDraft(sourceIso, outputIso, [.. tweaks, .. customize.SelectedTweaks], setupDraft, regional);
+        var (keep, install) = editions.ToDraft();
+        return new ProfileDraft(sourceIso, outputIso, [.. tweaks, .. customize.SelectedTweaks], keep, setupDraft with { Edition = install }, regional);
     }
 
     public ObservableCollection<string> Warnings { get; } = [];
@@ -164,7 +166,7 @@ public sealed partial class OutputViewModel(
         SummaryLines.Clear();
         Warnings.Clear();
         Choices.Clear();
-        foreach (var choice in setup.Describe().Concat(DescribeTweaks()))
+        foreach (var choice in editions.Describe().Concat(setup.Describe()).Concat(DescribeTweaks()))
             Choices.Add(choice);
         if (plan is null)
             return;

@@ -54,6 +54,28 @@ public sealed class RealImageTests : IDisposable
         Assert.Equal(inspectSource.Output, inspectResult.Output);
     }
 
+    [Fact]
+    public async Task Keeps_one_edition_of_a_real_image()
+    {
+        var iso = RequireRealIso();
+        var output = _dir.File("one-edition.iso");
+        var profile = _dir.Write("profile.json", JsonSerializer.Serialize(new
+        {
+            formatVersion = 1,
+            editions = new[] { "Professional" },
+            source = new { iso },
+            output = new { iso = output },
+        }));
+
+        var result = await CliRun.RunAsync(
+            "build", "--profile", profile, "--workspace", Path.Combine(_dir.Path, "workspace"));
+
+        Assert.True(result.ExitCode == Cli.ExitCodes.Success, result.Error);
+        var inspect = await CliRun.RunAsync("inspect", "--iso", output);
+        Assert.Contains("Professional", inspect.Output);
+        Assert.DoesNotContain("Core ", inspect.Output);
+    }
+
     static string RequireRealIso()
     {
         Assert.SkipWhen(string.IsNullOrEmpty(RealIso), "SHAPESHIFT_TEST_ISO is not set.");

@@ -6,6 +6,7 @@ namespace Shapeshift.Engine.Builds;
 public enum BuildStepKind
 {
     ExtractImage,
+    KeepEditions,
     WriteAnswerFile,
     PackIso,
 }
@@ -60,12 +61,14 @@ public static class BuildPlanner
         var workspaceVolume = EngineHost.VolumeOf(buildDirectory);
         var outputVolume = EngineHost.VolumeOf(outputIso);
 
-        var steps = new List<BuildStep>
-        {
-            new(BuildStepKind.ExtractImage, "Extract image", workspaceVolume, mediaBytes),
-            new(BuildStepKind.WriteAnswerFile, "Write answer file"),
-            new(BuildStepKind.PackIso, "Pack ISO", outputVolume, isoBytes),
-        };
+        var steps = new List<BuildStep> { new(BuildStepKind.ExtractImage, "Extract image", workspaceVolume, mediaBytes) };
+
+        // Новый install.wim пишется рядом со старым — на время шага нужно ещё столько же места.
+        if (profile.Editions.Count > 0 && source.Info.KeepEditions(profile.Editions).Editions.Count < source.Info.Editions.Count)
+            steps.Add(new(BuildStepKind.KeepEditions, "Keep selected editions", workspaceVolume, source.InstallImageBytes));
+
+        steps.Add(new(BuildStepKind.WriteAnswerFile, "Write answer file"));
+        steps.Add(new(BuildStepKind.PackIso, "Pack ISO", outputVolume, isoBytes));
 
         var space = steps
             .Where(s => s.Volume is not null)

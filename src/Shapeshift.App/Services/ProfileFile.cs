@@ -8,6 +8,7 @@ public sealed record ProfileDraft(
     string SourceIso,
     string OutputIso,
     IReadOnlyList<string> Tweaks,
+    IReadOnlyList<string>? Editions,
     SetupDraft? Setup,
     RegionalDraft? Regional);
 
@@ -17,7 +18,8 @@ public sealed record SetupDraft(
     bool SkipOobe,
     bool BypassOnlineAccount,
     bool WipeDisk0,
-    string? ProductKey);
+    string? ProductKey,
+    string? Edition = null);
 
 /// <param name="Password">Только для режима «хранить»; иначе null.</param>
 public sealed record UserDraft(string Name, bool StorePassword, string? Password, bool AutoLogon);
@@ -47,6 +49,7 @@ public static class ProfileFile
     {
         formatVersion = 1,
         tweaks = draft.Tweaks.Count > 0 ? draft.Tweaks : null,
+        editions = draft.Editions,
         setup = draft.Setup is { } s
             ? new
             {
@@ -65,6 +68,7 @@ public static class ProfileFile
                 bypassOnlineAccount = s.BypassOnlineAccount,
                 wipeDisk0 = s.WipeDisk0 ? true : (bool?)null,
                 productKey = s.ProductKey,
+                edition = s.Edition,
             }
             : null,
         regional = draft.Regional is { } r

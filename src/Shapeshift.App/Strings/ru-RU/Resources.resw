@@ -186,4 +186,17 @@
   <data name="AnswerFileExportFailed" xml:space="preserve"><value>Файл ответов не сохранён</value></data>
   <data name="DroppedTweaksBar.Title" xml:space="preserve"><value>Часть твиков профиля не подошла</value></data>
   <data name="DroppedTweaksBar.Message" xml:space="preserve"><value>Они не будут применены к этому образу:</value></data>
+  <data name="EditionsTitle.Text" xml:space="preserve"><value>Редакции и языки</value></data>
+  <data name="EditionsSubtitle.Text" xml:space="preserve"><value>Что оставить в образе и что ставить без вопросов.</value></data>
+  <data name="KeepEditionsHeader.Text" xml:space="preserve"><value>Редакции в образе</value></data>
+  <data name="KeepEditionsHint.Text" xml:space="preserve"><value>Лишние редакции будут удалены из образа — так установщик меньше спрашивает. Сами файлы Windows почти не уменьшатся: у редакций общие данные.</value></data>
+  <data name="NoEditionKept.Text" xml:space="preserve"><value>Оставьте хотя бы одну редакцию.</value></data>
+  <data name="InstallEditionHeader.Text" xml:space="preserve"><value>Какую редакцию ставить</value></data>
+  <data name="InstallEditionHint.Text" xml:space="preserve"><value>Выбранная редакция ставится без вопроса о ключе продукта; Windows будет неактивирована, пока вы не введёте свой ключ.</value></data>
+  <data name="InstallEditionAsk" xml:space="preserve"><value>Спросить при установке</value></data>
+  <data name="LanguagesHeader.Text" xml:space="preserve"><value>Языки интерфейса</value></data>
+  <data name="LanguagesComingSoon.Text" xml:space="preserve"><value>Добавление языков интерфейса появится в одной из следующих версий. Форматы и раскладки — на шаге «Установка».</value></data>
+  <data name="EditionsSummary_Keep" xml:space="preserve"><value>Редакции в образе: {0}</value></data>
+  <data name="EditionsSummary_Install" xml:space="preserve"><value>Ставится: {0}</value></data>
+  <data name="StepKind_KeepEditions" xml:space="preserve"><value>Удаление лишних редакций</value></data>
 </root>

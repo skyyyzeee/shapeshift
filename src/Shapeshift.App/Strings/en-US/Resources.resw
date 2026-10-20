@@ -186,4 +186,17 @@
   <data name="AnswerFileExportFailed" xml:space="preserve"><value>The answer file was not saved</value></data>
   <data name="DroppedTweaksBar.Title" xml:space="preserve"><value>Some tweaks of the profile don't fit</value></data>
   <data name="DroppedTweaksBar.Message" xml:space="preserve"><value>They won't be applied to this image:</value></data>
+  <data name="EditionsTitle.Text" xml:space="preserve"><value>Editions and languages</value></data>
+  <data name="EditionsSubtitle.Text" xml:space="preserve"><value>What to keep in the image and what to install without asking.</value></data>
+  <data name="KeepEditionsHeader.Text" xml:space="preserve"><value>Editions in the image</value></data>
+  <data name="KeepEditionsHint.Text" xml:space="preserve"><value>Unneeded editions are removed from the image, so setup asks less. The image barely shrinks: editions share most of their data.</value></data>
+  <data name="NoEditionKept.Text" xml:space="preserve"><value>Keep at least one edition.</value></data>
+  <data name="InstallEditionHeader.Text" xml:space="preserve"><value>Edition to install</value></data>
+  <data name="InstallEditionHint.Text" xml:space="preserve"><value>The chosen edition installs without asking for a product key; Windows stays unactivated until you enter your own key.</value></data>
+  <data name="InstallEditionAsk" xml:space="preserve"><value>Ask during setup</value></data>
+  <data name="LanguagesHeader.Text" xml:space="preserve"><value>Display languages</value></data>
+  <data name="LanguagesComingSoon.Text" xml:space="preserve"><value>Adding display languages is coming in a future version. Formats and keyboards are on the Setup step.</value></data>
+  <data name="EditionsSummary_Keep" xml:space="preserve"><value>Editions in the image: {0}</value></data>
+  <data name="EditionsSummary_Install" xml:space="preserve"><value>Installs: {0}</value></data>
+  <data name="StepKind_KeepEditions" xml:space="preserve"><value>Removing other editions</value></data>
 </root>

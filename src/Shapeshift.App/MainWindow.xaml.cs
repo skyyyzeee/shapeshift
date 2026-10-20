@@ -90,6 +90,9 @@ public sealed partial class MainWindow : Window
             case WizardStep.Source:
                 ContentFrame.Navigate(typeof(SourcePage), ViewModel);
                 break;
+            case WizardStep.EditionsAndLanguages:
+                ContentFrame.Navigate(typeof(EditionsPage), ViewModel.Editions);
+                break;
             case WizardStep.Setup:
                 ContentFrame.Navigate(typeof(SetupPage), ViewModel.Setup);
                 break;

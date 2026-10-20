@@ -22,6 +22,8 @@ public static class AnswerFileGenerator
     /// <param name="image">Образ, для которого файл ответов; без него редакцию и язык установщика задать нельзя.</param>
     public static XDocument Generate(Profile profile, TweakCatalog catalog, ImageInfo? image = null)
     {
+        // Файл ответов — для образа после сборки: в нём только оставленные редакции, с новыми номерами.
+        image = image?.KeepEditions(profile.Editions);
         var file = new AnswerFileBuilder(image?.Architecture ?? profile.Architecture);
         // Твики — первыми: обход ограничений должен выполниться в установщике до проверки требований,
         // а команды первого входа — до выхода из сеанса ради смены пароля.
@@ -44,18 +46,22 @@ public static class AnswerFileGenerator
         foreach (var problem in TweakSelection.Resolve(profile.Tweaks, catalog, image?.Release).Problems)
             yield return problem;
 
+        var available = image is null ? "" : string.Join(", ", image.Editions.Select(e => e.EditionId));
+        if (image is not null)
+        {
+            foreach (var kept in profile.Editions.Where(id => image.FindEdition(id) is null))
+                yield return $"'editions' lists '{kept}', which is not in the image; available: {available}.";
+        }
+
         if (profile.Setup.Edition is not { } edition)
             yield break;
 
         if (image is null)
-        {
             yield return "choosing an edition ('setup.edition') needs the image: pass --iso.";
-        }
-        else if (FindEdition(image, edition) is null)
-        {
-            var available = string.Join(", ", image.Editions.Select(e => e.EditionId));
+        else if (image.FindEdition(edition) is null)
             yield return $"edition '{edition}' is not in the image; available: {available}.";
-        }
+        else if (image.KeepEditions(profile.Editions).FindEdition(edition) is null)
+            yield return $"edition '{edition}' is to be installed, but 'editions' removes it from the image.";
     }
 
     /// <summary>Предупреждения о небезопасных выборах профиля — движок пишет их в лог.</summary>
@@ -68,9 +74,6 @@ public static class AnswerFileGenerator
         if (NeedsSetupLanguage(profile) && image?.Language is null)
             yield return "the image language is unknown, so the installer will still ask for its language (pass --iso).";
     }
-
-    static Edition? FindEdition(ImageInfo image, string editionId) =>
-        image.Editions.FirstOrDefault(e => string.Equals(e.EditionId, editionId, StringComparison.OrdinalIgnoreCase));
 
     static bool NeedsSetupLanguage(Profile profile) => profile.Setup.SkipOobe || !profile.Regional.IsEmpty;
 
@@ -94,7 +97,7 @@ public static class AnswerFileGenerator
     // Редакция выбирается номером в образе; ключ — свой ключ пользователя или нулевой (без запроса ключа).
     static void AddEdition(AnswerFileBuilder file, SetupOptions setup, ImageInfo? image)
     {
-        var edition = setup.Edition is { } id && image is not null ? FindEdition(image, id) : null;
+        var edition = setup.Edition is { } id && image is not null ? image.FindEdition(id) : null;
         if (edition is null && setup.ProductKey is null)
             return;
 

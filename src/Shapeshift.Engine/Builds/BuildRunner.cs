@@ -29,6 +29,7 @@ public static class BuildRunner
     static Task RunStepAsync(BuildPlan plan, BuildStep step, IBuildReporter reporter, CancellationToken ct) => step.Kind switch
     {
         BuildStepKind.ExtractImage => Task.Run(() => Extract(plan, reporter, ct), ct),
+        BuildStepKind.KeepEditions => Task.Run(() => KeepEditions(plan, reporter, ct), ct),
         BuildStepKind.WriteAnswerFile => AnswerFileWriter.WriteAsync(
             AnswerFileGenerator.Generate(plan.Profile, plan.Catalog, plan.Source.Info),
             Path.Combine(plan.MediaDirectory, AnswerFileWriter.FileName),
@@ -64,6 +65,22 @@ public static class BuildRunner
                 reporter.Progress((double)copied / total);
             }
         }
+    }
+
+    // Только выбранные редакции: экспорт в новый WIM рядом и замена старого. Без DISM и монтирования.
+    static void KeepEditions(BuildPlan plan, IBuildReporter reporter, CancellationToken ct)
+    {
+        var installImage = Path.Combine(plan.MediaDirectory, plan.Source.InstallImagePath);
+        var indices = plan.Source.Info.Editions
+            .Where(e => plan.Profile.Editions.Contains(e.EditionId, StringComparer.OrdinalIgnoreCase))
+            .Select(e => e.Index)
+            .ToList();
+        reporter.Log($"Keeping {indices.Count} of {plan.Source.Info.Editions.Count} editions: " +
+            string.Join(", ", plan.Source.Info.KeepEditions(plan.Profile.Editions).Editions.Select(e => e.EditionId)));
+
+        var exported = installImage + ".new";
+        WimLib.KeepImages(installImage, indices, exported, new SynchronousProgress<double>(reporter.Progress), ct);
+        File.Move(exported, installImage, overwrite: true);
     }
 
     static void Pack(BuildPlan plan, IBuildReporter reporter, CancellationToken ct)

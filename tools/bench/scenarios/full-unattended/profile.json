@@ -10,6 +10,8 @@
     "interface.file-extensions", "interface.dark-theme",
     "system.no-device-encryption", "system.no-hibernation"
   ],
+  // Только Pro: установщик должен принять WIM, пересобранный wimlib.
+  "editions": ["Professional"],
   "setup": {
     // Тестовая учётная запись одноразовой ВМ. Пароль хранится, чтобы стенд мог войти через PowerShell Direct.
     "user": { "name": "Bench", "password": { "mode": "store", "value": "Bench-Pass-1" }, "autoLogon": true },

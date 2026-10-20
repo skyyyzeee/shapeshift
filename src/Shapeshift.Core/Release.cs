@@ -45,4 +45,23 @@ public sealed record Release(int Build, int Revision)
 public sealed record Edition(int Index, string EditionId, string Name);
 
 /// <summary>Что лежит в образе: выпуск, архитектура, язык по умолчанию, редакции.</summary>
-public sealed record ImageInfo(Release Release, Architecture Architecture, string? Language, IReadOnlyList<Edition> Editions);
+public sealed record ImageInfo(Release Release, Architecture Architecture, string? Language, IReadOnlyList<Edition> Editions)
+{
+    public Edition? FindEdition(string editionId) =>
+        Editions.FirstOrDefault(e => string.Equals(e.EditionId, editionId, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>
+    /// Образ, в котором остались только эти редакции — в исходном порядке и с новыми номерами (с 1),
+    /// как после экспорта. Пустой список — образ как есть; незнакомые редакции пропускаются.
+    /// </summary>
+    public ImageInfo KeepEditions(IReadOnlyList<string> editionIds)
+    {
+        if (editionIds.Count == 0)
+            return this;
+        var kept = Editions
+            .Where(e => editionIds.Contains(e.EditionId, StringComparer.OrdinalIgnoreCase))
+            .Select((e, i) => e with { Index = i + 1 })
+            .ToList();
+        return this with { Editions = kept };
+    }
+}

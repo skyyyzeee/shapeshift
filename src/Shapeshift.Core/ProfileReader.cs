@@ -46,6 +46,7 @@ public static partial class ProfileReader
         return new Profile(
             ParseArchitecture(dto.Architecture),
             ParseTweaks(dto.Tweaks),
+            ParseEditions(dto.Editions),
             ParseSetup(dto.Setup),
             ParseRegional(dto.Regional),
             new SourceOptions(ResolvePath(dto.Source?.Iso, baseDirectory)),
@@ -62,6 +63,20 @@ public static partial class ProfileReader
         if (tweaks.Distinct(StringComparer.Ordinal).Count() != tweaks.Count)
             throw new ProfileFormatException("'tweaks' lists the same tweak twice.");
         return tweaks;
+    }
+
+    // Существование редакций в образе проверяет движок: профиль читается и без образа.
+    static IReadOnlyList<string> ParseEditions(List<string>? editions)
+    {
+        if (editions is null)
+            return [];
+        if (editions.Count == 0)
+            throw new ProfileFormatException("'editions' is empty; leave it out to keep every edition.");
+        if (editions.Any(string.IsNullOrWhiteSpace))
+            throw new ProfileFormatException("'editions' contains an empty id.");
+        if (editions.Distinct(StringComparer.OrdinalIgnoreCase).Count() != editions.Count)
+            throw new ProfileFormatException("'editions' lists the same edition twice.");
+        return editions;
     }
 
     static SetupOptions ParseSetup(SetupV1? setup)
@@ -200,7 +215,7 @@ public static partial class ProfileReader
     };
 
     sealed record ProfileV1(
-        int FormatVersion, string? Architecture, List<string>? Tweaks, SetupV1? Setup, RegionalV1? Regional, IsoV1? Source, IsoV1? Output);
+        int FormatVersion, string? Architecture, List<string>? Tweaks, List<string>? Editions, SetupV1? Setup, RegionalV1? Regional, IsoV1? Source, IsoV1? Output);
 
     sealed record SetupV1(
         UserV1? User, string? ComputerName, bool? SkipOobe, bool? BypassOnlineAccount, bool? WipeDisk0,

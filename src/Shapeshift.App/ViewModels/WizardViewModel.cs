@@ -22,9 +22,11 @@ public sealed partial class WizardViewModel : ObservableObject
     public WizardViewModel(EngineClient engine)
     {
         Source = new SourceViewModel(engine);
+        Editions = new EditionsViewModel();
         Setup = new SetupViewModel();
         Customize = new CustomizeViewModel(engine);
-        Output = new OutputViewModel(engine, Source, Setup, Customize);
+        Output = new OutputViewModel(engine, Source, Editions, Setup, Customize);
+        Editions.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(EditionsViewModel.IsValid)) StepsChanged(); };
         Output.PropertyChanged += OnOutputChanged;
         Source.PropertyChanged += OnSourceChanged;
         Setup.PropertyChanged += OnSetupChanged;
@@ -32,6 +34,8 @@ public sealed partial class WizardViewModel : ObservableObject
     }
 
     public SourceViewModel Source { get; }
+
+    public EditionsViewModel Editions { get; }
 
     public SetupViewModel Setup { get; }
 
@@ -64,6 +68,8 @@ public sealed partial class WizardViewModel : ObservableObject
             return true;
         if (!Source.HasImage)
             return false;
+        if (step > WizardStep.EditionsAndLanguages && !Editions.IsValid)
+            return false;
         return step <= WizardStep.Setup || Setup.IsValid;
     }
 
@@ -89,6 +95,7 @@ public sealed partial class WizardViewModel : ObservableObject
     {
         Setup.ApplyProfile(profile, onlyWhatIsSet: isPreset);
         Customize.ApplySelection(profile.Tweaks);
+        Editions.ApplyProfile(profile.Editions, profile.Setup.Edition);
         if (profile.Setup.WipeDisk0)
             AdvancedMode = true;
         if (profile.Output.IsoPath is { } output)
@@ -127,6 +134,8 @@ public sealed partial class WizardViewModel : ObservableObject
 
     void OnSourceChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (e.PropertyName == nameof(SourceViewModel.Image))
+            Editions.SetImage(Source.Image);
         if (e.PropertyName == nameof(SourceViewModel.Image))
             Setup.IsWindows11 = Source.Image?.Product != "windows10";
         if (e.PropertyName == nameof(SourceViewModel.HasImage))

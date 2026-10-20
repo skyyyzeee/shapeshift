@@ -1,4 +1,4 @@
-using System.Buffers.Binary;
+using ManagedWimLib;
 using System.Text;
 using Shapeshift.Engine.Images;
 
@@ -40,7 +40,8 @@ public sealed record FakeWindowsIso
         var media = Path.Combine(directory, "fake-media");
         foreach (var (path, content) in PlainFiles)
             WriteFile(media, path, content);
-        WriteFile(media, @"sources\install.wim", InstallWim());
+        if (!Omit.Contains(@"sources\install.wim", StringComparer.OrdinalIgnoreCase))
+            WriteInstallWim(Path.Combine(media, "sources", "install.wim"), directory);
 
         var iso = Path.Combine(directory, "fake-windows.iso");
         IsoWriter.Write(media, iso, VolumeLabel, BootImage(ImageInspector.BiosBootImage), BootImage(ImageInspector.UefiBootImage));
@@ -59,36 +60,44 @@ public sealed record FakeWindowsIso
         File.WriteAllBytes(full, content);
     }
 
-    byte[] InstallWim()
+    // Настоящий WIM (wimlib): по образу на редакцию из крошечной папки, свойства Windows — в XML,
+    // как у установочного образа. Содержимое у каждой редакции своё, чтобы их можно было различить.
+    void WriteInstallWim(string path, string scratch)
     {
-        var images = Editions.Select((e, i) => $"""
-            <IMAGE INDEX="{i + 1}">
-              <NAME>{e.Name}</NAME>
-              <DISPLAYNAME>{e.Name}</DISPLAYNAME>
-              <WINDOWS>
-                <ARCH>{Arch}</ARCH>
-                <EDITIONID>{e.EditionId}</EDITIONID>
-                <INSTALLATIONTYPE>{InstallationType}</INSTALLATIONTYPE>
-                <LANGUAGES><LANGUAGE>{Language}</LANGUAGE><DEFAULT>{Language}</DEFAULT></LANGUAGES>
-                <VERSION><MAJOR>{Major}</MAJOR><MINOR>0</MINOR><BUILD>{Build}</BUILD><SPBUILD>{SpBuild}</SPBUILD></VERSION>
-              </WINDOWS>
-            </IMAGE>
-            """);
-        var xml = Encoding.Unicode.GetPreamble()
-            .Concat(Encoding.Unicode.GetBytes($"<WIM>{string.Concat(images)}</WIM>"))
-            .ToArray();
+        WimLib.EnsureInitialized();
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        using var wim = Wim.CreateNewWim(CompressionType.LZX);
+        for (var i = 0; i < Editions.Count; i++)
+        {
+            var (editionId, name) = Editions[i];
+            var content = Path.Combine(scratch, $"edition-{i}");
+            Directory.CreateDirectory(Path.Combine(content, "Windows"));
+            File.WriteAllText(Path.Combine(content, "Windows", "edition.txt"), editionId);
 
-        const int headerSize = 208;
-        var wim = new byte[headerSize + xml.Length];
-        "MSWIM\0\0\0"u8.CopyTo(wim);
-        BinaryPrimitives.WriteInt32LittleEndian(wim.AsSpan(8), headerSize);
-        BinaryPrimitives.WriteInt32LittleEndian(wim.AsSpan(44), Editions.Count);
-        // Описатель XML-ресурса: размер (7 байт) + флаги, смещение, исходный размер.
-        BinaryPrimitives.WriteInt64LittleEndian(wim.AsSpan(72), xml.Length);
-        BinaryPrimitives.WriteInt64LittleEndian(wim.AsSpan(80), headerSize);
-        BinaryPrimitives.WriteInt64LittleEndian(wim.AsSpan(88), xml.Length);
-        xml.CopyTo(wim, headerSize);
-        return wim;
+            wim.AddImage(content, name, null!, AddFlags.None);
+            var index = i + 1;
+            void Set(string property, object value) => wim.SetImageProperty(index, property, value.ToString()!);
+            Set("DISPLAYNAME", name);
+            Set("WINDOWS/ARCH", Arch);
+            Set("WINDOWS/EDITIONID", editionId);
+            Set("WINDOWS/INSTALLATIONTYPE", InstallationType);
+            Set("WINDOWS/LANGUAGES/LANGUAGE", Language);
+            Set("WINDOWS/LANGUAGES/DEFAULT", Language);
+            Set("WINDOWS/VERSION/MAJOR", Major);
+            Set("WINDOWS/VERSION/MINOR", 0);
+            Set("WINDOWS/VERSION/BUILD", Build);
+            Set("WINDOWS/VERSION/SPBUILD", SpBuild);
+        }
+        wim.Write(path, Wim.AllImages, WriteFlags.None, (uint)Wim.DefaultThreads);
+    }
+
+    /// <summary>EditionId образов WIM по порядку — чтобы проверить, что осталось в результате.</summary>
+    public static IReadOnlyList<string> EditionIds(string wimPath)
+    {
+        WimLib.EnsureInitialized();
+        using var wim = Wim.OpenWim(wimPath, OpenFlags.None);
+        var count = (int)wim.GetWimInfo().ImageCount;
+        return Enumerable.Range(1, count).Select(i => wim.GetImageProperty(i, "WINDOWS/EDITIONID") ?? "").ToList();
     }
 
     static byte[] Filler(string seed, int length)

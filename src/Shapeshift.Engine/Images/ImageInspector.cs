@@ -32,6 +32,7 @@ public sealed record SourceImage(
     string InstallImagePath,
     long ContentBytes,
     int FileCount,
+    long InstallImageBytes,
     int LongestPathLength);
 
 /// <summary>Проверяет, что ISO — установочный образ поддерживаемой Windows, и читает его содержимое.</summary>
@@ -95,6 +96,7 @@ public static class ImageInspector
                 installImage,
                 files.Sum(iso.FileLength),
                 files.Count,
+                iso.FileLength(installImage),
                 files.Max(f => f.TrimStart('\\').Length));
         }
     }
