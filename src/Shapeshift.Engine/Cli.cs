@@ -295,6 +295,11 @@ public static partial class Cli
         {
             return (await FailAsync(context, ExitCodes.Failure, e.Message), null);
         }
+        // Скачивание во время сборки: Windows Update не дал ссылки, файл не скачался или не сошёлся хеш.
+        catch (Exception e) when (e is Uup.UupDownloadException or Uup.WindowsUpdateException)
+        {
+            return (await FailAsync(context, ExitCodes.Failure, $"{e.Message} What is downloaded stays in the cache; run the build again to continue."), null);
+        }
     }
 
     static async Task<(int ExitCode, BuildPlan? Plan)> RunBuildCoreAsync(

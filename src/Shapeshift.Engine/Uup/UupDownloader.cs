@@ -213,7 +213,7 @@ public sealed class UupLinks(Func<CancellationToken, Task<IReadOnlyDictionary<st
             // Пока ждали, другой поток уже обновил ссылки — берём их.
             if (_urls is null || (stale && seen == _version))
             {
-                _urls = await getUrls(ct);
+                _urls = await FetchAsync(ct);
                 _version++;
             }
             return _urls.TryGetValue(file.Sha1, out var url)
@@ -223,6 +223,26 @@ public sealed class UupLinks(Func<CancellationToken, Task<IReadOnlyDictionary<st
         finally
         {
             _lock.Release();
+        }
+    }
+
+    /// <summary>Сколько раз просить ссылки, если служба ответила пусто или ошибкой (бывает на минуту-другую).</summary>
+    public int Attempts { get; init; } = 3;
+
+    public TimeSpan RetryDelay { get; init; } = TimeSpan.FromSeconds(10);
+
+    async Task<IReadOnlyDictionary<string, Uri>> FetchAsync(CancellationToken ct)
+    {
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                return await getUrls(ct);
+            }
+            catch (WindowsUpdateException) when (attempt < Attempts)
+            {
+                await Task.Delay(RetryDelay * attempt, ct);
+            }
         }
     }
 }
