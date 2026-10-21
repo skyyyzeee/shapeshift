@@ -58,7 +58,7 @@ public static class WimLib
                 throw new OperationCanceledException(ct);
             }
         }
-        File.Move(compacted, wimPath, overwrite: true);
+        FileRetry.Move(compacted, wimPath);
     }
 
     /// <summary>Развернуть образ WIM/ESD в папку (например, языковой пакет UUP — DISM ставит его из папки).</summary>

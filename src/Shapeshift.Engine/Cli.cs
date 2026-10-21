@@ -300,6 +300,11 @@ public static partial class Cli
         {
             return (await FailAsync(context, ExitCodes.Failure, $"{e.Message} What is downloaded stays in the cache; run the build again to continue."), null);
         }
+        // Диск: нет места, файл занят надолго, нет доступа — сообщение вместо падения движка.
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            return (await FailAsync(context, ExitCodes.Failure, $"the build failed: {e.Message}"), null);
+        }
     }
 
     static async Task<(int ExitCode, BuildPlan? Plan)> RunBuildCoreAsync(

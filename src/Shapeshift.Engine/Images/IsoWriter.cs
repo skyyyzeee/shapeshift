@@ -151,7 +151,7 @@ public static class IsoWriter
                 }
             }
 
-            File.Move(temp, outputPath, overwrite: true);
+            FileRetry.Move(temp, outputPath);
         }
         catch
         {

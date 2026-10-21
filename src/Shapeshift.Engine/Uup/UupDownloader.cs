@@ -112,7 +112,7 @@ public sealed class UupDownloader(HttpClient http, string workspace)
                     await FetchAsync(file, part, have, urls, advance, ct);
                 if (await MatchesAsync(part, file, ct))
                 {
-                    File.Move(part, target, overwrite: true);
+                    FileRetry.Move(part, target);
                     return;
                 }
                 // Повреждено: скачиваем заново целиком, один раз.

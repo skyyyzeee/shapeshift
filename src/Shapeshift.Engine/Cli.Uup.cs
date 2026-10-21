@@ -210,23 +210,34 @@ public static partial class Cli
                 return (await FailAsync(context, ExitCodes.InvalidInput,
                     $"unknown channel '{options.Channel}'; known: {string.Join(", ", UupChannels.All.Select(c => c.Id))}."), null);
             }
+            string? problem;
             try
             {
-                var (found, problem) = await UupChannels.FindOneAsync(new WindowsUpdateClient(http), channel, ct);
-                if (found is null)
-                    return (await FailAsync(context, ExitCodes.Failure, $"{problem}. Check the internet connection, or use your own ISO."), null);
-                if (options.UpdateId is { } wanted && !string.Equals(wanted, found.UpdateId, StringComparison.OrdinalIgnoreCase))
+                (var found, problem) = await UupChannels.FindOneAsync(new WindowsUpdateClient(http), channel, ct);
+                if (found is not null)
                 {
-                    return (await FailAsync(context, ExitCodes.InvalidInput,
-                        $"release {wanted} is no longer offered in channel {channel.Id} (now {found.Build}); remove 'updateId' to build the newest."), null);
+                    if (options.UpdateId is { } wanted && !string.Equals(wanted, found.UpdateId, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return (await FailAsync(context, ExitCodes.InvalidInput,
+                            $"release {wanted} is no longer offered in channel {channel.Id} (now {found.Build}); remove 'updateId' to build the newest."), null);
+                    }
+                    release = found;
+                    UupReleaseCache.Save(workspace, release);
                 }
-                release = found;
-                UupReleaseCache.Save(workspace, release);
             }
             catch (WindowsUpdateException e)
             {
-                return (await FailAsync(context, ExitCodes.Failure, $"{e.Message} Check the internet connection, or use your own ISO."), null);
+                problem = e.Message.TrimEnd('.');
             }
+
+            // Без связи — самый новый выпуск канала из кэша: так собирают без интернета скачанное заранее.
+            if (release is null && options.UpdateId is null && UupReleaseCache.Newest(workspace, channel.Id) is { } cached)
+            {
+                await context.Error.WriteLineAsync($"warning: Windows Update is unreachable ({problem}); using release {cached.Build} from the cache.");
+                release = cached;
+            }
+            if (release is null)
+                return (await FailAsync(context, ExitCodes.Failure, $"{problem}. Check the internet connection, or use your own ISO."), null);
         }
 
         IReadOnlyList<string> editions = profile.Editions.Count > 0 ? profile.Editions : ["Professional"];

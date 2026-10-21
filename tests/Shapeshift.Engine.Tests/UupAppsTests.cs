@@ -100,6 +100,20 @@ public sealed class UupAppsTests : IDisposable
     }
 
     [Fact]
+    public async Task Downloaded_in_advance_builds_without_the_internet()
+    {
+        Profile();
+        var download = await Build(new FakeWindowsUpdate { Release = _release }, "--download-only");
+        Assert.True(download.ExitCode == Cli.ExitCodes.Success, download.Error);
+
+        var result = await Build(new FakeWindowsUpdate { Offline = true }, "--dry-run");
+
+        Assert.True(result.ExitCode == Cli.ExitCodes.Success, result.Error + result.Output);
+        Assert.Contains($"using release {FakeUupRelease.Build} from the cache", result.Error);
+        Assert.Contains("Download files      0.0 MB", result.Output);
+    }
+
+    [Fact]
     public async Task Adding_apps_needs_administrator_rights()
     {
         Assert.SkipWhen(Servicing.DismServicing.IsElevated, "Runs only without administrator rights.");

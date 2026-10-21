@@ -234,7 +234,7 @@ public static class BuildRunner
 
         var exported = installImage + ".new";
         WimLib.KeepImages(installImage, indices, exported, new SynchronousProgress<double>(reporter.Progress), ct);
-        File.Move(exported, installImage, overwrite: true);
+        FileRetry.Move(exported, installImage);
     }
 
     // Из каждой редакции результата.
