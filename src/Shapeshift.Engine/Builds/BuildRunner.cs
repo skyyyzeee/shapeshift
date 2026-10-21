@@ -41,6 +41,7 @@ public static class BuildRunner
     {
         BuildStepKind.DownloadFiles => plan.Servicing!.Downloader.DownloadAsync(plan.Uup?.DownloadFiles ?? plan.Servicing.Files, plan.Servicing.Links, reporter.Transfer, ct),
         BuildStepKind.AddLanguages => Task.Run(() => AddLanguages(plan, reporter, ct), ct),
+        BuildStepKind.EnableDotNet35 => Task.Run(() => EnableDotNet35(plan, reporter, ct), ct),
         BuildStepKind.IntegrateUpdates => Task.Run(() => IntegrateUpdates(plan, reporter, ct), ct),
         BuildStepKind.AssembleImage => Task.Run(() => Assemble(plan, reporter, ct), ct),
         BuildStepKind.ExtractImage => Task.Run(() => Extract(plan, reporter, ct), ct),
@@ -144,6 +145,16 @@ public static class BuildRunner
             packages.Add(folder);
             packages.AddRange(language.Features.Select(f => Place(plan, Path.Combine(plan.BuildDirectory, "fod"), f)));
         }
+        Servicing.DismServicing.AddPackages(MountableInstallImage(plan, reporter, ct), ServicedImages(plan), packages, plan.MountDirectory, reporter, ct);
+    }
+
+    // Пакет .NET Framework 3.5 — из sources\sxs своего ISO или из возможностей выпуска UUP. До обновлений:
+    // накопительное обновление .NET обновит и его.
+    static void EnableDotNet35(BuildPlan plan, IBuildReporter reporter, CancellationToken ct)
+    {
+        IReadOnlyList<string> packages = plan.Servicing is { DotNet35.Count: > 0 } servicing
+            ? servicing.DotNet35.Select(f => Place(plan, Path.Combine(plan.BuildDirectory, "fod"), f)).ToList()
+            : [Path.Combine(plan.MediaDirectory, plan.Source.NetFx3Package!)];
         Servicing.DismServicing.AddPackages(MountableInstallImage(plan, reporter, ct), ServicedImages(plan), packages, plan.MountDirectory, reporter, ct);
     }
 

@@ -8,6 +8,7 @@ namespace Shapeshift.Core;
 /// <param name="Wallpaper">Обои рабочего стола из своей картинки; null — обычные обои Windows.</param>
 /// <param name="LatestUpdate">Встроить последнее накопительное обновление; null — по умолчанию (для UUP — да; для своего ISO — да, если добавляются языки, иначе нет).</param>
 /// <param name="Languages">Языки интерфейса; null — как в образе.</param>
+/// <param name="DotNet35">Включить .NET Framework 3.5 в образе (офлайн, без скачивания в установленной системе).</param>
 public sealed record Profile(
     Architecture Architecture,
     IReadOnlyList<string> Tweaks,
@@ -20,7 +21,8 @@ public sealed record Profile(
     OutputOptions Output,
     bool? LatestUpdate = null,
     WallpaperOptions? Wallpaper = null,
-    LanguageOptions? Languages = null)
+    LanguageOptions? Languages = null,
+    bool DotNet35 = false)
 {
     public LanguageOptions LanguageChoice => Languages ?? LanguageOptions.None;
 }

@@ -371,4 +371,11 @@ Education, Enterprise, Pro для рабочих станций и другие 
   <data name="LanguagesUpdateNote.Text" xml:space="preserve"><value>Если ваш образ уже обновлён, вместе с языками в него встроится последнее накопительное обновление (около 5 ГБ, от 20 минут сборки): иначе часть текста новых языков осталась бы непереведённой.</value></data>
   <data name="LanguagesSummary_Add" xml:space="preserve"><value>Добавить языки: {0}</value></data>
   <data name="LanguagesSummary_Display" xml:space="preserve"><value>Язык Windows: {0}</value></data>
+  <data name="StepKind_EnableDotNet35" xml:space="preserve"><value>Включение .NET Framework 3.5</value></data>
+  <data name="ComponentsHeader.Text" xml:space="preserve"><value>Компоненты Windows</value></data>
+  <data name="DotNet35Name.Text" xml:space="preserve"><value>.NET Framework 3.5</value></data>
+  <data name="DotNet35Hint.Text" xml:space="preserve"><value>Для старых программ и игр: будет включён сразу, без скачивания после установки.</value></data>
+  <data name="DotNet35Tip.Text" xml:space="preserve"><value>Нужен программам, написанным для Windows 7 и старше: например, старым версиям 1С, бухгалтерским и банковским клиентам, играм. Без него Windows предложит скачать компонент при первом запуске такой программы — а без интернета не сможет.
+Пакет берётся из самого образа (папка sources\sxs официального ISO) или из выпуска Windows Update. Нужны права администратора (окно спросит), сборка дольше на несколько минут.</value></data>
+  <data name="EditionsSummary_DotNet35" xml:space="preserve"><value>Включить .NET Framework 3.5</value></data>
 </root>

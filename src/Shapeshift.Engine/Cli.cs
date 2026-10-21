@@ -343,6 +343,11 @@ public static partial class Cli
                     return (ExitCodes.InvalidInput, null);
                 if (AnswerFileGenerator.DisplayLanguageProblem(profile.LanguageChoice, source.Info.InstalledLanguages) is { } languageProblem)
                     return (await FailAsync(context, ExitCodes.InvalidInput, languageProblem), null);
+                if (profile.DotNet35 && source.NetFx3Package is null)
+                {
+                    return (await FailAsync(context, ExitCodes.InvalidInput,
+                        "the image has no .NET Framework 3.5 package (sources\\sxs\\microsoft-windows-netfx3-ondemand-package*.cab), so it can't be enabled offline; use an official ISO or a release from Windows Update."), null);
+                }
                 int servicingExit;
                 (servicingExit, servicing) = await PrepareIsoServicingAsync(profile, source, workspace, context, http, ct);
                 if (servicingExit != ExitCodes.Success)

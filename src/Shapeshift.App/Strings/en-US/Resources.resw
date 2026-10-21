@@ -370,4 +370,11 @@ The other languages in the list are installed too: switch in Settings → Time &
   <data name="LanguagesUpdateNote.Text" xml:space="preserve"><value>If your image is already updated, the latest cumulative update is built in along with the languages (about 5 GB, 20 minutes or more of building): otherwise some text of the new languages would stay untranslated.</value></data>
   <data name="LanguagesSummary_Add" xml:space="preserve"><value>Add languages: {0}</value></data>
   <data name="LanguagesSummary_Display" xml:space="preserve"><value>Windows language: {0}</value></data>
+  <data name="StepKind_EnableDotNet35" xml:space="preserve"><value>Enabling .NET Framework 3.5</value></data>
+  <data name="ComponentsHeader.Text" xml:space="preserve"><value>Windows components</value></data>
+  <data name="DotNet35Name.Text" xml:space="preserve"><value>.NET Framework 3.5</value></data>
+  <data name="DotNet35Hint.Text" xml:space="preserve"><value>For older programs and games: enabled right away, nothing to download after installation.</value></data>
+  <data name="DotNet35Tip.Text" xml:space="preserve"><value>Programs written for Windows 7 and older need it: older accounting and banking clients, games and so on. Without it Windows offers to download the component the first time such a program starts — and can't without the internet.
+The package comes from the image itself (the sources\sxs folder of an official ISO) or from the Windows Update release. It needs administrator rights (the app will ask) and adds a few minutes to the build.</value></data>
+  <data name="EditionsSummary_DotNet35" xml:space="preserve"><value>Enable .NET Framework 3.5</value></data>
 </root>

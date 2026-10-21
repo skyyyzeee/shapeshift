@@ -1,0 +1,10 @@
+{
+  "editionId": "Professional",
+  "userLocale": "ru-RU",
+  "uiLanguage": "en-US",
+  "uiLanguages": ["en-US", "ru-RU"],
+  "files": [
+    { "path": "C:\\Windows\\System32\\en-US\\shell32.dll.mui" },
+    { "path": "C:\\Windows\\System32\\ru-RU\\shell32.dll.mui" }
+  ]
+}

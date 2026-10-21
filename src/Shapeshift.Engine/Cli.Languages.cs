@@ -61,18 +61,9 @@ public static partial class Cli
                 return (await FailAsync(context, ExitCodes.InvalidInput,
                     $"adding languages to your own ISO works for Windows 11 24H2 and 25H2 and Windows 10 2004–22H2; this image is {source.Info.Release}."), installed, [], null);
             }
-            try
-            {
-                var (found, problem) = await UupChannels.FindOneAsync(new WindowsUpdateClient(http), channel, ct);
-                if (found is null)
-                    return (await FailAsync(context, ExitCodes.Failure, $"language packs come from Windows Update: {problem}. Check the internet connection."), installed, [], null);
-                release = found;
-                UupReleaseCache.Save(workspace, release);
-            }
-            catch (WindowsUpdateException e)
-            {
-                return (await FailAsync(context, ExitCodes.Failure, $"language packs come from Windows Update: {e.Message} Check the internet connection."), installed, [], null);
-            }
+            release = await FindServicingReleaseAsync(channel, workspace, "the list of language packs", context, http, ct);
+            if (release is null)
+                return (ExitCodes.Failure, installed, [], null);
         }
         else if (UupReleaseCache.Load(workspace, updateId!) is not { } cached)
         {

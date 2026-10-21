@@ -12,6 +12,7 @@ public enum BuildStepKind
     ExtractImage,
     KeepEditions,
     AddLanguages,
+    EnableDotNet35,
     IntegrateUpdates,
     RemoveApps,
     AddPrograms,
@@ -56,7 +57,7 @@ public sealed record BuildPlan(
     public bool FitsMaxPath => LongestExtractedPath <= MaxPath;
 
     /// <summary>Есть шаги через DISM — сборке нужны права администратора.</summary>
-    public bool NeedsElevation => Steps.Any(s => s.Kind is BuildStepKind.RemoveApps or BuildStepKind.AddLanguages or BuildStepKind.IntegrateUpdates);
+    public bool NeedsElevation => Steps.Any(s => s.Kind is BuildStepKind.RemoveApps or BuildStepKind.AddLanguages or BuildStepKind.EnableDotNet35 or BuildStepKind.IntegrateUpdates);
 
     /// <summary>Картинка обоев на носителе: Windows Setup перенесёт <c>$OEM$\$$</c> в папку Windows.</summary>
     public const string WallpaperMediaFolder = @"sources\$OEM$\$$\Web\Wallpaper\Shapeshift";
@@ -116,6 +117,9 @@ public static class BuildPlanner
             var languageBytes = withLanguages.Languages.SelectMany(l => l.Files).Sum(f => f.Size);
             dismSteps.Add(new(BuildStepKind.AddLanguages, "Add languages", workspaceVolume, languageBytes * 10 + languageBytes * 2 * editionCount));
         }
+        // .NET Framework 3.5 — около 250 МБ в каждой редакции (общие файлы WIM хранит один раз).
+        if (profile.DotNet35)
+            dismSteps.Add(new(BuildStepKind.EnableDotNet35, "Enable .NET Framework 3.5", workspaceVolume, (250L << 20) * editionCount));
         // DISM дописывает в WIM изменённые файлы — до размера обновлений на каждую редакцию, плюс распаковка обновления.
         if (servicing?.Updates is { } updates)
         {

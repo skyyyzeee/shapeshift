@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Стенд сквозной проверки: профиль сценария -> build -> ВМ Hyper-V -> автоматическая установка -> проверки -> удаление ВМ.
 
@@ -237,8 +237,19 @@ try {
             $layouts = @($preload.PSObject.Properties | Where-Object { $_.Name -match '^\d+$' } |
                 Sort-Object { [int]$_.Name } | ForEach-Object { [string]$_.Value })
         }
+        # Язык интерфейса пользователя: свой выбор, иначе системный (кэш при входе), иначе язык системы по умолчанию.
+        $desktop = Get-ItemProperty 'HKCU:\Control Panel\Desktop' -ErrorAction SilentlyContinue
+        $cached = Get-ItemProperty 'HKCU:\Control Panel\Desktop\MuiCached' -ErrorAction SilentlyContinue
+        $machine = Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\MUI\Settings' -ErrorAction SilentlyContinue
+        $uiLanguage = @(
+            $(if ($desktop -and $desktop.PSObject.Properties['PreferredUILanguages']) { $desktop.PreferredUILanguages }),
+            $(if ($cached -and $cached.PSObject.Properties['MachinePreferredUILanguages']) { $cached.MachinePreferredUILanguages }),
+            $(if ($machine -and $machine.PSObject.Properties['PreferredUILanguages']) { $machine.PreferredUILanguages })
+        ) | Where-Object { $_ } | Select-Object -First 1
         [pscustomobject]@{
             ComputerName = $env:COMPUTERNAME
+            UiLanguage = [string]$uiLanguage
+            UiLanguages = @(Get-ChildItem 'HKLM:\SYSTEM\CurrentControlSet\Control\MUI\UILanguages' -ErrorAction SilentlyContinue | ForEach-Object PSChildName | Sort-Object)
             EditionId = $version.EditionID
             Build = "$($version.CurrentBuild).$($version.UBR)"
             UserLocale = (Get-ItemProperty 'HKCU:\Control Panel\International').LocaleName
@@ -278,6 +289,8 @@ try {
             'userLocale' { Add-Check 'user locale' $property.Value $facts.UserLocale }
             'keyboardLayouts' { Add-Check 'keyboard layouts' $property.Value $facts.KeyboardLayouts }
             'timeZone' { Add-Check 'time zone' $property.Value $facts.TimeZone }
+            'uiLanguage' { Add-Check 'display language' $property.Value $facts.UiLanguage }
+            'uiLanguages' { Add-Check 'installed display languages' @($property.Value | Sort-Object) $facts.UiLanguages }
             'userIsAdministrator' { Add-Check 'user is administrator' $true ($facts.Administrators -contains $property.Value) }
             'registry' {
                 for ($i = 0; $i -lt $registryChecks.Count; $i++) {

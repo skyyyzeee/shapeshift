@@ -254,7 +254,15 @@ public static partial class Cli
             else
                 await context.Output.WriteLineAsync($"Updates: {string.Join(", ", updates.All.Select(f => f.Name))}");
         }
-        var servicing = new UupServicing(plan.Release, plan.Downloader, plan.Urls, languages.Packs, updates);
+        // .NET Framework 3.5: в образе из UUP нет sources\sxs — пакет берётся из возможностей выпуска.
+        IReadOnlyList<UupFile> dotNet35 = [];
+        if (profile.DotNet35)
+        {
+            dotNet35 = UupFeaturesOnDemand.Load(plan.Release, plan.CompDbs).FilesFor([DotNet35Feature]);
+            if (dotNet35.Count == 0)
+                return (await FailAsync(context, ExitCodes.Failure, $"release {release.Build} has no .NET Framework 3.5 package."), null);
+        }
+        var servicing = new UupServicing(plan.Release, plan.Downloader, plan.Urls, languages.Packs, updates, dotNet35);
         return (ExitCodes.Success, new UupBuildSource(plan.Release, plan.Language, plan.Editions, plan.Files, plan.Downloader, plan.Urls, plan.BaseVersion, servicing));
     }
 
@@ -312,19 +320,9 @@ public static partial class Cli
                 $"{what} to your own ISO works for Windows 11 24H2 and 25H2 and Windows 10 2004–22H2; this image is {image.Release}."), null);
         }
 
-        UupRelease release;
-        try
-        {
-            var (found, problem) = await UupChannels.FindOneAsync(new WindowsUpdateClient(http), channel, ct);
-            if (found is null)
-                return (await FailAsync(context, ExitCodes.Failure, $"{what} needs Windows Update: {problem}. Check the internet connection."), null);
-            release = found;
-            UupReleaseCache.Save(workspace, release);
-        }
-        catch (WindowsUpdateException e)
-        {
-            return (await FailAsync(context, ExitCodes.Failure, $"{what} needs Windows Update: {e.Message} Check the internet connection."), null);
-        }
+        var release = await FindServicingReleaseAsync(channel, workspace, what, context, http, ct);
+        if (release is null)
+            return (ExitCodes.Failure, null);
 
         try
         {
@@ -366,6 +364,41 @@ public static partial class Cli
             return (await FailAsync(context, ExitCodes.Failure, e.Message), null);
         }
     }
+
+    /// <summary>
+    /// Самый новый выпуск канала из Windows Update; без связи — самый новый из кэша (так собирают без интернета
+    /// то, что скачано заранее: <c>build --download-only</c>). null — ни того, ни другого; причина уже в потоке ошибок.
+    /// </summary>
+    static async Task<UupRelease?> FindServicingReleaseAsync(
+        UupChannel channel, string workspace, string what, Context context, HttpClient http, CancellationToken ct)
+    {
+        string problem;
+        try
+        {
+            var (found, notFound) = await UupChannels.FindOneAsync(new WindowsUpdateClient(http), channel, ct);
+            if (found is not null)
+            {
+                UupReleaseCache.Save(workspace, found);
+                return found;
+            }
+            problem = notFound!;
+        }
+        catch (WindowsUpdateException e)
+        {
+            problem = e.Message.TrimEnd('.');
+        }
+
+        if (UupReleaseCache.Newest(workspace, channel.Id) is { } cached)
+        {
+            await context.Error.WriteLineAsync($"warning: Windows Update is unreachable ({problem}); using release {cached.Build} from the cache.");
+            return cached;
+        }
+        await FailAsync(context, ExitCodes.Failure, $"{what} needs Windows Update: {problem}. Check the internet connection.");
+        return null;
+    }
+
+    /// <summary>Функция .NET Framework 3.5 в CompDB возможностей.</summary>
+    const string DotNet35Feature = "NetFX3~";
 
     static int BuildOf(string version) => int.TryParse(version.Split('.').ElementAtOrDefault(2), out var build) ? build : 0;
 

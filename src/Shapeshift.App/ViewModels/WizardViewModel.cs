@@ -107,6 +107,8 @@ public sealed partial class WizardViewModel : ObservableObject
         Editions.ApplyProfile(profile.Editions, profile.Setup.Edition);
         if (!isPreset || profile.Languages is not null)
             Editions.Languages.ApplyProfile(profile.Languages);
+        if (!isPreset || profile.DotNet35)
+            Editions.DotNet35 = profile.DotNet35;
         if (profile.Setup.WipeDisk0)
             AdvancedMode = true;
         if (profile.Output.IsoPath is { } output)

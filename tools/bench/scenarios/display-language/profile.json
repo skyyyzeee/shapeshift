@@ -1,0 +1,16 @@
+{
+  // Язык Windows, добавленный в образ: источник — ISO, собранный с "languages": { "add": ["en-US"] }
+  // (DISM; см. Invoke-BuildInVm.ps1). Стенд только задаёт язык по умолчанию — en-US уже в образе.
+  "formatVersion": 1,
+  "tweaks": ["bypass.tpm", "bypass.secure-boot", "bypass.ram", "bypass.cpu"],
+  "languages": { "display": "en-US" },
+  "setup": {
+    "user": { "name": "Bench", "password": { "mode": "store", "value": "Bench-Pass-1" }, "autoLogon": true },
+    "computerName": "SHAPESHIFT-VM",
+    "skipOobe": true,
+    "bypassOnlineAccount": true,
+    "wipeDisk0": true,
+    "edition": "Professional"
+  },
+  "regional": { "formats": "ru-RU", "keyboards": ["en-US", "ru-RU"], "timeZone": "Russian Standard Time" }
+}

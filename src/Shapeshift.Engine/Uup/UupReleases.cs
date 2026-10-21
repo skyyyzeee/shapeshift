@@ -186,6 +186,19 @@ public static class UupReleaseCache
         File.WriteAllText(Path.Combine(Folder(workspace), release.UpdateId + ".json"), JsonSerializer.Serialize(release, Json));
     }
 
+    /// <summary>Самый новый выпуск канала из кэша (найденный раньше); null — таких нет.</summary>
+    public static UupRelease? Newest(string workspace, string channel)
+    {
+        if (!Directory.Exists(Folder(workspace)))
+            return null;
+        static Version VersionOf(string build) => Version.TryParse(build, out var v) ? v : new Version(0, 0);
+        return Directory.EnumerateFiles(Folder(workspace), "*.json")
+            .Select(f => Load(workspace, Path.GetFileNameWithoutExtension(f)))
+            .OfType<UupRelease>()
+            .Where(r => string.Equals(r.Channel, channel, StringComparison.OrdinalIgnoreCase))
+            .MaxBy(r => VersionOf(r.Build));
+    }
+
     /// <summary>null — такого выпуска в кэше нет (не искали или кэш очищен).</summary>
     public static UupRelease? Load(string workspace, string updateId)
     {

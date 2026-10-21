@@ -109,6 +109,24 @@ public sealed class LanguageTests : IDisposable
     }
 
     [Fact]
+    public async Task Downloaded_in_advance_builds_without_the_internet()
+    {
+        var iso = new FakeWindowsIso().WriteTo(_dir.Path);
+        IsoProfile(iso, """{ "add": ["de-DE"] }""", "\"latestUpdate\": false,");
+        var download = await CliRun.RunAsync(new FakeWindowsUpdate { Release = _release }.Host(Workspace),
+            ["build", "--profile", _dir.File("profile.json"), "--workspace", Workspace, "--download-only"]);
+        Assert.True(download.ExitCode == Cli.ExitCodes.Success, download.Error);
+
+        var offline = new FakeWindowsUpdate { Offline = true };
+        var result = await DryRun(offline);
+
+        Assert.True(result.ExitCode == Cli.ExitCodes.Success, result.Error + result.Output);
+        Assert.Contains($"using release {FakeUupRelease.Build} from the cache", result.Error);
+        Assert.Contains("Languages: de-DE (3 packages)", result.Output);
+        Assert.Contains("Download files      0.0 MB", result.Output);
+    }
+
+    [Fact]
     public async Task Language_without_a_pack_in_the_release_is_rejected_before_downloading()
     {
         UupProfile("""{ "add": ["fr-FR"] }""");

@@ -26,6 +26,11 @@ public sealed record FakeWindowsIso
     /// <summary>Папки в Program Files\WindowsApps каждой редакции: имя папки пакета и фреймворк ли это (по манифесту).</summary>
     public IReadOnlyList<(string Folder, bool Framework)> WindowsApps { get; init; } = [];
 
+    /// <summary>Положить источник .NET Framework 3.5 в sources\sxs — как в официальных ISO.</summary>
+    public bool WithNetFx3 { get; init; }
+
+    public const string NetFx3Package = @"sources\sxs\microsoft-windows-netfx3-ondemand-package~31bf3856ad364e35~amd64~~.cab";
+
     public const string VolumeLabel = "FAKE_WIN11";
 
     /// <summary>Файлы образа и их содержимое (кроме install.wim).</summary>
@@ -43,6 +48,8 @@ public sealed record FakeWindowsIso
         var media = Path.Combine(directory, "fake-media");
         foreach (var (path, content) in PlainFiles)
             WriteFile(media, path, content);
+        if (WithNetFx3)
+            WriteFile(media, NetFx3Package, Filler("netfx3", 2048));
         if (!Omit.Contains(@"sources\install.wim", StringComparer.OrdinalIgnoreCase))
             WriteInstallWim(Path.Combine(media, "sources", "install.wim"), directory);
 

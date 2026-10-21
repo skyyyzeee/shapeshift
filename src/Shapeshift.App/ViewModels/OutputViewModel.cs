@@ -87,7 +87,7 @@ public sealed partial class OutputViewModel(
             keep ??= editions.Editions.Select(e => e.EditionId).ToList();
         return new ProfileDraft(source.Uup is null ? source.IsoPath : null, outputIso, [.. tweaks, .. customize.SelectedTweaks], keep,
             setupDraft with { Edition = install }, regional, customize.SelectedApps, customize.Programs.ToDraft(), source.Uup,
-            customize.Wallpaper.ToDraft(), editions.Languages.ToDraft());
+            customize.Wallpaper.ToDraft(), editions.Languages.ToDraft(), editions.DotNet35);
     }
 
     bool HasSource => source.HasSource;

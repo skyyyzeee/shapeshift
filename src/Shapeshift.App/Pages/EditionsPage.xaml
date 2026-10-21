@@ -62,6 +62,27 @@
                 </StackPanel>
             </Border>
 
+            <!-- Компоненты Windows, которые включаются в образе офлайн (DISM). -->
+            <Border Style="{StaticResource CardStyle}">
+                <StackPanel Spacing="8">
+                    <TextBlock x:Uid="ComponentsHeader" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                    <Grid ColumnSpacing="16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock x:Uid="DotNet35Name" TextWrapping="Wrap" />
+                                <c:InfoTip x:Uid="DotNet35Tip" />
+                            </StackPanel>
+                            <TextBlock x:Uid="DotNet35Hint" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <ToggleSwitch Grid.Column="1" MinWidth="0" IsOn="{x:Bind ViewModel.DotNet35, Mode=TwoWay}" OffContent="" OnContent="" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
             <!-- Языки интерфейса: пакеты из Windows Update ставит DISM при сборке; язык Windows — в файле ответов. -->
             <Border Style="{StaticResource CardStyle}">
                 <StackPanel Spacing="8">

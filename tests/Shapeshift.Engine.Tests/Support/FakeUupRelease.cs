@@ -47,6 +47,9 @@ public sealed class FakeUupRelease
         $"Microsoft-Windows-LanguageFeatures-Handwriting-{language.ToLowerInvariant()}-Package~31bf3856ad364e35~amd64~~.cab",
     ];
 
+    /// <summary>Пакет .NET Framework 3.5 среди возможностей выпуска (функция NetFX3~).</summary>
+    public const string NetFx3 = "Microsoft-Windows-NetFx3-OnDemand-Package~31bf3856ad364e35~amd64~~.cab";
+
     /// <summary>Языки, для которых есть языковой пакет; возможности — только у de-DE и ru-RU.</summary>
     public static readonly string[] LanguagePacks = ["de-DE", "en-US", "ru-RU"];
 
@@ -96,6 +99,7 @@ public sealed class FakeUupRelease
         Add("Windows11.0-KB5000004-x64-NDP481.cab", 1024);
         foreach (var feature in LanguageFeatures("de-DE").Concat(LanguageFeatures("ru-RU")))
             Add(feature, 768);
+        Add(NetFx3, 1536);
         Files[$"{UpdateId}.AggregatedMetadata.cab"] = Metadata(scratch);
     }
 
@@ -287,6 +291,7 @@ public sealed class FakeUupRelease
     {
         var features = new System.Text.StringBuilder();
         var packages = new System.Text.StringBuilder();
+        packages.Append(payload(NetFx3).Replace($"ID=\"{NetFx3}\"", "ID=\"Microsoft-Windows-NetFx3-OnDemand-Package\""));
         foreach (var language in new[] { "de-de", "ru-ru" })
         {
             var basic = $"Microsoft-Windows-LanguageFeatures-Basic-{language}-Package";
@@ -303,6 +308,7 @@ public sealed class FakeUupRelease
             <CompDB xmlns="http://schemas.microsoft.com/embedded/2004/10/ImageUpdate" Name="Build~amd64~Desktop_FOD~~" OSVersion="10.0.26100.1">
               <Features>
                 <Feature Type="OnDemandFeature" FeatureID="Microsoft.Windows.Notepad~~~~0.0.1.0"><Packages><Package ID="Microsoft-Windows-Notepad-FoD-Package" /></Packages></Feature>
+                <Feature Type="OnDemandFeature" FeatureID="NetFX3~"><Packages><Package ID="Microsoft-Windows-NetFx3-OnDemand-Package" /></Packages></Feature>
                 {features}
               </Features>
               <Packages>{packages}</Packages>

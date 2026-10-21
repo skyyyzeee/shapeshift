@@ -20,6 +20,10 @@ public sealed partial class EditionsViewModel(EngineClient engine) : ObservableO
 {
     public LanguagesViewModel Languages { get; } = new(engine);
 
+    /// <summary>Включить .NET Framework 3.5 в образе (DISM, из самого образа или выпуска).</summary>
+    [ObservableProperty]
+    public partial bool DotNet35 { get; set; }
+
     const string Ask = "";
 
     // Выбор из профиля, если образ ещё не прочитан: применится, когда появятся редакции.
@@ -119,5 +123,7 @@ public sealed partial class EditionsViewModel(EngineClient engine) : ObservableO
             yield return Text.Format("EditionsSummary_Keep", string.Join(", ", Editions.Where(e => e.IsKept).Select(e => e.Name)));
         if (install is not null)
             yield return Text.Format("EditionsSummary_Install", Install!.Label);
+        if (DotNet35)
+            yield return Text.Get("EditionsSummary_DotNet35");
     }
 }

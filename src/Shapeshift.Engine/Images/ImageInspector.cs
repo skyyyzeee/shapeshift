@@ -33,7 +33,8 @@ public sealed record SourceImage(
     long ContentBytes,
     int FileCount,
     long InstallImageBytes,
-    int LongestPathLength);
+    int LongestPathLength,
+    string? NetFx3Package = null);
 
 /// <summary>Проверяет, что ISO — установочный образ поддерживаемой Windows, и читает его содержимое.</summary>
 public static class ImageInspector
@@ -97,7 +98,12 @@ public static class ImageInspector
                 files.Sum(iso.FileLength),
                 files.Count,
                 iso.FileLength(installImage),
-                files.Max(f => f.TrimStart('\\').Length));
+                files.Max(f => f.TrimStart('\\').Length),
+                // Источник .NET Framework 3.5 для офлайн-включения — как в официальных ISO.
+                files.Select(f => f.TrimStart('\\')).FirstOrDefault(f =>
+                    f.StartsWith(@"sources\sxs\", StringComparison.OrdinalIgnoreCase) &&
+                    Path.GetFileName(f).StartsWith("microsoft-windows-netfx3-ondemand-package", StringComparison.OrdinalIgnoreCase) &&
+                    f.EndsWith(".cab", StringComparison.OrdinalIgnoreCase)));
         }
     }
 
