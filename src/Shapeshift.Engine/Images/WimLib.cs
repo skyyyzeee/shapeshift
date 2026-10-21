@@ -29,6 +29,38 @@ public static class WimLib
         }
     }
 
+    /// <summary>
+    /// Переписать WIM без неиспользуемых данных. DISM при сохранении дописывает изменённые файлы в конец, а старые
+    /// остаются в файле — после обновлений install.wim вырастает на гигабайты. Пишется рядом и заменяет исходный.
+    /// </summary>
+    /// <exception cref="OperationCanceledException">Отменили; исходный файл не тронут.</exception>
+    public static void Compact(string wimPath, IProgress<double>? progress, CancellationToken ct)
+    {
+        EnsureInitialized();
+        var compacted = wimPath + ".new";
+        using (var source = Wim.OpenWim(wimPath, OpenFlags.None))
+        {
+            source.RegisterCallback((message, info, _) =>
+            {
+                if (ct.IsCancellationRequested)
+                    return CallbackStatus.Abort;
+                if (message == ProgressMsg.WriteStreams && info is WriteStreamsProgress write && write.TotalBytes > 0)
+                    progress?.Report((double)write.CompletedBytes / write.TotalBytes);
+                return CallbackStatus.Continue;
+            });
+            try
+            {
+                source.Write(compacted, Wim.AllImages, WriteFlags.None, (uint)Wim.DefaultThreads);
+            }
+            catch (Exception) when (ct.IsCancellationRequested)
+            {
+                File.Delete(compacted);
+                throw new OperationCanceledException(ct);
+            }
+        }
+        File.Move(compacted, wimPath, overwrite: true);
+    }
+
     /// <summary>Развернуть образ WIM/ESD в папку (например, языковой пакет UUP — DISM ставит его из папки).</summary>
     public static void ApplyImage(string wimPath, int index, string targetDirectory)
     {

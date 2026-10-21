@@ -3,6 +3,9 @@
   "userLocale": "ru-RU",
   "uiLanguage": "en-US",
   "uiLanguages": ["en-US", "ru-RU"],
+  "registry": [
+    { "path": "HKLM:\\SOFTWARE\\Microsoft\\NET Framework Setup\\NDP\\v3.5", "name": "Install", "value": 1 }
+  ],
   "files": [
     { "path": "C:\\Windows\\System32\\en-US\\shell32.dll.mui" },
     { "path": "C:\\Windows\\System32\\ru-RU\\shell32.dll.mui" }

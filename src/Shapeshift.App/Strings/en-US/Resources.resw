@@ -377,4 +377,5 @@ The other languages in the list are installed too: switch in Settings → Time &
   <data name="DotNet35Tip.Text" xml:space="preserve"><value>Programs written for Windows 7 and older need it: older accounting and banking clients, games and so on. Without it Windows offers to download the component the first time such a program starts — and can't without the internet.
 The package comes from the image itself (the sources\sxs folder of an official ISO) or from the Windows Update release. It needs administrator rights (the app will ask) and adds a few minutes to the build.</value></data>
   <data name="EditionsSummary_DotNet35" xml:space="preserve"><value>Enable .NET Framework 3.5</value></data>
+  <data name="StepKind_CompactImage" xml:space="preserve"><value>Compacting the image</value></data>
 </root>

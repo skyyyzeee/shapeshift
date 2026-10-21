@@ -1,6 +1,6 @@
 {
-  // Язык Windows, добавленный в образ: источник — ISO, собранный с "languages": { "add": ["en-US"] }
-  // (DISM; см. Invoke-BuildInVm.ps1). Стенд только задаёт язык по умолчанию — en-US уже в образе.
+  // Офлайн-обслуживание: источник — ISO, собранный в ВМ (Invoke-BuildInVm.ps1) с "languages": { "add": ["en-US"] }
+  // и "dotNet35": true. Стенд только задаёт язык Windows — en-US уже в образе — и проверяет результат.
   "formatVersion": 1,
   "tweaks": ["bypass.tpm", "bypass.secure-boot", "bypass.ram", "bypass.cpu"],
   "languages": { "display": "en-US" },

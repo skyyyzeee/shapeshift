@@ -378,4 +378,5 @@ Education, Enterprise, Pro для рабочих станций и другие 
   <data name="DotNet35Tip.Text" xml:space="preserve"><value>Нужен программам, написанным для Windows 7 и старше: например, старым версиям 1С, бухгалтерским и банковским клиентам, играм. Без него Windows предложит скачать компонент при первом запуске такой программы — а без интернета не сможет.
 Пакет берётся из самого образа (папка sources\sxs официального ISO) или из выпуска Windows Update. Нужны права администратора (окно спросит), сборка дольше на несколько минут.</value></data>
   <data name="EditionsSummary_DotNet35" xml:space="preserve"><value>Включить .NET Framework 3.5</value></data>
+  <data name="StepKind_CompactImage" xml:space="preserve"><value>Сжатие образа</value></data>
 </root>

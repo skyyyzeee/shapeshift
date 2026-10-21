@@ -114,7 +114,9 @@ public static class AnswerFileGenerator
             new XElement(Unattend + "SetupUILanguage", new XElement(Unattend + "UILanguage", language)),
             new XElement(Unattend + "InputLocale", regional.Keyboards.Count > 0 ? string.Join(";", regional.Keyboards) : language),
             new XElement(Unattend + "SystemLocale", formats),
-            new XElement(Unattend + "UILanguage", profile.LanguageChoice.Display ?? language),
+            // Язык Windows здесь не задаётся: Setup сверяет его со списком языков носителя (lang.ini), и с языком,
+            // добавленным в install.wim, отбрасывает весь компонент — и спрашивает язык. Он — на этапе oobeSystem.
+            new XElement(Unattend + "UILanguage", language),
             new XElement(Unattend + "UserLocale", formats));
     }
 

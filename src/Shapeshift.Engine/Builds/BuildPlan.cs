@@ -15,6 +15,7 @@ public enum BuildStepKind
     EnableDotNet35,
     IntegrateUpdates,
     RemoveApps,
+    CompactImage,
     AddPrograms,
     AddWallpaper,
     WriteAnswerFile,
@@ -130,7 +131,11 @@ public static class BuildPlanner
         if (uup is null && profile.RemoveApps.Count > 0)
             dismSteps.Add(new(BuildStepKind.RemoveApps, "Remove built-in apps", workspaceVolume, 1L << 30));
         if (dismSteps.Count > 0)
+        {
             dismSteps[0] = dismSteps[0] with { Bytes = dismSteps[0].Bytes + esdToWim };
+            // После DISM — переписать install.wim без старых копий изменённых файлов (новый файл рядом).
+            dismSteps.Add(new(BuildStepKind.CompactImage, "Compact image", workspaceVolume, source.InstallImageBytes));
+        }
         steps.AddRange(dismSteps);
 
         // Установщики своих программ копируются в образ; winget ставит из интернета при первом входе.

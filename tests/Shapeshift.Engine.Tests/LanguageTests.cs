@@ -65,7 +65,7 @@ public sealed class LanguageTests : IDisposable
         Assert.True(result.ExitCode == Cli.ExitCodes.Success, result.Error + result.Output);
         // Языковой пакет и возможности языка: базовые раньше рукописного ввода, который от них зависит.
         Assert.Contains("Languages: de-DE (3 packages)", result.Output);
-        Assert.Equal(["Download files", "Assemble image", "Add languages", "Integrate updates", "Write answer file", "Pack ISO"], Steps(result.Output));
+        Assert.Equal(["Download files", "Assemble image", "Add languages", "Integrate updates", "Compact image", "Write answer file", "Pack ISO"], Steps(result.Output));
     }
 
     [Fact]
@@ -192,7 +192,7 @@ public sealed class LanguageTests : IDisposable
         Assert.Contains("Languages: ru-RU (3 packages)", result.Output);
         // Без пакета включения версии (KB5000002): образ остаётся своей версии.
         Assert.Contains("Updates: Windows11.0-KB5000001-x64.msu, Windows11.0-KB5000004-x64-NDP481.cab", result.Output);
-        Assert.Equal(["Download files", "Extract image", "Add languages", "Integrate updates", "Write answer file", "Pack ISO"], Steps(result.Output));
+        Assert.Equal(["Download files", "Extract image", "Add languages", "Integrate updates", "Compact image", "Write answer file", "Pack ISO"], Steps(result.Output));
     }
 
     [Fact]
@@ -218,7 +218,7 @@ public sealed class LanguageTests : IDisposable
         var result = await DryRun(new FakeWindowsUpdate { Release = _release });
 
         Assert.True(result.ExitCode == Cli.ExitCodes.Success, result.Error);
-        Assert.Equal(["Download files", "Extract image", "Integrate updates", "Write answer file", "Pack ISO"], Steps(result.Output));
+        Assert.Equal(["Download files", "Extract image", "Integrate updates", "Compact image", "Write answer file", "Pack ISO"], Steps(result.Output));
     }
 
     [Fact]
@@ -266,9 +266,9 @@ public sealed class LanguageTests : IDisposable
             .Where(s => (string?)s.Attribute("pass") == pass)
             .Descendants(Unattend + "component").Where(c => (string?)c.Attribute("name") == component)
             .Elements(Unattend + element).Select(e => e.Value).FirstOrDefault();
-        // Установщик — на языке образа, Windows — на выбранном.
+        // Установщик — на языке образа (иначе Setup спросит язык: de-DE нет в lang.ini носителя), Windows — на выбранном.
         Assert.Equal("en-US", doc.Descendants(Unattend + "SetupUILanguage").Single().Element(Unattend + "UILanguage")!.Value);
-        Assert.Equal("de-DE", Value("windowsPE", "Microsoft-Windows-International-Core-WinPE", "UILanguage"));
+        Assert.Equal("en-US", Value("windowsPE", "Microsoft-Windows-International-Core-WinPE", "UILanguage"));
         Assert.Equal("de-DE", Value("oobeSystem", "Microsoft-Windows-International-Core", "UILanguage"));
         Assert.Equal("ru-RU", Value("oobeSystem", "Microsoft-Windows-International-Core", "UserLocale"));
     }

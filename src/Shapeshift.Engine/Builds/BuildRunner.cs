@@ -42,6 +42,7 @@ public static class BuildRunner
         BuildStepKind.DownloadFiles => plan.Servicing!.Downloader.DownloadAsync(plan.Uup?.DownloadFiles ?? plan.Servicing.Files, plan.Servicing.Links, reporter.Transfer, ct),
         BuildStepKind.AddLanguages => Task.Run(() => AddLanguages(plan, reporter, ct), ct),
         BuildStepKind.EnableDotNet35 => Task.Run(() => EnableDotNet35(plan, reporter, ct), ct),
+        BuildStepKind.CompactImage => Task.Run(() => Compact(plan, reporter, ct), ct),
         BuildStepKind.IntegrateUpdates => Task.Run(() => IntegrateUpdates(plan, reporter, ct), ct),
         BuildStepKind.AssembleImage => Task.Run(() => Assemble(plan, reporter, ct), ct),
         BuildStepKind.ExtractImage => Task.Run(() => Extract(plan, reporter, ct), ct),
@@ -156,6 +157,14 @@ public static class BuildRunner
             ? servicing.DotNet35.Select(f => Place(plan, Path.Combine(plan.BuildDirectory, "fod"), f)).ToList()
             : [Path.Combine(plan.MediaDirectory, plan.Source.NetFx3Package!)];
         Servicing.DismServicing.AddPackages(MountableInstallImage(plan, reporter, ct), ServicedImages(plan), packages, plan.MountDirectory, reporter, ct);
+    }
+
+    static void Compact(BuildPlan plan, IBuildReporter reporter, CancellationToken ct)
+    {
+        var installImage = MountableInstallImage(plan, reporter, ct);
+        var before = new FileInfo(installImage).Length;
+        WimLib.Compact(installImage, new SynchronousProgress<double>(reporter.Progress), ct);
+        reporter.Log($"install.wim: {before / (1 << 20)} MB -> {new FileInfo(installImage).Length / (1 << 20)} MB");
     }
 
     // Обновления выпуска — в каждую редакцию (DISM). Все контрольные точки накопительного — в одной папке.
