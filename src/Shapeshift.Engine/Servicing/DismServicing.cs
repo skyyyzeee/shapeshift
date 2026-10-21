@@ -9,6 +9,12 @@ namespace Shapeshift.Engine.Servicing;
 /// Каждое монтирование помечается файлом <see cref="MountMarker"/> в папке сборки — по нему зависшие
 /// монтирования Shapeshift отличаются от чужих.
 /// </summary>
+/// <summary>
+/// Приложение для DISM: функция CompDB (по ней на фреймворк ссылаются зависимости), имя пакета, главный пакет,
+/// лицензия (null — без неё) и зависимости — функции CompDB фреймворков.
+/// </summary>
+public sealed record ProvisionedApp(string Id, string Name, string Path, string? License, bool IsFramework, IReadOnlyList<string> Dependencies);
+
 public static partial class DismServicing
 {
     public const string MountMarker = ".shapeshift-mount";
@@ -90,6 +96,29 @@ public static partial class DismServicing
     /// </summary>
     /// <exception cref="OperationCanceledException">Отменили; образ отключён без сохранения.</exception>
     /// <exception cref="ServicingException">DISM не смог обслужить образ или пакет не подошёл.</exception>
+    /// <summary>
+    /// Встроенные приложения в каждый образ (provisioned — появятся у каждого нового пользователя). Фреймворки ставятся
+    /// зависимостями приложений; фреймворк, который никому не нужен, пропускается (DISM не ставит его сам по себе).
+    /// </summary>
+    public static void AddApps(
+        string wimPath, IReadOnlyDictionary<int, IReadOnlyList<ProvisionedApp>> appsPerImage, string mountDirectory,
+        IBuildReporter reporter, CancellationToken ct) =>
+        Service(wimPath, appsPerImage.Keys.Order().ToList(), mountDirectory, reporter, ct, (session, imageIndex, progress) =>
+        {
+            var apps = appsPerImage[imageIndex];
+            var frameworks = apps.Where(a => a.IsFramework).ToDictionary(a => a.Id, StringComparer.OrdinalIgnoreCase);
+            var installable = apps.Where(a => !a.IsFramework).ToList();
+            for (var i = 0; i < installable.Count; i++)
+            {
+                ct.ThrowIfCancellationRequested();
+                var app = installable[i];
+                var dependencies = app.Dependencies.Select(d => frameworks.GetValueOrDefault(d)?.Path).OfType<string>().ToList();
+                reporter.Log($"Adding {app.Name} to image {imageIndex}");
+                DismApi.AddProvisionedAppxPackage(session, app.Path, dependencies, [], app.License is { } license ? [license] : [], null!, "all");
+                progress((i + 1.0) / installable.Count);
+            }
+        });
+
     /// <param name="cleanupComponents">
     /// После пакетов — очистить хранилище компонентов (старые версии после накопительного обновления занимают гигабайты).
     /// </param>

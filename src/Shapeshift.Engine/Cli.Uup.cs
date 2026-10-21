@@ -262,7 +262,16 @@ public static partial class Cli
             if (dotNet35.Count == 0)
                 return (await FailAsync(context, ExitCodes.Failure, $"release {release.Build} has no .NET Framework 3.5 package."), null);
         }
-        var servicing = new UupServicing(plan.Release, plan.Downloader, plan.Urls, languages.Packs, updates, dotNet35);
+        // Встроенные приложения — как в официальном ISO, кроме тех, что профиль удаляет.
+        var apps = UupApps.Resolve(plan.Release, plan.CompDbs, plan.Editions, plan.Language)
+            .Select(list => UupApps.Without(list, profile.RemoveApps)).ToList();
+        var appNames = apps.SelectMany(a => a).Where(a => !a.IsFramework).Select(a => a.Name).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        if (appNames.Count > 0)
+            await context.Output.WriteLineAsync($"Apps: {appNames.Count} ({string.Join(", ", appNames.Take(6))}{(appNames.Count > 6 ? ", …" : "")})");
+        var allApps = UupApps.Resolve(plan.Release, plan.CompDbs, plan.Editions, plan.Language).SelectMany(a => a).Select(a => a.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        foreach (var unknown in profile.RemoveApps.Where(r => !allApps.Contains(r)))
+            await context.Error.WriteLineAsync($"warning: {unknown} is not among the apps of this release; nothing to remove.");
+        var servicing = new UupServicing(plan.Release, plan.Downloader, plan.Urls, languages.Packs, updates, dotNet35, apps);
         return (ExitCodes.Success, new UupBuildSource(plan.Release, plan.Language, plan.Editions, plan.Files, plan.Downloader, plan.Urls, plan.BaseVersion, servicing));
     }
 

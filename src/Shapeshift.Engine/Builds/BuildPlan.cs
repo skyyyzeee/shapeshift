@@ -14,6 +14,7 @@ public enum BuildStepKind
     AddLanguages,
     EnableDotNet35,
     IntegrateUpdates,
+    AddApps,
     RemoveApps,
     CompactImage,
     AddPrograms,
@@ -58,7 +59,7 @@ public sealed record BuildPlan(
     public bool FitsMaxPath => LongestExtractedPath <= MaxPath;
 
     /// <summary>Есть шаги через DISM — сборке нужны права администратора.</summary>
-    public bool NeedsElevation => Steps.Any(s => s.Kind is BuildStepKind.RemoveApps or BuildStepKind.AddLanguages or BuildStepKind.EnableDotNet35 or BuildStepKind.IntegrateUpdates);
+    public bool NeedsElevation => Steps.Any(s => s.Kind is BuildStepKind.RemoveApps or BuildStepKind.AddLanguages or BuildStepKind.EnableDotNet35 or BuildStepKind.IntegrateUpdates or BuildStepKind.AddApps);
 
     /// <summary>Картинка обоев на носителе: Windows Setup перенесёт <c>$OEM$\$$</c> в папку Windows.</summary>
     public const string WallpaperMediaFolder = @"sources\$OEM$\$$\Web\Wallpaper\Shapeshift";
@@ -126,6 +127,12 @@ public static class BuildPlanner
         {
             var updateBytes = updates.All.Sum(f => f.Size);
             dismSteps.Add(new(BuildStepKind.IntegrateUpdates, "Integrate updates", workspaceVolume, updateBytes * (editionCount + 1)));
+        }
+        // Встроенные приложения образа из UUP: распакованные — примерно вдвое больше пакетов; общие файлы WIM хранит один раз.
+        if (servicing is { } withApps && withApps.Apps.Any(a => a.Count > 0))
+        {
+            var appBytes = withApps.Apps.SelectMany(a => a).SelectMany(a => a.Files).DistinctBy(f => f.Name).Sum(f => f.Size);
+            dismSteps.Add(new(BuildStepKind.AddApps, "Add built-in apps", workspaceVolume, appBytes * 3));
         }
         // DISM монтирует образ без копирования, а при сохранении дописывает в WIM только изменения — с запасом 1 ГБ.
         if (uup is null && profile.RemoveApps.Count > 0)

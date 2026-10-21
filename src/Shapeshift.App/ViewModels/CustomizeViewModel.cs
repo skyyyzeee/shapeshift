@@ -258,12 +258,12 @@ public sealed partial class CustomizeViewModel(EngineClient engine) : Observable
     }
 
     /// <summary>Список приложений редакции образа (чтение ISO — несколько секунд); выбор сохраняется.</summary>
-    public async Task LoadAppsAsync(string? isoPath, string? edition)
+    public async Task LoadAppsAsync(string? isoPath, string? edition, UupSourceDraft? uup = null)
     {
-        var key = $"{isoPath}|{edition}";
-        if (isoPath is null)
+        var key = $"{isoPath ?? uup?.UpdateId}|{uup?.Language}|{edition}";
+        if (isoPath is null && uup?.UpdateId is null)
         {
-            // Источник — UUP: в собранном образе пока нет встроенных приложений.
+            // Источник ещё не выбран.
             Apps.Clear();
             ShownApps.Clear();
             AppsError = Text.Get("AppsNoIso");
@@ -285,7 +285,7 @@ public sealed partial class CustomizeViewModel(EngineClient engine) : Observable
         AppsError = null;
         try
         {
-            using var list = await engine.AppsAsync(isoPath, edition);
+            using var list = await engine.AppsAsync(isoPath, edition, uup);
             if (list is null)
             {
                 Apps.Clear();

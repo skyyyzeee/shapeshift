@@ -23,7 +23,7 @@ public sealed record UupSelection(IReadOnlyList<UupFile> Files, IReadOnlyList<st
 /// <summary>
 /// Какие файлы выпуска нужны для языка и редакций. Источник — описания CompDB из
 /// <c>&lt;UpdateId&gt;.AggregatedMetadata.cab</c>: для каждой пары «редакция + язык» — свой список пакетов
-/// (<c>DesktopTargetCompDB_professional_ru-ru</c>), для встроенных приложений — <c>DesktopTargetCompDB_App_Neutral</c>.
+/// (<c>DesktopTargetCompDB_professional_ru-ru</c>), для встроенных приложений — <see cref="UupApps"/>.
 /// Файл пакета находится по SHA-256 из CompDB. Обновления (накопительное, пакет включения версии) — по именам.
 /// </summary>
 public static partial class UupFileSet
@@ -59,7 +59,6 @@ public static partial class UupFileSet
             }
         }
 
-        var appFeatures = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         string? baseVersion = null;
         foreach (var edition in editions)
         {
@@ -72,12 +71,13 @@ public static partial class UupFileSet
             baseVersion ??= (string?)compDb.Attribute("OSVersion");
             foreach (var package in compDb.Descendants(Ns + "Packages").Elements(Ns + "Package"))
                 AddPayload(package);
-            foreach (var dependency in compDb.Descendants(Ns + "Feature").Where(f => (string?)f.Attribute("Group") == "PreinstalledApps"))
-                appFeatures.Add((string)dependency.Attribute("FeatureID")!);
         }
 
-        if (appFeatures.Count > 0 && reader.Load("DesktopTargetCompDB_App_Neutral") is { } apps)
-            AddApps(apps, appFeatures, language, AddPayload);
+        foreach (var app in UupApps.Resolve(release, compDbs, editions.Where(e => reader.Load($"DesktopTargetCompDB_{e}_{language}") is not null).ToList(), language).SelectMany(a => a))
+        {
+            foreach (var file in app.Files)
+                chosen.TryAdd(file.Name, file);
+        }
 
         foreach (var update in Updates(release.Files))
             chosen.TryAdd(update.Name, update);
@@ -97,37 +97,6 @@ public static partial class UupFileSet
     {
         var updates = Updates(files).Select(f => f.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
         return files.Where(f => !updates.Contains(f.Name) && MediaPattern().IsMatch(f.Name)).ToList();
-    }
-
-    // Приложения редакции и всё, без чего они не ставятся (VCLibs, UI.Xaml…). Ресурсы на других языках не нужны.
-    static void AddApps(XElement compDb, HashSet<string> wanted, string language, Action<XElement> addPayload)
-    {
-        var features = compDb.Element(Ns + "Features")?.Elements(Ns + "Feature")
-            .GroupBy(f => (string)f.Attribute("FeatureID")!, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase) ?? [];
-        var packages = compDb.Element(Ns + "Packages")?.Elements(Ns + "Package")
-            .GroupBy(p => (string)p.Attribute("ID")!, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase) ?? [];
-
-        var queue = new Queue<string>(wanted);
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var primary = language.Split('-')[0];
-        while (queue.TryDequeue(out var id))
-        {
-            if (!seen.Add(id) || !features.TryGetValue(id, out var feature))
-                continue;
-            foreach (var dependency in feature.Element(Ns + "Dependencies")?.Elements(Ns + "Feature") ?? [])
-                queue.Enqueue((string)dependency.Attribute("FeatureID")!);
-            foreach (var reference in feature.Element(Ns + "Packages")?.Elements(Ns + "Package") ?? [])
-            {
-                var packageId = (string)reference.Attribute("ID")!;
-                var split = LanguageSplitPattern().Match(packageId);
-                if (split.Success && !string.Equals(split.Groups[1].Value.Split('-')[0], primary, StringComparison.OrdinalIgnoreCase))
-                    continue;
-                if (packages.TryGetValue(packageId, out var package))
-                    addPayload(package);
-            }
-        }
     }
 
     // Обновления выпуска: накопительные (.msu или .cab), пакет включения версии, обновления установщика и среды
@@ -194,9 +163,6 @@ public static partial class UupFileSet
 
     [GeneratedRegex(@"-baseless|-express|_Diffs_|_Forward_CompDB_", RegexOptions.IgnoreCase)]
     private static partial Regex SkippedUpdatePattern();
-
-    [GeneratedRegex(@"_split\.language-([a-z0-9-]+)_", RegexOptions.IgnoreCase)]
-    private static partial Regex LanguageSplitPattern();
 
     /// <summary>Описания CompDB: каждое — отдельный CAB с одним XML внутри.</summary>
     sealed class CompDbReader(string folder)

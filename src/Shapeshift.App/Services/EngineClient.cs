@@ -156,11 +156,15 @@ public sealed class EngineClient
     /// Встроенные приложения редакции (null — первой) с разметкой каталога, из <c>apps list --json</c>.
     /// null — список прочитать не удалось.
     /// </summary>
-    public async Task<JsonDocument?> AppsAsync(string isoPath, string? edition, CancellationToken ct = default)
+    /// <param name="uup">Источник — выпуск UUP: приложения, которые добавит сборка (из метаданных выпуска).</param>
+    public async Task<JsonDocument?> AppsAsync(string? isoPath, string? edition, UupSourceDraft? uup = null, CancellationToken ct = default)
     {
+        string[] source = uup is { UpdateId: { } updateId }
+            ? ["--update", updateId, "--lang", uup.Language, "--workspace", AppSettings.Current.EffectiveWorkspace]
+            : ["--iso", isoPath!];
         string[] args = edition is null
-            ? ["apps", "list", "--iso", isoPath, "--json"]
-            : ["apps", "list", "--iso", isoPath, "--edition", edition, "--json"];
+            ? ["apps", "list", .. source, "--json"]
+            : ["apps", "list", .. source, "--edition", edition, "--json"];
         var (exitCode, output, _) = await RunAsync(args, ct);
         if (exitCode != 0)
             return null;

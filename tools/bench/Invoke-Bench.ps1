@@ -249,6 +249,8 @@ try {
         [pscustomobject]@{
             ComputerName = $env:COMPUTERNAME
             UiLanguage = [string]$uiLanguage
+            # Приложения пользователя (provisioned ставятся каждому новому пользователю при первом входе).
+            Apps = @(Get-AppxPackage -ErrorAction SilentlyContinue | ForEach-Object Name | Sort-Object -Unique)
             UiLanguages = @(Get-ChildItem 'HKLM:\SYSTEM\CurrentControlSet\Control\MUI\UILanguages' -ErrorAction SilentlyContinue | ForEach-Object PSChildName | Sort-Object)
             EditionId = $version.EditionID
             Build = "$($version.CurrentBuild).$($version.UBR)"
@@ -291,6 +293,8 @@ try {
             'timeZone' { Add-Check 'time zone' $property.Value $facts.TimeZone }
             'uiLanguage' { Add-Check 'display language' $property.Value $facts.UiLanguage }
             'uiLanguages' { Add-Check 'installed display languages' @($property.Value | Sort-Object) $facts.UiLanguages }
+            'apps' { foreach ($app in $property.Value) { Add-Check "app $app" 'installed' $(if ($facts.Apps -contains $app) { 'installed' } else { 'absent' }) } }
+            'absentApps' { foreach ($app in $property.Value) { Add-Check "app $app" 'absent' $(if ($facts.Apps -contains $app) { 'installed' } else { 'absent' }) } }
             'userIsAdministrator' { Add-Check 'user is administrator' $true ($facts.Administrators -contains $property.Value) }
             'registry' {
                 for ($i = 0; $i -lt $registryChecks.Count; $i++) {

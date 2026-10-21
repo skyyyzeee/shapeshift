@@ -1,0 +1,5 @@
+{
+  "editionId": "Professional",
+  "apps": ["Microsoft.WindowsStore", "Microsoft.Windows.Photos", "Microsoft.WindowsCalculator", "Microsoft.WindowsNotepad", "Microsoft.DesktopAppInstaller"],
+  "absentApps": ["Microsoft.BingNews", "Clipchamp.Clipchamp"]
+}

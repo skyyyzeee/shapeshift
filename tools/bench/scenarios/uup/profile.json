@@ -1,0 +1,14 @@
+{
+  // Образ из Windows Update: источник — ISO, собранный в ВМ (Invoke-BuildInVm.ps1) из "source.uup" со встроенными
+  // приложениями и "removeApps": ["Microsoft.BingNews", "Clipchamp.Clipchamp"]. Стенд только ставит его без вопросов.
+  "formatVersion": 1,
+  "tweaks": ["bypass.tpm", "bypass.secure-boot", "bypass.ram", "bypass.cpu"],
+  "setup": {
+    "user": { "name": "Bench", "password": { "mode": "store", "value": "Bench-Pass-1" }, "autoLogon": true },
+    "computerName": "SHAPESHIFT-VM",
+    "skipOobe": true,
+    "bypassOnlineAccount": true,
+    "wipeDisk0": true,
+    "edition": "Professional"
+  }
+}

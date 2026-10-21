@@ -19,11 +19,13 @@ public sealed class UupBuildTests : IDisposable
 
     string Output => _dir.File("out.iso");
 
-    // Без встраивания обновлений по умолчанию: оно требует DISM и прав администратора (отдельные тесты ниже).
+    // Без обновлений и без встроенных приложений по умолчанию: их установка требует DISM и прав администратора
+    // (отдельные тесты — здесь и в UupAppsTests).
     string Profile(string editions = "[\"Professional\"]", string uup = """{ "channel": "windows11", "language": "ru-RU" }""", bool latestUpdate = false) => _dir.Write("profile.json", $$"""
         {
           "formatVersion": 1,
           "latestUpdate": {{(latestUpdate ? "true" : "false")}},
+          "removeApps": ["Microsoft.BingNews"],
           "editions": {{editions}},
           "setup": { "skipOobe": true },
           "source": { "uup": {{uup}} },

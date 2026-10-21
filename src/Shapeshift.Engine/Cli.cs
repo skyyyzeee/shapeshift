@@ -330,8 +330,6 @@ public static partial class Cli
                     return (uupExit, null);
                 servicing = uup.Servicing;
                 source = uup.Image();
-                if (profile.RemoveApps.Count > 0)
-                    await context.Error.WriteLineAsync("warning: images built from UUP have no built-in apps yet, so 'removeApps' has nothing to remove.");
             }
             else
             {
@@ -467,20 +465,33 @@ public static partial class Cli
 
     static Command AppsCommand(Context context)
     {
-        var isoOption = new Option<FileInfo>("--iso") { Description = "Windows installation ISO.", Required = true };
-        var editionOption = new Option<string>("--edition") { Description = "Edition to list (EditionId; default: the first one)." };
+        var isoOption = new Option<FileInfo>("--iso") { Description = "Windows installation ISO." };
+        var updateOption = new Option<string>("--update") { Description = "Or a release found by 'uup releases': the apps a build from it adds." };
+        var languageOption = new Option<string>("--lang") { Description = "With --update: the language of the image, like ru-RU." };
+        var workspaceOption = new Option<DirectoryInfo>("--workspace") { Description = "With --update: workspace with the release cache." };
+        var editionOption = new Option<string>("--edition") { Description = "Edition to list (EditionId; default: the first one, or Professional for --update)." };
         var jsonOption = new Option<bool>("--json") { Description = "Print JSON for the app." };
         var catalogOption = CatalogOption();
 
         var list = new Command("list", "List the built-in apps of an edition, without administrator rights.")
         {
-            isoOption, editionOption, jsonOption, catalogOption,
+            isoOption, updateOption, languageOption, workspaceOption, editionOption, jsonOption, catalogOption,
         };
         list.SetAction(async (parseResult, ct) =>
         {
             var catalog = await TryLoadCatalogAsync(parseResult.GetValue(catalogOption), context, ct);
-            var source = await TryInspectAsync(parseResult.GetRequiredValue(isoOption).FullName, context);
-            if (catalog is null || source is null)
+            if (catalog is null)
+                return ExitCodes.InvalidInput;
+            if (parseResult.GetValue(updateOption) is { } updateId)
+            {
+                var workspace = parseResult.GetValue(workspaceOption)?.FullName ?? context.Host.DefaultWorkspace;
+                return await ListUupAppsAsync(updateId, parseResult.GetValue(languageOption), parseResult.GetValue(editionOption) ?? "Professional",
+                    workspace, parseResult.GetValue(jsonOption), catalog, context, ct);
+            }
+            if (parseResult.GetValue(isoOption) is not { } isoFile)
+                return await FailAsync(context, ExitCodes.InvalidInput, "pass --iso, or --update with --lang.");
+            var source = await TryInspectAsync(isoFile.FullName, context);
+            if (source is null)
                 return ExitCodes.InvalidInput;
 
             var editionId = parseResult.GetValue(editionOption);
@@ -502,23 +513,52 @@ public static partial class Cli
                 return await FailAsync(context, ExitCodes.Failure, e.Message);
             }
 
-            if (parseResult.GetValue(jsonOption))
-            {
-                await context.Output.WriteLineAsync(EngineJson.Apps(edition, apps, catalog));
-                return ExitCodes.Success;
-            }
-
-            await context.Output.WriteLineAsync($"Built-in apps of {edition.Name} ({edition.EditionId}):");
-            foreach (var app in apps)
-            {
-                var markup = catalog.FindApp(app);
-                var safety = markup is null ? "unknown" : markup.Safety == AppSafety.Safe ? "safe" : "risky";
-                await context.Output.WriteLineAsync($"  {app,-50} {safety}{(markup?.Recommended == true ? ", recommended" : "")}");
-            }
-            return ExitCodes.Success;
+            return await WriteAppsAsync(edition, apps, parseResult.GetValue(jsonOption), catalog, context);
         });
 
         return new Command("apps", "Built-in (provisioned) apps of an image.") { list };
+    }
+
+    static async Task<int> WriteAppsAsync(Edition edition, IReadOnlyList<string> apps, bool json, TweakCatalog catalog, Context context)
+    {
+        if (json)
+        {
+            await context.Output.WriteLineAsync(EngineJson.Apps(edition, apps, catalog));
+            return ExitCodes.Success;
+        }
+
+        await context.Output.WriteLineAsync($"Built-in apps of {edition.Name} ({edition.EditionId}):");
+        foreach (var app in apps)
+        {
+            var markup = catalog.FindApp(app);
+            var safety = markup is null ? "unknown" : markup.Safety == AppSafety.Safe ? "safe" : "risky";
+            await context.Output.WriteLineAsync($"  {app,-50} {safety}{(markup?.Recommended == true ? ", recommended" : "")}");
+        }
+        return ExitCodes.Success;
+    }
+
+    // Приложения, которые сборка из выпуска UUP добавит в редакцию (по CompDB; метаданные — в кэше или скачиваются).
+    static async Task<int> ListUupAppsAsync(
+        string updateId, string? language, string editionId, string workspace, bool json, TweakCatalog catalog, Context context, CancellationToken ct)
+    {
+        if (language is null)
+            return await FailAsync(context, ExitCodes.InvalidInput, "--update needs --lang.");
+        if (Uup.UupReleaseCache.Load(workspace, updateId) is not { } release)
+            return await FailAsync(context, ExitCodes.InvalidInput, $"release {updateId} is not known; run 'uup releases' first.");
+        using var http = context.Host.CreateHttpClient();
+        try
+        {
+            var meta = await FetchMetadataAsync(release, workspace, context, http, null, ct);
+            if (meta is null)
+                return await FailAsync(context, ExitCodes.Failure, "the release has no metadata file; Windows Update sent an unusual release.");
+            var apps = Uup.UupApps.Resolve(release, meta.Value.CompDbs, [editionId], language)[0]
+                .Where(a => !a.IsFramework).Select(a => a.Name).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            return await WriteAppsAsync(new Edition(1, editionId, editionId), apps, json, catalog, context);
+        }
+        catch (Exception e) when (e is Uup.UupDownloadException or Uup.WindowsUpdateException or InvalidDataException)
+        {
+            return await FailAsync(context, ExitCodes.Failure, e.Message);
+        }
     }
 
     static Command UupCommand(Context context)

@@ -9,8 +9,11 @@ namespace Shapeshift.Engine.Uup;
 /// <param name="dotNet35">Пакет .NET Framework 3.5 из выпуска (для образа из UUP: в нём нет sources\sxs).</param>
 public sealed class UupServicing(
     UupRelease release, UupDownloader downloader, UupLinks links, IReadOnlyList<UupLanguagePack> languages, UupUpdates? updates,
-    IReadOnlyList<UupFile>? dotNet35 = null)
+    IReadOnlyList<UupFile>? dotNet35 = null, IReadOnlyList<IReadOnlyList<UupApp>>? apps = null)
 {
+    /// <summary>Встроенные приложения для каждой редакции результата (в порядке редакций); пусто — не добавлять.</summary>
+    public IReadOnlyList<IReadOnlyList<UupApp>> Apps => apps ?? [];
+
     public IReadOnlyList<UupFile> DotNet35 => dotNet35 ?? [];
 
     public UupRelease Release => release;
@@ -24,10 +27,11 @@ public sealed class UupServicing(
     /// <summary>Что встроить в Windows; null — образ остаётся своей сборкой.</summary>
     public UupUpdates? Updates => updates is { IsEmpty: false } ? updates : null;
 
-    public bool IsEmpty => Languages.Count == 0 && Updates is null && DotNet35.Count == 0;
+    public bool IsEmpty => Languages.Count == 0 && Updates is null && DotNet35.Count == 0 && !Apps.Any(a => a.Count > 0);
 
     /// <summary>Что скачать для обслуживания.</summary>
-    public IReadOnlyList<UupFile> Files => [.. Languages.SelectMany(l => l.Files), .. DotNet35, .. Updates?.All ?? []];
+    public IReadOnlyList<UupFile> Files =>
+        [.. Languages.SelectMany(l => l.Files), .. DotNet35, .. Updates?.All ?? [], .. Apps.SelectMany(a => a).SelectMany(a => a.Files).DistinctBy(f => f.Name)];
 
     public long BytesToDownload => Files.Where(f => !downloader.IsCached(f)).Sum(f => f.Size);
 }

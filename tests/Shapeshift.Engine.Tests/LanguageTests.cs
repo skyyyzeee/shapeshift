@@ -65,7 +65,7 @@ public sealed class LanguageTests : IDisposable
         Assert.True(result.ExitCode == Cli.ExitCodes.Success, result.Error + result.Output);
         // Языковой пакет и возможности языка: базовые раньше рукописного ввода, который от них зависит.
         Assert.Contains("Languages: de-DE (3 packages)", result.Output);
-        Assert.Equal(["Download files", "Assemble image", "Add languages", "Integrate updates", "Compact image", "Write answer file", "Pack ISO"], Steps(result.Output));
+        Assert.Equal(["Download files", "Assemble image", "Add languages", "Integrate updates", "Add built-in apps", "Compact image", "Write answer file", "Pack ISO"], Steps(result.Output));
     }
 
     [Fact]

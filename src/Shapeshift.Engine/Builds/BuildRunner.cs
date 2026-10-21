@@ -43,6 +43,7 @@ public static class BuildRunner
         BuildStepKind.AddLanguages => Task.Run(() => AddLanguages(plan, reporter, ct), ct),
         BuildStepKind.EnableDotNet35 => Task.Run(() => EnableDotNet35(plan, reporter, ct), ct),
         BuildStepKind.CompactImage => Task.Run(() => Compact(plan, reporter, ct), ct),
+        BuildStepKind.AddApps => Task.Run(() => AddApps(plan, reporter, ct), ct),
         BuildStepKind.IntegrateUpdates => Task.Run(() => IntegrateUpdates(plan, reporter, ct), ct),
         BuildStepKind.AssembleImage => Task.Run(() => Assemble(plan, reporter, ct), ct),
         BuildStepKind.ExtractImage => Task.Run(() => Extract(plan, reporter, ct), ct),
@@ -157,6 +158,37 @@ public static class BuildRunner
             ? servicing.DotNet35.Select(f => Place(plan, Path.Combine(plan.BuildDirectory, "fod"), f)).ToList()
             : [Path.Combine(plan.MediaDirectory, plan.Source.NetFx3Package!)];
         Servicing.DismServicing.AddPackages(MountableInstallImage(plan, reporter, ct), ServicedImages(plan), packages, plan.MountDirectory, reporter, ct);
+    }
+
+    // Приложения образа из UUP: у каждого — своя папка с файлами под настоящими именами («плоский» бандл ищет части
+    // рядом с собой) и лицензией из CompDB.
+    static void AddApps(BuildPlan plan, IBuildReporter reporter, CancellationToken ct)
+    {
+        var servicing = plan.Servicing!;
+        var root = Path.Combine(plan.BuildDirectory, "apps");
+        var placed = new Dictionary<string, Servicing.ProvisionedApp>(StringComparer.OrdinalIgnoreCase);
+        Servicing.ProvisionedApp Prepare(Uup.UupApp app)
+        {
+            if (placed.TryGetValue(app.Id, out var known))
+                return known;
+            var folder = Path.Combine(root, placed.Count.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            foreach (var file in app.Parts)
+                Place(plan, folder, file);
+            var main = Place(plan, folder, app.Main);
+            string? license = null;
+            if (app.License is { } text)
+            {
+                license = Path.Combine(folder, "license.xml");
+                File.WriteAllText(license, text);
+            }
+            return placed[app.Id] = new Servicing.ProvisionedApp(app.Id, app.Name, main, license, app.IsFramework, app.Dependencies);
+        }
+
+        var images = ServicedImages(plan);
+        var perImage = new Dictionary<int, IReadOnlyList<Servicing.ProvisionedApp>>();
+        for (var i = 0; i < images.Count; i++)
+            perImage[images[i]] = servicing.Apps.ElementAtOrDefault(i)?.Select(Prepare).ToList() ?? [];
+        Servicing.DismServicing.AddApps(MountableInstallImage(plan, reporter, ct), perImage, plan.MountDirectory, reporter, ct);
     }
 
     static void Compact(BuildPlan plan, IBuildReporter reporter, CancellationToken ct)

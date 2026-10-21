@@ -31,6 +31,7 @@ public sealed class FakeUupRelease
         "Microsoft-Windows-Fake-FOD-Package~31bf3856ad364e35~amd64~~.cab",
         "Microsoft.BingNews_neutral.msixbundle",
         "Microsoft.BingNews_split.language-ru.appx",
+        "Microsoft.BingNews_split.language-de.appx",
         "Microsoft.VCLibs.140.00_x64.appx",
         "Windows11.0-KB5000001-x64.msu",
         "Windows11.0-KB5000002-x64.cab",
@@ -220,16 +221,17 @@ public sealed class FakeUupRelease
             <?xml version="1.0" encoding="utf-8"?>
             <CompDB xmlns="http://schemas.microsoft.com/embedded/2004/10/ImageUpdate" Name="Apps">
               <Features>
-                <Feature FeatureID="Microsoft.BingNews_8wekyb3d8bbwe" Group="PreinstalledApps">
+                <Feature Type="MSIXBundle" FeatureID="Microsoft.BingNews_8wekyb3d8bbwe" Group="PreinstalledApps">
                   <Dependencies><Feature FeatureID="Microsoft.VCLibs.140.00_8wekyb3d8bbwe" Type="Required" /></Dependencies>
+                  <CustomInformation><CustomInfo Key="licensedata"><![CDATA[<License ID="bing-news" />]]></CustomInfo></CustomInformation>
                   <Packages>
-                    <Package ID="Microsoft.BingNews_1.0.0.0_neutral_~_8wekyb3d8bbwe" />
-                    <Package ID="Microsoft.BingNews_1.0.0.0_neutral_split.language-ru_8wekyb3d8bbwe" />
-                    <Package ID="Microsoft.BingNews_1.0.0.0_neutral_split.language-de_8wekyb3d8bbwe" />
+                    <Package ID="Microsoft.BingNews_1.0.0.0_neutral_~_8wekyb3d8bbwe" PackageType="MSIXBundlePackage" />
+                    <Package ID="Microsoft.BingNews_1.0.0.0_neutral_split.language-ru_8wekyb3d8bbwe" PackageType="MSIXResourcePackage" />
+                    <Package ID="Microsoft.BingNews_1.0.0.0_neutral_split.language-de_8wekyb3d8bbwe" PackageType="MSIXResourcePackage" />
                   </Packages>
                 </Feature>
-                <Feature FeatureID="Microsoft.VCLibs.140.00_8wekyb3d8bbwe"><Packages><Package ID="Microsoft.VCLibs.140.00_14.0.0.0_x64__8wekyb3d8bbwe" /></Packages></Feature>
-                <Feature FeatureID="Microsoft.Paint_8wekyb3d8bbwe" Group="PreinstalledApps"><Packages><Package ID="Microsoft.Paint_1.0.0.0_neutral_~_8wekyb3d8bbwe" /></Packages></Feature>
+                <Feature Type="MSIXFramework" FeatureID="Microsoft.VCLibs.140.00_8wekyb3d8bbwe" Group="PreinstalledApps"><Packages><Package ID="Microsoft.VCLibs.140.00_14.0.0.0_x64__8wekyb3d8bbwe" PackageType="MSIXFrameworkPackage" /></Packages></Feature>
+                <Feature Type="MSIXBundle" FeatureID="Microsoft.Paint_8wekyb3d8bbwe" Group="PreinstalledApps"><Packages><Package ID="Microsoft.Paint_1.0.0.0_neutral_~_8wekyb3d8bbwe" PackageType="MSIXBundlePackage" /></Packages></Feature>
               </Features>
               <Packages>
             """ + "\n";

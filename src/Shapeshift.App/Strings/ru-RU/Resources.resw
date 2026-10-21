@@ -323,7 +323,7 @@ Education, Enterprise, Pro для рабочих станций и другие 
   <data name="StepKind_DownloadFiles" xml:space="preserve"><value>Скачивание файлов Windows</value></data>
   <data name="StepKind_AssembleImage" xml:space="preserve"><value>Сборка образа из файлов UUP</value></data>
   <data name="StepKind_DownloadMetadata" xml:space="preserve"><value>Получение списка файлов</value></data>
-  <data name="AppsNoIso" xml:space="preserve"><value>В образе, собранном из Windows Update, пока нет встроенных приложений — удалять нечего.</value></data>
+  <data name="AppsNoIso" xml:space="preserve"><value>Выберите образ на шаге «Источник» — здесь появятся его встроенные приложения.</value></data>
   <data name="UupLatestUpdate.Content" xml:space="preserve"><value>Встроить последнее обновление (рекомендуется)</value></data>
   <data name="UupLatestUpdateTip.Text" xml:space="preserve"><value>Windows сразу будет актуальной — не придётся ставить накопительное обновление после установки.
 Для 25H2 это обязательно: без обновления получится исходная сборка 26100.1 (по сути 24H2).

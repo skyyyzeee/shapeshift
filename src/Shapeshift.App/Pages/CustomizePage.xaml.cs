@@ -7,8 +7,11 @@ using Shapeshift.App.ViewModels;
 
 namespace Shapeshift.App.Pages;
 
-/// <summary>Параметр навигации: модель шага, образ для каталога и редакция, чьи приложения показывать (null — первая).</summary>
-public sealed record CustomizeArgs(CustomizeViewModel ViewModel, string? IsoPath, string? Edition);
+/// <summary>
+/// Параметр навигации: модель шага, образ для каталога, редакция, чьи приложения показывать (null — первая),
+/// и выпуск UUP, если источник — он (приложения — те, что добавит сборка).
+/// </summary>
+public sealed record CustomizeArgs(CustomizeViewModel ViewModel, string? IsoPath, string? Edition, UupSourceDraft? Uup = null);
 
 public sealed partial class CustomizePage : Page
 {
@@ -27,7 +30,7 @@ public sealed partial class CustomizePage : Page
         ViewModel.Wallpaper.PropertyChanged += Wallpaper_PropertyChanged;
         ShowWallpaper();
         await ViewModel.LoadAsync(args.IsoPath);
-        await ViewModel.LoadAppsAsync(args.IsoPath, args.Edition);
+        await ViewModel.LoadAppsAsync(args.IsoPath, args.Edition, args.Uup);
     }
 
     void AppsRecommended_Click(object sender, RoutedEventArgs e) => ViewModel.SelectRecommendedApps();
