@@ -38,6 +38,16 @@ public sealed class BuildCommandTests : IDisposable
     }
 
     [Fact]
+    public async Task Written_iso_is_verified_against_the_build_copy()
+    {
+        var result = await Build(WriteProfile());
+
+        Assert.True(result.ExitCode == Cli.ExitCodes.Success, result.Error);
+        // install.wim и boot.wim — сверены с копией на диске сборки и с хешем, посчитанным при распаковке.
+        Assert.Contains(@"ISO verified: sources\install.wim, sources\boot.wim", result.Output);
+    }
+
+    [Fact]
     public async Task Keeps_every_file_of_the_source_image()
     {
         var result = await Build(WriteProfile());

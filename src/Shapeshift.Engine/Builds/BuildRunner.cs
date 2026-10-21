@@ -75,16 +75,23 @@ public static class BuildRunner
             ct.ThrowIfCancellationRequested();
             var target = Path.Combine(plan.MediaDirectory, file.TrimStart('\\'));
             Directory.CreateDirectory(Path.GetDirectoryName(target)!);
-            using var source = iso.OpenFile(file);
-            using var destination = new FileStream(target, FileMode.CreateNew, FileAccess.Write, FileShare.None, 1 << 20);
-            int n;
-            while ((n = source.Read(buffer, 0, buffer.Length)) > 0)
+            // У крупных файлов установки хеш считается по ходу копирования — для проверки перед упаковкой.
+            using var hash = MediaIntegrity.IsCritical(file) ? MediaIntegrity.StartHash() : null;
+            using (var source = iso.OpenFile(file))
+            using (var destination = new FileStream(target, FileMode.CreateNew, FileAccess.Write, FileShare.None, 1 << 20))
             {
-                ct.ThrowIfCancellationRequested();
-                destination.Write(buffer, 0, n);
-                copied += n;
-                reporter.Progress((double)copied / total);
+                int n;
+                while ((n = source.Read(buffer, 0, buffer.Length)) > 0)
+                {
+                    ct.ThrowIfCancellationRequested();
+                    destination.Write(buffer, 0, n);
+                    hash?.AppendData(buffer, 0, n);
+                    copied += n;
+                    reporter.Progress((double)copied / total);
+                }
             }
+            if (hash is not null)
+                MediaIntegrity.Record(plan.BuildDirectory, plan.MediaDirectory, file, hash);
         }
     }
 
@@ -283,18 +290,38 @@ public static class BuildRunner
         File.Copy(wallpaper.Path, Path.Combine(folder, Path.GetFileName(wallpaper.TargetPath)), overwrite: true);
     }
 
+    // Упаковка — 60 %, проверка — 40 %: хеши install.wim и boot.wim на диске сборки (сверка с распаковкой),
+    // затем те же файлы в готовом ISO. Испорченный ISO пишется заново один раз, дальше — ошибка, а не битый образ.
     static void Pack(BuildPlan plan, IBuildReporter reporter, CancellationToken ct)
     {
-        var progress = new SynchronousProgress<double>(reporter.Progress);
-
-        IsoWriter.Write(
-            plan.MediaDirectory,
-            plan.OutputIso,
-            plan.Source.VolumeLabel,
-            ImageInspector.BiosBootImage,
-            ImageInspector.UefiBootImage,
-            progress,
-            ct);
+        reporter.Log("Checking the installation files before packing");
+        var expected = MediaIntegrity.HashMedia(plan.BuildDirectory, plan.MediaDirectory, f => reporter.Progress(0.2 * f), ct);
+        for (var attempt = 1; ; attempt++)
+        {
+            IsoWriter.Write(
+                plan.MediaDirectory,
+                plan.OutputIso,
+                plan.Source.VolumeLabel,
+                ImageInspector.BiosBootImage,
+                ImageInspector.UefiBootImage,
+                new SynchronousProgress<double>(f => reporter.Progress(0.2 + 0.5 * f)),
+                ct);
+            reporter.Log("Verifying the written ISO");
+            var damaged = MediaIntegrity.Mismatches(plan.OutputIso, expected, f => reporter.Progress(0.7 + 0.3 * f), ct);
+            if (damaged.Count == 0)
+            {
+                reporter.Log($"ISO verified: {string.Join(", ", expected.Keys)}");
+                return;
+            }
+            File.Delete(plan.OutputIso);
+            if (attempt == 2)
+            {
+                throw new IOException(
+                    $"the written ISO is damaged ({string.Join(", ", damaged)} differ from the build copy) twice in a row; " +
+                    "this points to a disk or memory problem. Try another output disk.");
+            }
+            reporter.Log($"warning: the written ISO is damaged ({string.Join(", ", damaged)}); writing it again");
+        }
     }
 
     static void TryDelete(string directory)
