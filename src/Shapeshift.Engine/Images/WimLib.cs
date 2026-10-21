@@ -29,6 +29,15 @@ public static class WimLib
         }
     }
 
+    /// <summary>Развернуть образ WIM/ESD в папку (например, языковой пакет UUP — DISM ставит его из папки).</summary>
+    public static void ApplyImage(string wimPath, int index, string targetDirectory)
+    {
+        EnsureInitialized();
+        Directory.CreateDirectory(targetDirectory);
+        using var wim = Wim.OpenWim(wimPath, OpenFlags.None);
+        wim.ExtractImage(index, targetDirectory, ExtractFlags.NoAcls);
+    }
+
     /// <summary>
     /// Новый WIM только с выбранными образами (номера с 1), в их исходном порядке. Сжатие — как у исходного,
     /// поэтому данные копируются без пересжатия. ESD остаётся ESD (сплошное сжатие LZMS).

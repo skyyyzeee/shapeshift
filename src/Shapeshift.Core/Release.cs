@@ -45,8 +45,14 @@ public sealed record Release(int Build, int Revision)
 public sealed record Edition(int Index, string EditionId, string Name);
 
 /// <summary>Что лежит в образе: выпуск, архитектура, язык по умолчанию, редакции.</summary>
-public sealed record ImageInfo(Release Release, Architecture Architecture, string? Language, IReadOnlyList<Edition> Editions)
+/// <param name="Languages">Все языки интерфейса в образе (с языком по умолчанию); null — известен только он.</param>
+public sealed record ImageInfo(Release Release, Architecture Architecture, string? Language, IReadOnlyList<Edition> Editions, IReadOnlyList<string>? Languages = null)
 {
+    /// <summary>Языки интерфейса, которые уже есть в образе.</summary>
+    public IReadOnlyList<string> InstalledLanguages => Languages ?? (Language is null ? [] : [Language]);
+
+    public bool HasLanguage(string language) => InstalledLanguages.Contains(language, StringComparer.OrdinalIgnoreCase);
+
     public Edition? FindEdition(string editionId) =>
         Editions.FirstOrDefault(e => string.Equals(e.EditionId, editionId, StringComparison.OrdinalIgnoreCase));
 

@@ -10,9 +10,20 @@ public sealed partial class EditionsPage : Page
 
     public EditionsViewModel ViewModel { get; private set; } = null!;
 
-    protected override void OnNavigatedTo(NavigationEventArgs e)
+    protected override async void OnNavigatedTo(NavigationEventArgs e)
     {
         ViewModel = (EditionsViewModel)e.Parameter;
         base.OnNavigatedTo(e);
+        await ViewModel.Languages.LoadAsync();
+    }
+
+    async void LanguagesRetry_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e) => await ViewModel.Languages.LoadAsync();
+
+    void LanguageAdd_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e) => ViewModel.Languages.AddSelected();
+
+    void LanguageRemove_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: LanguageItem item })
+            ViewModel.Languages.Remove(item);
     }
 }

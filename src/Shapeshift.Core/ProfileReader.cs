@@ -54,7 +54,8 @@ public static partial class ProfileReader
             ParseSource(dto.Source, baseDirectory),
             new OutputOptions(ResolvePath(dto.Output?.Iso, baseDirectory)),
             dto.LatestUpdate,
-            ParseWallpaper(dto.Wallpaper, baseDirectory));
+            ParseWallpaper(dto.Wallpaper, baseDirectory),
+            ParseLanguages(dto.Languages));
     }
 
     // Существование твиков в каталоге проверяет движок: профиль читается и без каталога.
@@ -251,6 +252,23 @@ public static partial class ProfileReader
     }
 
     // Есть ли файл, проверяет движок при сборке: профиль читается и на другом компьютере.
+    // Имена — как у Windows (en-US): регистр из CultureInfo, чтобы сравнивать с языками образа и выпуска.
+    static LanguageOptions? ParseLanguages(LanguagesV1? languages)
+    {
+        if (languages is null)
+            return null;
+
+        string Culture(string? name, string field) => RegionalRules.CheckCulture(name) is { } error
+            ? throw new ProfileFormatException($"'{field}': {error}.")
+            : System.Globalization.CultureInfo.GetCultureInfo(name!, predefinedOnly: true).Name;
+
+        var add = (languages.Add ?? []).Select(l => Culture(l, "languages.add")).ToList();
+        if (add.Distinct(StringComparer.OrdinalIgnoreCase).Count() != add.Count)
+            throw new ProfileFormatException("'languages.add' lists the same language twice.");
+        var display = languages.Display is null ? null : Culture(languages.Display, "languages.display");
+        return new LanguageOptions(add, display);
+    }
+
     static WallpaperOptions? ParseWallpaper(WallpaperV1? wallpaper, string? baseDirectory)
     {
         if (wallpaper is null)
@@ -317,7 +335,9 @@ public static partial class ProfileReader
     };
 
     sealed record ProfileV1(
-        int FormatVersion, string? Architecture, List<string>? Tweaks, List<string>? Editions, List<string>? RemoveApps, List<ProgramV1?>? Programs, SetupV1? Setup, RegionalV1? Regional, SourceV1? Source, IsoV1? Output, bool? LatestUpdate, WallpaperV1? Wallpaper);
+        int FormatVersion, string? Architecture, List<string>? Tweaks, List<string>? Editions, List<string>? RemoveApps, List<ProgramV1?>? Programs, SetupV1? Setup, RegionalV1? Regional, SourceV1? Source, IsoV1? Output, bool? LatestUpdate, WallpaperV1? Wallpaper, LanguagesV1? Languages);
+
+    sealed record LanguagesV1(List<string>? Add, string? Display);
 
     sealed record WallpaperV1(string? Path, bool? Locked, string? Style);
 

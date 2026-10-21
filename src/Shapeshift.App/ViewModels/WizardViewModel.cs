@@ -24,7 +24,7 @@ public sealed partial class WizardViewModel : ObservableObject
         Source = new SourceViewModel(engine);
         Download = new DownloadViewModel(engine);
         Download.SourceChanged += (_, _) => { if (Source.IsDownloadMode) Source.ShowDownload(Download.Image, Download.Draft); };
-        Editions = new EditionsViewModel();
+        Editions = new EditionsViewModel(engine);
         Setup = new SetupViewModel();
         Customize = new CustomizeViewModel(engine);
         Output = new OutputViewModel(engine, Source, Editions, Setup, Customize);
@@ -105,6 +105,8 @@ public sealed partial class WizardViewModel : ObservableObject
         if (!isPreset || profile.Wallpaper is not null)
             Customize.Wallpaper.ApplyProfile(profile.Wallpaper);
         Editions.ApplyProfile(profile.Editions, profile.Setup.Edition);
+        if (!isPreset || profile.Languages is not null)
+            Editions.Languages.ApplyProfile(profile.Languages);
         if (profile.Setup.WipeDisk0)
             AdvancedMode = true;
         if (profile.Output.IsoPath is { } output)
@@ -156,7 +158,10 @@ public sealed partial class WizardViewModel : ObservableObject
         if (e.PropertyName == nameof(SourceViewModel.HasSource))
             StepsChanged();
         if (e.PropertyName == nameof(SourceViewModel.Image))
+        {
             Editions.SetImage(Source.Image);
+            Editions.Languages.SetSource(Source.Uup is null ? Source.IsoPath : null, Source.Uup?.UpdateId, Source.Image?.InstalledLanguages ?? []);
+        }
         if (e.PropertyName == nameof(SourceViewModel.Image))
             Setup.IsWindows11 = Source.Image?.Product != "windows10";
         if (e.PropertyName == nameof(SourceViewModel.HasImage))

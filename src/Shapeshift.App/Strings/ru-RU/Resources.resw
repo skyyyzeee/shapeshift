@@ -195,7 +195,6 @@
   <data name="InstallEditionHint.Text" xml:space="preserve"><value>Выбранная редакция ставится без вопроса о ключе продукта; Windows будет неактивирована, пока вы не введёте свой ключ.</value></data>
   <data name="InstallEditionAsk" xml:space="preserve"><value>Спросить при установке</value></data>
   <data name="LanguagesHeader.Text" xml:space="preserve"><value>Языки интерфейса</value></data>
-  <data name="LanguagesComingSoon.Text" xml:space="preserve"><value>Добавление языков интерфейса появится в одной из следующих версий. Форматы и раскладки — на шаге «Установка».</value></data>
   <data name="EditionsSummary_Keep" xml:space="preserve"><value>Редакции в образе: {0}</value></data>
   <data name="EditionsSummary_Install" xml:space="preserve"><value>Ставится: {0}</value></data>
   <data name="StepKind_KeepEditions" xml:space="preserve"><value>Удаление лишних редакций</value></data>
@@ -354,4 +353,22 @@ Education, Enterprise, Pro для рабочих станций и другие 
   <data name="WallpaperLockedHint.Text" xml:space="preserve"><value>Пользователи не смогут сменить фон рабочего стола. Если выключить — это просто обои по умолчанию.</value></data>
   <data name="CustomizeSummary_Wallpaper" xml:space="preserve"><value>Обои: {0} ({1})</value></data>
   <data name="CustomizeSummary_WallpaperLocked" xml:space="preserve"><value>Обои: {0} ({1}), менять запрещено</value></data>
+  <data name="StepKind_AddLanguages" xml:space="preserve"><value>Добавление языков</value></data>
+  <data name="LanguagesHint.Text" xml:space="preserve"><value>Добавьте языки, которых нет в образе, и выберите язык Windows. Языковые пакеты скачиваются из Windows Update и встраиваются в образ. Форматы и раскладки — на шаге «Установка».</value></data>
+  <data name="LanguagesTip.Text" xml:space="preserve"><value>Язык интерфейса — это язык меню, окон и сообщений Windows. С ним ставятся рукописный ввод, распознавание текста и голос, если они есть для этого языка.
+Каждый язык — около 150–200 МБ скачивания и несколько минут сборки. Нужны интернет и права администратора (окно спросит).
+Язык установщика не меняется: экраны установки будут на языке образа.
+Пример: русский образ + английский (en-US) с английским по умолчанию — Windows будет на английском, а русский можно включить в «Параметрах».</value></data>
+  <data name="LanguagesInImage.Text" xml:space="preserve"><value>В образе:</value></data>
+  <data name="LanguagesRetry.Content" xml:space="preserve"><value>Повторить</value></data>
+  <data name="LanguageToAdd.Header" xml:space="preserve"><value>Добавить язык</value></data>
+  <data name="LanguageToAdd.PlaceholderText" xml:space="preserve"><value>Выберите язык</value></data>
+  <data name="LanguageAdd.Content" xml:space="preserve"><value>Добавить</value></data>
+  <data name="LanguageRemove.Content" xml:space="preserve"><value>Убрать</value></data>
+  <data name="DisplayLanguage.Header" xml:space="preserve"><value>Язык Windows</value></data>
+  <data name="DisplayLanguageTip.Text" xml:space="preserve"><value>На этом языке будет Windows сразу после установки — у всех пользователей.
+Остальные языки из списка тоже будут в системе: переключить можно в «Параметры → Время и язык → Язык и регион».</value></data>
+  <data name="LanguagesUpdateNote.Text" xml:space="preserve"><value>Если ваш образ уже обновлён, вместе с языками в него встроится последнее накопительное обновление (около 5 ГБ, от 20 минут сборки): иначе часть текста новых языков осталась бы непереведённой.</value></data>
+  <data name="LanguagesSummary_Add" xml:space="preserve"><value>Добавить языки: {0}</value></data>
+  <data name="LanguagesSummary_Display" xml:space="preserve"><value>Язык Windows: {0}</value></data>
 </root>

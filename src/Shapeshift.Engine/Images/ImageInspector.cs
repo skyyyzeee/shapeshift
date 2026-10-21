@@ -134,6 +134,7 @@ public static class ImageInspector
             .Select(i => new Edition(i.Index, i.EditionId ?? "", i.Name))
             .ToList();
 
-        return new ImageInfo(release, architecture, first.DefaultLanguage, editions);
+        // Языки — общие для всех редакций (их ставят в каждую); берём из первой.
+        return new ImageInfo(release, architecture, first.DefaultLanguage, editions, first.Languages is { Count: > 0 } languages ? languages : null);
     }
 }

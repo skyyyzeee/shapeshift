@@ -6,15 +6,17 @@ namespace Shapeshift.Engine.Uup;
 
 /// <summary>
 /// Источник сборки — выпуск UUP: что скачать и из чего собрать носитель. Вместо распаковки ISO сборка
-/// скачивает файлы (шаг DownloadFiles) и собирает носитель wimlib (шаг AssembleImage); обновления выпуска
-/// встраиваются DISM (шаг IntegrateUpdates), если <paramref name="updates"/> заданы.
+/// скачивает файлы (шаг DownloadFiles) и собирает носитель wimlib (шаг AssembleImage); языки и обновления
+/// выпуска ставятся DISM (<paramref name="servicing"/>).
 /// </summary>
 public sealed class UupBuildSource(
     UupRelease release, string language, IReadOnlyList<string> editions, IReadOnlyList<UupFile> files,
-    UupDownloader downloader, UupLinks links, string? baseVersion, UupUpdates? updates = null)
+    UupDownloader downloader, UupLinks links, string? baseVersion, UupServicing servicing)
 {
+    public UupServicing Servicing => servicing;
+
     /// <summary>Что встроить в Windows; null — образ остаётся исходной сборкой.</summary>
-    public UupUpdates? Updates => updates is { IsEmpty: false } ? updates : null;
+    public UupUpdates? Updates => servicing.Updates;
 
     public UupRelease Release => release;
 
@@ -33,8 +35,8 @@ public sealed class UupBuildSource(
 
     public IReadOnlyList<UupFile> Packages => MediaFiles.Except(EditionImages).ToList();
 
-    /// <summary>Всё, что качает сборка: носитель и, если встраиваются, обновления.</summary>
-    public IReadOnlyList<UupFile> DownloadFiles => [.. MediaFiles, .. Updates?.All ?? []];
+    /// <summary>Всё, что качает сборка: носитель, языки и, если встраиваются, обновления.</summary>
+    public IReadOnlyList<UupFile> DownloadFiles => MediaFiles.Concat(servicing.Files).DistinctBy(f => f.Name, StringComparer.OrdinalIgnoreCase).ToList();
 
     public long BytesToDownload => DownloadFiles.Where(f => !downloader.IsCached(f)).Sum(f => f.Size);
 
@@ -51,7 +53,7 @@ public sealed class UupBuildSource(
         var releaseInfo = new Release(build, revision);
         var product = releaseInfo.Product == WindowsProduct.Windows11 ? "Windows 11" : "Windows 10";
         var info = new ImageInfo(releaseInfo, Architecture.X64, language,
-            editions.Select((e, i) => new Edition(i + 1, e, $"{product} {EditionName(e)}")).ToList());
+            editions.Select((e, i) => new Edition(i + 1, e, $"{product} {EditionName(e)}")).ToList(), [language]);
 
         // Сжатый LZMS образ распаковывается в LZX примерно в полтора раза больше.
         var mediaBytes = (long)(MediaFiles.Sum(f => f.Size) * 1.5);

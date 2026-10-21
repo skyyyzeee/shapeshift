@@ -39,6 +39,7 @@ public static partial class Cli
             CatalogCommand(context),
             AppsCommand(context),
             UupCommand(context),
+            LanguagesCommand(context),
             CleanupCommand(context),
         };
 
@@ -169,6 +170,11 @@ public static partial class Cli
             Description = "Print the plan and the space it needs without building anything.",
         };
 
+        var downloadOnlyOption = new Option<bool>("--download-only")
+        {
+            Description = "Only download what the build needs from Windows Update into the workspace cache (no administrator rights needed).",
+        };
+
         var catalogOption = CatalogOption();
         var jsonOption = new Option<bool>("--json")
         {
@@ -184,6 +190,7 @@ public static partial class Cli
             profileOption,
             workspaceOption,
             dryRunOption,
+            downloadOnlyOption,
             catalogOption,
             jsonOption,
             pipeOption,
@@ -195,7 +202,8 @@ public static partial class Cli
                 parseResult.GetRequiredValue(profileOption),
                 parseResult.GetValue(workspaceOption)?.FullName,
                 parseResult.GetValue(catalogOption),
-                parseResult.GetValue(dryRunOption));
+                parseResult.GetValue(dryRunOption),
+                parseResult.GetValue(downloadOnlyOption));
 
             if (parseResult.GetValue(pipeOption) is { } pipeName)
                 return await BuildOverPipeAsync(options, pipeName, context, ct);
@@ -214,7 +222,7 @@ public static partial class Cli
         return command;
     }
 
-    sealed record BuildOptions(FileInfo Profile, string? Workspace, FileInfo? Catalog, bool DryRun);
+    sealed record BuildOptions(FileInfo Profile, string? Workspace, FileInfo? Catalog, bool DryRun, bool DownloadOnly = false);
 
     /// <summary>План для сводки в окне: без вывода текстом, ошибки и предупреждения — внутри JSON.</summary>
     static async Task<int> PlanAsJsonAsync(BuildOptions options, Context context, CancellationToken ct)
@@ -310,12 +318,17 @@ public static partial class Cli
             using var http = context.Host.CreateHttpClient();
             SourceImage? source;
             Uup.UupBuildSource? uup = null;
+            Uup.UupServicing? servicing = null;
             if (profile.Source.Uup is { } uupOptions)
             {
+                // До обращения к Windows Update: ошибку профиля видно сразу.
+                if (AnswerFileGenerator.DisplayLanguageProblem(profile.LanguageChoice, [uupOptions.Language]) is { } uupLanguageProblem)
+                    return (await FailAsync(context, ExitCodes.InvalidInput, uupLanguageProblem), null);
                 int uupExit;
                 (uupExit, uup) = await PrepareUupBuildAsync(profile, uupOptions, workspace, context, http, ct);
                 if (uup is null)
                     return (uupExit, null);
+                servicing = uup.Servicing;
                 source = uup.Image();
                 if (profile.RemoveApps.Count > 0)
                     await context.Error.WriteLineAsync("warning: images built from UUP have no built-in apps yet, so 'removeApps' has nothing to remove.");
@@ -323,16 +336,17 @@ public static partial class Cli
             else
             {
                 var sourceIso = profile.Source.IsoPath!;
-                if (profile.LatestUpdate == true)
-                {
-                    return (await FailAsync(context, ExitCodes.InvalidInput,
-                        "'latestUpdate' works only with a release from Windows Update ('source.uup') for now."), null);
-                }
                 if (string.Equals(Path.GetFullPath(sourceIso), Path.GetFullPath(outputIso), StringComparison.OrdinalIgnoreCase))
                     return (await FailAsync(context, ExitCodes.InvalidInput, "'output.iso' must differ from 'source.iso'."), null);
                 source = await TryInspectAsync(sourceIso, context);
                 if (source is null)
                     return (ExitCodes.InvalidInput, null);
+                if (AnswerFileGenerator.DisplayLanguageProblem(profile.LanguageChoice, source.Info.InstalledLanguages) is { } languageProblem)
+                    return (await FailAsync(context, ExitCodes.InvalidInput, languageProblem), null);
+                int servicingExit;
+                (servicingExit, servicing) = await PrepareIsoServicingAsync(profile, source, workspace, context, http, ct);
+                if (servicingExit != ExitCodes.Success)
+                    return (servicingExit, null);
             }
 
             if (profile.Wallpaper is { } wallpaper && !File.Exists(wallpaper.Path))
@@ -344,7 +358,7 @@ public static partial class Cli
             if (programProblems.Count > 0)
                 return (ExitCodes.InvalidInput, null);
 
-            var plan = BuildPlanner.Plan(profile, catalog, source, programs, outputIso, workspace, context.Host, uup);
+            var plan = BuildPlanner.Plan(profile, catalog, source, programs, outputIso, workspace, context.Host, uup, servicing);
             await WritePlanAsync(plan, context.Output);
             if (!await CheckAnswerFileAsync(profile, catalog, source.Info, context))
                 return (ExitCodes.InvalidInput, plan);
@@ -371,15 +385,23 @@ public static partial class Cli
             {
                 if (DismServicing.HostTooOldWarning(source.Info.Release.Build) is { } tooOld)
                     await context.Error.WriteLineAsync($"warning: {tooOld}");
-                if (!options.DryRun && !DismServicing.IsElevated)
+                if (!options.DryRun && !options.DownloadOnly && !DismServicing.IsElevated)
                 {
                     return (await FailAsync(context, ExitCodes.NeedsElevation,
-                        "removing built-in apps and integrating updates use DISM and need administrator rights; run the engine as administrator."), plan);
+                        "adding languages, integrating updates and removing built-in apps use DISM and need administrator rights; run the engine as administrator."), plan);
                 }
             }
 
             if (options.DryRun)
                 return (ExitCodes.Success, plan);
+
+            // Скачать заранее — например, чтобы собрать на компьютере без интернета (кэш переносится вместе с рабочей папкой).
+            if (options.DownloadOnly)
+            {
+                await BuildRunner.DownloadAsync(plan, reporter, ct);
+                await context.Output.WriteLineAsync($"ok: the files are in {Path.Combine(workspace, "cache", "uup")}.");
+                return (ExitCodes.Success, plan);
+            }
 
             ct.ThrowIfCancellationRequested();
             // Зависшие монтирования прошлых сборок (вылет, выключение питания) мешают новому — отключаем.

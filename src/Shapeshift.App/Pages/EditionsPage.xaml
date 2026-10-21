@@ -62,14 +62,75 @@
                 </StackPanel>
             </Border>
 
+            <!-- Языки интерфейса: пакеты из Windows Update ставит DISM при сборке; язык Windows — в файле ответов. -->
             <Border Style="{StaticResource CardStyle}">
-                <StackPanel Spacing="4">
-                    <TextBlock x:Uid="LanguagesHeader" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                <StackPanel Spacing="8">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock x:Uid="LanguagesHeader" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                        <c:InfoTip x:Uid="LanguagesTip" />
+                    </StackPanel>
                     <TextBlock
-                        x:Uid="LanguagesComingSoon"
+                        x:Uid="LanguagesHint"
                         Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                         Style="{StaticResource CaptionTextBlockStyle}"
                         TextWrapping="Wrap" />
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock x:Uid="LanguagesInImage" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBlock Text="{x:Bind ViewModel.Languages.InstalledText, Mode=OneWay}" TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <ProgressRing HorizontalAlignment="Left" IsActive="{x:Bind ViewModel.Languages.IsLoading, Mode=OneWay}" Visibility="{x:Bind ViewModel.Languages.IsLoading, Mode=OneWay}" />
+                    <InfoBar IsClosable="False" IsOpen="{x:Bind ViewModel.Languages.HasError, Mode=OneWay}" Message="{x:Bind ViewModel.Languages.Error, Mode=OneWay}" Severity="Warning">
+                        <InfoBar.ActionButton>
+                            <Button x:Uid="LanguagesRetry" Click="LanguagesRetry_Click" />
+                        </InfoBar.ActionButton>
+                    </InfoBar>
+
+                    <StackPanel Orientation="Horizontal" Spacing="8" Visibility="{x:Bind ViewModel.Languages.CanChoose, Mode=OneWay}">
+                        <ComboBox
+                            x:Uid="LanguageToAdd"
+                            MinWidth="320"
+                            ItemsSource="{x:Bind ViewModel.Languages.AddChoices}"
+                            SelectedItem="{x:Bind ViewModel.Languages.ToAdd, Mode=TwoWay}" />
+                        <Button
+                            x:Uid="LanguageAdd"
+                            VerticalAlignment="Bottom"
+                            Click="LanguageAdd_Click"
+                            IsEnabled="{x:Bind ViewModel.Languages.CanAdd, Mode=OneWay}" />
+                    </StackPanel>
+
+                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.Languages.Added}">
+                        <ItemsRepeater.Layout>
+                            <StackLayout Spacing="4" />
+                        </ItemsRepeater.Layout>
+                        <ItemsRepeater.ItemTemplate>
+                            <DataTemplate x:DataType="vm:LanguageItem">
+                                <Grid ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock VerticalAlignment="Center" Text="{x:Bind Label}" TextWrapping="Wrap" />
+                                    <Button x:Uid="LanguageRemove" Grid.Column="1" Click="LanguageRemove_Click" Tag="{x:Bind}" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsRepeater.ItemTemplate>
+                    </ItemsRepeater>
+
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <ComboBox
+                            x:Uid="DisplayLanguage"
+                            MinWidth="320"
+                            ItemsSource="{x:Bind ViewModel.Languages.DisplayChoices}"
+                            SelectedItem="{x:Bind ViewModel.Languages.Display, Mode=TwoWay}" />
+                        <c:InfoTip x:Uid="DisplayLanguageTip" Margin="0,0,0,8" VerticalAlignment="Bottom" />
+                    </StackPanel>
+                    <TextBlock
+                        x:Uid="LanguagesUpdateNote"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Style="{StaticResource CaptionTextBlockStyle}"
+                        TextWrapping="Wrap"
+                        Visibility="{x:Bind ViewModel.Languages.HasAdded, Mode=OneWay}" />
                 </StackPanel>
             </Border>
         </StackPanel>

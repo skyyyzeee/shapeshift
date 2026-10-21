@@ -27,9 +27,20 @@ public static class BuildRunner
         }
     }
 
+    /// <summary>Только шаг скачивания плана (если он есть) — без сборки.</summary>
+    public static async Task DownloadAsync(BuildPlan plan, IBuildReporter reporter, CancellationToken ct)
+    {
+        var index = plan.Steps.ToList().FindIndex(s => s.Kind == BuildStepKind.DownloadFiles);
+        if (index < 0)
+            return;
+        reporter.StepStarted(index, plan.Steps.Count, plan.Steps[index]);
+        await RunStepAsync(plan, plan.Steps[index], reporter, ct);
+    }
+
     static Task RunStepAsync(BuildPlan plan, BuildStep step, IBuildReporter reporter, CancellationToken ct) => step.Kind switch
     {
-        BuildStepKind.DownloadFiles => plan.Uup!.Downloader.DownloadAsync(plan.Uup.DownloadFiles, plan.Uup.Links, reporter.Transfer, ct),
+        BuildStepKind.DownloadFiles => plan.Servicing!.Downloader.DownloadAsync(plan.Uup?.DownloadFiles ?? plan.Servicing.Files, plan.Servicing.Links, reporter.Transfer, ct),
+        BuildStepKind.AddLanguages => Task.Run(() => AddLanguages(plan, reporter, ct), ct),
         BuildStepKind.IntegrateUpdates => Task.Run(() => IntegrateUpdates(plan, reporter, ct), ct),
         BuildStepKind.AssembleImage => Task.Run(() => Assemble(plan, reporter, ct), ct),
         BuildStepKind.ExtractImage => Task.Run(() => Extract(plan, reporter, ct), ct),
@@ -88,21 +99,60 @@ public static class BuildRunner
             ct);
     }
 
-    // Обновления выпуска — в каждую редакцию (DISM). Файлы кэша названы по SHA-1, а DISM нужны настоящие имена
-    // (.msu/.cab) и все контрольные точки в одной папке — жёсткие ссылки в папке сборки, без копирования гигабайт.
+    // Файлы кэша названы по SHA-1, а DISM нужны настоящие имена (.msu/.cab) — жёсткие ссылки в папке сборки,
+    // без копирования гигабайт.
+    static string Place(BuildPlan plan, string folder, Uup.UupFile file)
+    {
+        Directory.CreateDirectory(folder);
+        var target = Path.Combine(folder, file.Name);
+        if (!File.Exists(target))
+            FileLinks.LinkOrCopy(plan.Servicing!.Downloader.PathOf(file), target);
+        return target;
+    }
+
+    // Редакции результата — номера в install.wim после KeepEditions (или все редакции UUP).
+    static IReadOnlyList<int> ServicedImages(BuildPlan plan) =>
+        plan.Source.Info.KeepEditions(plan.Profile.Editions).Editions.Select(e => e.Index).ToList();
+
+    // DISM не монтирует ESD (сплошное сжатие): перед первым шагом с DISM — переписать в WIM.
+    static string MountableInstallImage(BuildPlan plan, IBuildReporter reporter, CancellationToken ct)
+    {
+        var installImage = Path.Combine(plan.MediaDirectory, plan.Source.InstallImagePath);
+        if (!installImage.EndsWith(".esd", StringComparison.OrdinalIgnoreCase))
+            return installImage;
+        var wim = Path.ChangeExtension(installImage, ".wim");
+        if (File.Exists(installImage))
+        {
+            reporter.Log("Converting install.esd to install.wim for DISM");
+            WimLib.KeepImages(installImage, ServicedImages(plan), wim, null, ct, forceWim: true);
+            File.Delete(installImage);
+        }
+        return wim;
+    }
+
+    // Языки — до обновлений: обновление переводит и добавленные языки. Языковой пакет UUP — ESD, DISM ставит его
+    // из развёрнутой папки; возможности языка (CAB) — по порядку зависимостей.
+    static void AddLanguages(BuildPlan plan, IBuildReporter reporter, CancellationToken ct)
+    {
+        var packages = new List<string>();
+        foreach (var language in plan.Servicing!.Languages)
+        {
+            ct.ThrowIfCancellationRequested();
+            var folder = Path.Combine(plan.BuildDirectory, "lp", language.Language);
+            reporter.Log($"Expanding the {language.Language} language pack");
+            WimLib.ApplyImage(plan.Servicing.Downloader.PathOf(language.Pack), 1, folder);
+            packages.Add(folder);
+            packages.AddRange(language.Features.Select(f => Place(plan, Path.Combine(plan.BuildDirectory, "fod"), f)));
+        }
+        Servicing.DismServicing.AddPackages(MountableInstallImage(plan, reporter, ct), ServicedImages(plan), packages, plan.MountDirectory, reporter, ct);
+    }
+
+    // Обновления выпуска — в каждую редакцию (DISM). Все контрольные точки накопительного — в одной папке.
     static void IntegrateUpdates(BuildPlan plan, IBuildReporter reporter, CancellationToken ct)
     {
-        var uup = plan.Uup!;
-        var updates = uup.Updates!;
+        var updates = plan.Servicing!.Updates!;
         var folder = Path.Combine(plan.BuildDirectory, "upd");
-        Directory.CreateDirectory(folder);
-        string Place(Uup.UupFile file)
-        {
-            var target = Path.Combine(folder, file.Name);
-            if (!File.Exists(target))
-                FileLinks.LinkOrCopy(uup.Downloader.PathOf(file), target);
-            return target;
-        }
+        string Place(Uup.UupFile file) => BuildRunner.Place(plan, folder, file);
 
         var packages = new List<string>();
         foreach (var cumulative in updates.Cumulative)
@@ -114,9 +164,7 @@ public static class BuildRunner
         if (updates.NetFramework is { } netFramework)
             packages.Add(Place(netFramework));
 
-        var installImage = Path.Combine(plan.MediaDirectory, plan.Source.InstallImagePath);
-        Servicing.DismServicing.AddPackages(
-            installImage, Enumerable.Range(1, plan.Source.Info.Editions.Count).ToList(), packages, plan.MountDirectory, reporter, ct);
+        Servicing.DismServicing.AddPackages(MountableInstallImage(plan, reporter, ct), ServicedImages(plan), packages, plan.MountDirectory, reporter, ct);
     }
 
     // Только выбранные редакции: экспорт в новый WIM рядом и замена старого. Без DISM и монтирования.
@@ -135,24 +183,10 @@ public static class BuildRunner
         File.Move(exported, installImage, overwrite: true);
     }
 
-    // Из каждой редакции результата. DISM не монтирует ESD (сплошное сжатие) — тогда сначала WIM.
-    static void RemoveApps(BuildPlan plan, IBuildReporter reporter, CancellationToken ct)
-    {
-        var installImage = Path.Combine(plan.MediaDirectory, plan.Source.InstallImagePath);
-        if (installImage.EndsWith(".esd", StringComparison.OrdinalIgnoreCase))
-        {
-            var wim = Path.ChangeExtension(installImage, ".wim");
-            reporter.Log("Converting install.esd to install.wim for DISM");
-            var count = plan.Source.Info.KeepEditions(plan.Profile.Editions).Editions.Count;
-            WimLib.KeepImages(installImage, Enumerable.Range(1, count).ToList(), wim, null, ct, forceWim: true);
-            File.Delete(installImage);
-            installImage = wim;
-        }
-
-        var editions = plan.Source.Info.KeepEditions(plan.Profile.Editions).Editions;
+    // Из каждой редакции результата.
+    static void RemoveApps(BuildPlan plan, IBuildReporter reporter, CancellationToken ct) =>
         Servicing.DismServicing.RemoveApps(
-            installImage, editions.Select(e => e.Index).ToList(), plan.Profile.RemoveApps, plan.MountDirectory, reporter, ct);
-    }
+            MountableInstallImage(plan, reporter, ct), ServicedImages(plan), plan.Profile.RemoveApps, plan.MountDirectory, reporter, ct);
 
     // Сценарий установки и установщики — в sources\$OEM$\$$: Windows Setup перенесёт их в папку Windows.
     static void AddPrograms(BuildPlan plan, IBuildReporter reporter, CancellationToken ct)

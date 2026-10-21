@@ -40,6 +40,16 @@ public sealed class FakeUupRelease
         $"{UpdateId}.AggregatedMetadata.cab",
     ];
 
+    /// <summary>Возможности языка (FOD) для языков с ними в выпуске: базовые, затем рукописный ввод.</summary>
+    public static string[] LanguageFeatures(string language) =>
+    [
+        $"Microsoft-Windows-LanguageFeatures-Basic-{language.ToLowerInvariant()}-Package~31bf3856ad364e35~amd64~~.cab",
+        $"Microsoft-Windows-LanguageFeatures-Handwriting-{language.ToLowerInvariant()}-Package~31bf3856ad364e35~amd64~~.cab",
+    ];
+
+    /// <summary>Языки, для которых есть языковой пакет; возможности — только у de-DE и ru-RU.</summary>
+    public static readonly string[] LanguagePacks = ["de-DE", "en-US", "ru-RU"];
+
     /// <summary>Большой файл — чтобы скачивание можно было оборвать посередине.</summary>
     public const string Big = "Windows11.0-KB5000001-x64.msu";
 
@@ -84,6 +94,8 @@ public sealed class FakeUupRelease
         // Обновление среды восстановления (не для Windows) и .NET.
         Add("Windows11.0-KB5000003-x64.cab", 1024);
         Add("Windows11.0-KB5000004-x64-NDP481.cab", 1024);
+        foreach (var feature in LanguageFeatures("de-DE").Concat(LanguageFeatures("ru-RU")))
+            Add(feature, 768);
         Files[$"{UpdateId}.AggregatedMetadata.cab"] = Metadata(scratch);
     }
 
@@ -233,7 +245,19 @@ public sealed class FakeUupRelease
             ["DesktopTargetCompDB_core_ru-ru"] = Edition("core", "ru-ru", "Microsoft-Windows-EditionSpecific-Core-Package.ESD", "Microsoft-Windows-Client-LanguagePack-Package~31bf3856ad364e35~amd64~ru-RU~.esd"),
             ["DesktopTargetCompDB_professional_en-us"] = Edition("professional", "en-us", "Microsoft-Windows-EditionSpecific-Professional-Package.ESD", "Microsoft-Windows-Client-LanguagePack-Package~31bf3856ad364e35~amd64~en-US~.esd"),
             ["DesktopTargetCompDB_App_Neutral"] = apps + appPackages + "</Packages></CompDB>",
+            ["DesktopTargetCompDB_FOD_Neutral"] = FodNeutral(Payload),
         };
+        // Языковые пакеты — по CompDB на язык, как у Microsoft (DesktopTargetCompDB_ru-RU).
+        foreach (var language in LanguagePacks)
+        {
+            compDbs[$"DesktopTargetCompDB_{language}"] = $"""
+                <?xml version="1.0" encoding="utf-8"?>
+                <CompDB xmlns="http://schemas.microsoft.com/embedded/2004/10/ImageUpdate" Name="Build~amd64~Desktop~~{language}" OSVersion="10.0.26100.1">
+                  <Features><Feature Type="LanguagePack" FeatureID="Language.UI.Client~{language}"><Packages><Package ID="Microsoft-Windows-Client-LanguagePack-Package~31bf3856ad364e35~amd64~{language}~" /></Packages></Feature></Features>
+                  <Packages>{Payload($"Microsoft-Windows-Client-LanguagePack-Package~31bf3856ad364e35~amd64~{language}~.esd").Replace($"ID=\"Microsoft-Windows-Client-LanguagePack-Package~31bf3856ad364e35~amd64~{language}~.esd\"", $"ID=\"Microsoft-Windows-Client-LanguagePack-Package~31bf3856ad364e35~amd64~{language}~\"")}</Packages>
+                </CompDB>
+                """;
+        }
 
         var inner = new List<string>();
         foreach (var (name, xml) in compDbs)
@@ -256,6 +280,34 @@ public sealed class FakeUupRelease
         var outer = Path.Combine(folder, "AggregatedMetadata.cab");
         MakeCab(inner, outer);
         return File.ReadAllBytes(outer);
+    }
+
+    // Возможности языков: Handwriting зависит от Basic; посторонняя возможность (не языковая) не выбирается.
+    static string FodNeutral(Func<string, string> payload)
+    {
+        var features = new System.Text.StringBuilder();
+        var packages = new System.Text.StringBuilder();
+        foreach (var language in new[] { "de-de", "ru-ru" })
+        {
+            var basic = $"Microsoft-Windows-LanguageFeatures-Basic-{language}-Package";
+            var handwriting = $"Microsoft-Windows-LanguageFeatures-Handwriting-{language}-Package";
+            features.Append($"""
+                <Feature Type="OnDemandFeature" FeatureID="Language.Handwriting~{language}~1.0"><Dependencies><Feature FeatureID="Language.Basic~{language}~1.0" Type="Required" /></Dependencies><Packages><Package ID="{handwriting}" /></Packages></Feature>
+                <Feature Type="OnDemandFeature" FeatureID="Language.Basic~{language}~1.0"><Packages><Package ID="{basic}" /></Packages></Feature>
+                """);
+            packages.Append(payload(basic + "~31bf3856ad364e35~amd64~~.cab").Replace($"ID=\"{basic}~31bf3856ad364e35~amd64~~.cab\"", $"ID=\"{basic}\""));
+            packages.Append(payload(handwriting + "~31bf3856ad364e35~amd64~~.cab").Replace($"ID=\"{handwriting}~31bf3856ad364e35~amd64~~.cab\"", $"ID=\"{handwriting}\""));
+        }
+        return $"""
+            <?xml version="1.0" encoding="utf-8"?>
+            <CompDB xmlns="http://schemas.microsoft.com/embedded/2004/10/ImageUpdate" Name="Build~amd64~Desktop_FOD~~" OSVersion="10.0.26100.1">
+              <Features>
+                <Feature Type="OnDemandFeature" FeatureID="Microsoft.Windows.Notepad~~~~0.0.1.0"><Packages><Package ID="Microsoft-Windows-Notepad-FoD-Package" /></Packages></Feature>
+                {features}
+              </Features>
+              <Packages>{packages}</Packages>
+            </CompDB>
+            """;
     }
 
     // makecab с файлом указаний: несколько файлов в один CAB, без служебных setup.inf / setup.rpt.

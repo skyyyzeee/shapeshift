@@ -15,7 +15,11 @@ public sealed record ProfileDraft(
     IReadOnlyList<string>? RemoveApps = null,
     IReadOnlyList<ProgramDraft>? Programs = null,
     UupSourceDraft? Uup = null,
-    WallpaperDraft? Wallpaper = null);
+    WallpaperDraft? Wallpaper = null,
+    LanguagesDraft? Languages = null);
+
+/// <summary>Языки интерфейса: добавить в образ и язык Windows (null — язык образа).</summary>
+public sealed record LanguagesDraft(IReadOnlyList<string> Add, string? Display);
 
 /// <summary>Обои: картинка, закрепить политиками, стиль (fill, fit, stretch, center, tile, span).</summary>
 public sealed record WallpaperDraft(string Path, bool Locked, string Style);
@@ -91,6 +95,7 @@ public static class ProfileFile
                 edition = s.Edition,
             }
             : null,
+        languages = draft.Languages is { } l ? new { add = l.Add.Count > 0 ? l.Add : null, display = l.Display } : null,
         wallpaper = draft.Wallpaper is { } w ? new { path = w.Path, locked = w.Locked, style = w.Style } : null,
         regional = draft.Regional is { } r
             ? new { formats = r.Formats, keyboards = r.Keyboards, timeZone = r.TimeZone }

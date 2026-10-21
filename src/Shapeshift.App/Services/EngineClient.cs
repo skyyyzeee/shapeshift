@@ -10,7 +10,12 @@ public sealed record ImageSummary(
     string ReleaseName,
     string Architecture,
     string? Language,
-    IReadOnlyList<EditionSummary> Editions);
+    IReadOnlyList<EditionSummary> Editions,
+    IReadOnlyList<string>? Languages = null)
+{
+    /// <summary>Языки интерфейса в образе (с языком по умолчанию).</summary>
+    public IReadOnlyList<string> InstalledLanguages => Languages is { Count: > 0 } languages ? languages : Language is null ? [] : [Language];
+}
 
 public sealed record EditionSummary(int Index, string EditionId, string Name);
 
@@ -37,6 +42,9 @@ public sealed record UupReleaseSummary(string UpdateId, string Title, string Bui
 public sealed record UupReleasesResult(IReadOnlyList<UupReleaseSummary> Releases, string? Error);
 
 public sealed record UupLanguageSummary(string Code, IReadOnlyList<string> Editions);
+
+/// <summary>Языки, которые можно добавить, или текст ошибки (нет сети, неподходящий выпуск).</summary>
+public sealed record LanguagesResult(IReadOnlyList<string> Available, string? Error);
 
 /// <summary>Объём скачивания или текст ошибки.</summary>
 public sealed record UupFilesResult(long Bytes, long CachedBytes, string? Error);
@@ -72,7 +80,8 @@ public sealed class EngineClient
                     dto.Release.Name,
                     dto.Architecture,
                     dto.Language,
-                    dto.Editions.Select(e => new EditionSummary(e.Index, e.EditionId, e.Name)).ToList()),
+                    dto.Editions.Select(e => new EditionSummary(e.Index, e.EditionId, e.Name)).ToList(),
+                    dto.Languages),
                 null, null);
         }
         catch (Exception e) when (e is JsonException or KeyNotFoundException or NullReferenceException)
@@ -210,6 +219,28 @@ public sealed class EngineClient
         }
     }
 
+    /// <summary>
+    /// Языки, которые можно добавить (<c>languages --json</c>): для своего ISO — из выпуска той же базовой сборки
+    /// (нужен интернет), для UUP — из выбранного выпуска.
+    /// </summary>
+    public async Task<LanguagesResult> LanguagesAsync(string? isoPath, string? updateId, string workspace, CancellationToken ct = default)
+    {
+        string[] source = isoPath is not null ? ["--iso", isoPath] : ["--update", updateId!];
+        var (exitCode, output, error) = await RunAsync(["languages", .. source, "--workspace", workspace, "--json"], ct);
+        try
+        {
+            using var doc = JsonDocument.Parse(output);
+            var root = doc.RootElement;
+            if (root.TryGetProperty("error", out var problem))
+                return new LanguagesResult([], problem.GetProperty("message").GetString());
+            return new LanguagesResult(root.GetProperty("available").EnumerateArray().Select(l => l.GetString()!).ToList(), null);
+        }
+        catch (Exception e) when (e is JsonException or KeyNotFoundException or InvalidOperationException)
+        {
+            return new LanguagesResult([], $"exit {exitCode}: {error.Trim()}");
+        }
+    }
+
     /// <summary>Сколько скачать для языка и редакций и сколько уже в кэше (<c>uup files --json</c>).</summary>
     public async Task<UupFilesResult> UupFilesAsync(
         string updateId, string language, IReadOnlyList<string> editions, string workspace, bool withUpdates, CancellationToken ct = default)
@@ -254,7 +285,7 @@ public sealed class EngineClient
         return (process.ExitCode, await output, await error);
     }
 
-    sealed record ImageDto(ReleaseDto Release, string Architecture, string? Language, List<EditionDto> Editions);
+    sealed record ImageDto(ReleaseDto Release, string Architecture, string? Language, List<EditionDto> Editions, List<string>? Languages);
 
     sealed record ReleaseDto(string Name, string Product);
 

@@ -40,7 +40,7 @@ public static class AnswerFileGenerator
             AddDiskLayout(file);
         AddComputerName(file, profile.Setup);
         AddOobe(file, profile.Setup);
-        AddRegional(file, profile.Regional);
+        AddRegional(file, profile.Regional, profile.LanguageChoice.Display);
         // Программы — до выхода из сеанса ради смены пароля (его добавляет AddUser).
         if (profile.Programs.Count > 0)
             file.FirstLogonCommand(InstallScript.Command, "Install programs");
@@ -62,6 +62,9 @@ public static class AnswerFileGenerator
                 yield return $"'editions' lists '{kept}', which is not in the image; available: {available}.";
         }
 
+        if (image is not null && DisplayLanguageProblem(profile.LanguageChoice, image.InstalledLanguages) is { } languageProblem)
+            yield return languageProblem;
+
         if (profile.Setup.Edition is not { } edition)
             yield break;
 
@@ -71,6 +74,15 @@ public static class AnswerFileGenerator
             yield return $"edition '{edition}' is not in the image; available: {available}.";
         else if (image.KeepEditions(profile.Editions).FindEdition(edition) is null)
             yield return $"edition '{edition}' is to be installed, but 'editions' removes it from the image.";
+    }
+
+    /// <summary>Язык интерфейса по умолчанию должен оказаться в образе: уже быть в нём или добавляться.</summary>
+    public static string? DisplayLanguageProblem(LanguageOptions languages, IReadOnlyList<string> imageLanguages)
+    {
+        if (languages.Display is not { } display || imageLanguages.Contains(display, StringComparer.OrdinalIgnoreCase) ||
+            languages.Add.Contains(display, StringComparer.OrdinalIgnoreCase))
+            return null;
+        return $"'languages.display' is {display}, but the image has only {string.Join(", ", imageLanguages.Union(languages.Add, StringComparer.OrdinalIgnoreCase))}; add it to 'languages.add'.";
     }
 
     /// <summary>Предупреждения о небезопасных выборах профиля — движок пишет их в лог.</summary>
@@ -102,7 +114,7 @@ public static class AnswerFileGenerator
             new XElement(Unattend + "SetupUILanguage", new XElement(Unattend + "UILanguage", language)),
             new XElement(Unattend + "InputLocale", regional.Keyboards.Count > 0 ? string.Join(";", regional.Keyboards) : language),
             new XElement(Unattend + "SystemLocale", formats),
-            new XElement(Unattend + "UILanguage", language),
+            new XElement(Unattend + "UILanguage", profile.LanguageChoice.Display ?? language),
             new XElement(Unattend + "UserLocale", formats));
     }
 
@@ -129,19 +141,20 @@ public static class AnswerFileGenerator
         }
     }
 
-    static void AddRegional(AnswerFileBuilder file, RegionalOptions regional)
+    // Язык интерфейса — тоже здесь: на этапе oobeSystem он становится языком системы и пользователей.
+    static void AddRegional(AnswerFileBuilder file, RegionalOptions regional, string? displayLanguage)
     {
-        if (regional.Keyboards.Count > 0 || regional.Formats is not null)
+        if (regional.Keyboards.Count > 0 || regional.Formats is not null || displayLanguage is not null)
         {
             var international = file.Component(OobeSystem, "Microsoft-Windows-International-Core");
             if (regional.Keyboards.Count > 0)
                 international.Add(new XElement(Unattend + "InputLocale", string.Join(";", regional.Keyboards)));
             if (regional.Formats is { } formats)
-            {
-                international.Add(
-                    new XElement(Unattend + "SystemLocale", formats),
-                    new XElement(Unattend + "UserLocale", formats));
-            }
+                international.Add(new XElement(Unattend + "SystemLocale", formats));
+            if (displayLanguage is not null)
+                international.Add(new XElement(Unattend + "UILanguage", displayLanguage));
+            if (regional.Formats is { } userFormats)
+                international.Add(new XElement(Unattend + "UserLocale", userFormats));
         }
 
         if (regional.TimeZone is { } timeZone)

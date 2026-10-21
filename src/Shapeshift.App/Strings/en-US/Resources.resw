@@ -195,7 +195,6 @@
   <data name="InstallEditionHint.Text" xml:space="preserve"><value>The chosen edition installs without asking for a product key; Windows stays unactivated until you enter your own key.</value></data>
   <data name="InstallEditionAsk" xml:space="preserve"><value>Ask during setup</value></data>
   <data name="LanguagesHeader.Text" xml:space="preserve"><value>Display languages</value></data>
-  <data name="LanguagesComingSoon.Text" xml:space="preserve"><value>Adding display languages is coming in a future version. Formats and keyboards are on the Setup step.</value></data>
   <data name="EditionsSummary_Keep" xml:space="preserve"><value>Editions in the image: {0}</value></data>
   <data name="EditionsSummary_Install" xml:space="preserve"><value>Installs: {0}</value></data>
   <data name="StepKind_KeepEditions" xml:space="preserve"><value>Removing other editions</value></data>
@@ -353,4 +352,22 @@ Span — one picture across several monitors.</value></data>
   <data name="WallpaperLockedHint.Text" xml:space="preserve"><value>Users can't change the desktop background. When off, it's just the default wallpaper.</value></data>
   <data name="CustomizeSummary_Wallpaper" xml:space="preserve"><value>Wallpaper: {0} ({1})</value></data>
   <data name="CustomizeSummary_WallpaperLocked" xml:space="preserve"><value>Wallpaper: {0} ({1}), locked</value></data>
+  <data name="StepKind_AddLanguages" xml:space="preserve"><value>Adding languages</value></data>
+  <data name="LanguagesHint.Text" xml:space="preserve"><value>Add languages the image doesn't have and choose the Windows language. Language packs are downloaded from Windows Update and built into the image. Formats and keyboards are on the Installation step.</value></data>
+  <data name="LanguagesTip.Text" xml:space="preserve"><value>The display language is the language of Windows menus, windows and messages. Handwriting, text recognition and speech come with it when the language has them.
+Each language is about 150–200 MB to download and a few minutes of building. It needs the internet and administrator rights (the app will ask).
+The installer's language doesn't change: setup screens stay in the image language.
+Example: a Russian image + English (en-US) as the default — Windows is in English, and Russian can be switched on in Settings.</value></data>
+  <data name="LanguagesInImage.Text" xml:space="preserve"><value>In the image:</value></data>
+  <data name="LanguagesRetry.Content" xml:space="preserve"><value>Retry</value></data>
+  <data name="LanguageToAdd.Header" xml:space="preserve"><value>Add a language</value></data>
+  <data name="LanguageToAdd.PlaceholderText" xml:space="preserve"><value>Choose a language</value></data>
+  <data name="LanguageAdd.Content" xml:space="preserve"><value>Add</value></data>
+  <data name="LanguageRemove.Content" xml:space="preserve"><value>Remove</value></data>
+  <data name="DisplayLanguage.Header" xml:space="preserve"><value>Windows language</value></data>
+  <data name="DisplayLanguageTip.Text" xml:space="preserve"><value>Windows is in this language right after installation, for every user.
+The other languages in the list are installed too: switch in Settings → Time &amp; language → Language &amp; region.</value></data>
+  <data name="LanguagesUpdateNote.Text" xml:space="preserve"><value>If your image is already updated, the latest cumulative update is built in along with the languages (about 5 GB, 20 minutes or more of building): otherwise some text of the new languages would stay untranslated.</value></data>
+  <data name="LanguagesSummary_Add" xml:space="preserve"><value>Add languages: {0}</value></data>
+  <data name="LanguagesSummary_Display" xml:space="preserve"><value>Windows language: {0}</value></data>
 </root>

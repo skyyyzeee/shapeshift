@@ -14,11 +14,12 @@ public sealed partial class EditionChoice : ObservableObject
 }
 
 /// <summary>
-/// Шаг «Редакции и языки»: какие редакции оставить в образе и какую ставить без вопроса.
-/// Языки интерфейса — в следующей версии.
+/// Шаг «Редакции и языки»: какие редакции оставить в образе, какую ставить без вопроса и языки интерфейса.
 /// </summary>
-public sealed partial class EditionsViewModel : ObservableObject
+public sealed partial class EditionsViewModel(EngineClient engine) : ObservableObject
 {
+    public LanguagesViewModel Languages { get; } = new(engine);
+
     const string Ask = "";
 
     // Выбор из профиля, если образ ещё не прочитан: применится, когда появятся редакции.

@@ -14,7 +14,8 @@ public sealed record WimImage(
     int? Major,
     int? Build,
     int? SpBuild,
-    string? DefaultLanguage);
+    string? DefaultLanguage,
+    IReadOnlyList<string>? Languages = null);
 
 /// <summary>
 /// Читает XML-метаданные из заголовка WIM/ESD без распаковки и без внешних библиотек.
@@ -75,6 +76,7 @@ public static class WimMetadata
             Major: (int?)version?.Element("MAJOR"),
             Build: (int?)version?.Element("BUILD"),
             SpBuild: (int?)version?.Element("SPBUILD"),
-            DefaultLanguage: (string?)windows?.Element("LANGUAGES")?.Element("DEFAULT"));
+            DefaultLanguage: (string?)windows?.Element("LANGUAGES")?.Element("DEFAULT"),
+            Languages: windows?.Element("LANGUAGES")?.Elements("LANGUAGE").Select(l => l.Value).ToList());
     }
 }

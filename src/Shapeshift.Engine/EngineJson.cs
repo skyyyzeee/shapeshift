@@ -28,6 +28,7 @@ public static class EngineJson
         },
         architecture = info.Architecture.ToString().ToLowerInvariant(),
         language = info.Language,
+        languages = info.InstalledLanguages,
         editions = info.Editions.Select(e => new { index = e.Index, editionId = e.EditionId, name = e.Name }),
     }, Options);
 
@@ -121,6 +122,14 @@ public static class EngineJson
         files = files.Count,
         bytes = files.Sum(f => f.Size),
         cachedBytes,
+    }, Options);
+
+    /// <summary>Языки образа и языковые пакеты выпуска, из которого их можно добавить.</summary>
+    public static string Languages(IReadOnlyList<string> installed, IReadOnlyList<string> available, string? release) => JsonSerializer.Serialize(new
+    {
+        installed,
+        available,
+        release,
     }, Options);
 
     public static string Error(string code, string message) =>

@@ -87,7 +87,7 @@ public sealed partial class OutputViewModel(
             keep ??= editions.Editions.Select(e => e.EditionId).ToList();
         return new ProfileDraft(source.Uup is null ? source.IsoPath : null, outputIso, [.. tweaks, .. customize.SelectedTweaks], keep,
             setupDraft with { Edition = install }, regional, customize.SelectedApps, customize.Programs.ToDraft(), source.Uup,
-            customize.Wallpaper.ToDraft());
+            customize.Wallpaper.ToDraft(), editions.Languages.ToDraft());
     }
 
     bool HasSource => source.HasSource;
@@ -188,7 +188,7 @@ public sealed partial class OutputViewModel(
         SummaryLines.Clear();
         Warnings.Clear();
         Choices.Clear();
-        foreach (var choice in editions.Describe().Concat(setup.Describe()).Concat(DescribeTweaks()))
+        foreach (var choice in editions.Describe().Concat(editions.Languages.Describe()).Concat(setup.Describe()).Concat(DescribeTweaks()))
             Choices.Add(choice);
         if (plan is null)
             return;

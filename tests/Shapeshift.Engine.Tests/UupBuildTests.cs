@@ -181,20 +181,6 @@ public sealed class UupBuildTests : IDisposable
         Assert.Contains("Image: Windows 11 24H2 (26100.1)", result.Output);
     }
 
-    [Fact]
-    public async Task Latest_update_for_own_iso_is_not_supported_yet()
-    {
-        var iso = new FakeWindowsIso().WriteTo(_dir.Path);
-        _dir.Write("profile.json", $$"""
-            { "formatVersion": 1, "latestUpdate": true, "source": { "iso": {{JsonSerializer.Serialize(iso)}} }, "output": { "iso": {{JsonSerializer.Serialize(Output)}} } }
-            """);
-
-        var result = await CliRun.RunAsync("build", "--profile", _dir.File("profile.json"), "--workspace", Workspace, "--dry-run");
-
-        Assert.Equal(Cli.ExitCodes.InvalidInput, result.ExitCode);
-        Assert.Contains("works only with a release from Windows Update", result.Error);
-    }
-
     [Theory]
     [InlineData("""{ "channel": "nightly", "language": "ru-RU" }""", "unknown channel 'nightly'")]
     [InlineData("""{ "channel": "windows11", "language": "de-DE" }""", "language 'de-DE' is not in this release")]
