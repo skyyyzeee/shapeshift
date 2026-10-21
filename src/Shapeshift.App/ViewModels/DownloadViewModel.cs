@@ -39,6 +39,25 @@ public sealed partial class DownloadViewModel(EngineClient engine) : ObservableO
 {
     bool? _loadedAdvanced;
 
+    // Выбор из профиля: применяется по мере загрузки выпусков, языков и редакций.
+    Shapeshift.Core.UupSourceOptions? _pending;
+    IReadOnlyList<string>? _pendingEditions;
+
+    /// <summary>Источник из профиля: канал (самый новый его выпуск), язык, редакции, последнее обновление.</summary>
+    public void ApplyProfile(Shapeshift.Core.UupSourceOptions uup, IReadOnlyList<string> editions, bool? latestUpdate)
+    {
+        _pending = uup;
+        _pendingEditions = editions.Count > 0 ? editions : ["Professional"];
+        LatestUpdate = latestUpdate ?? true;
+        if (Releases.FirstOrDefault(r => r.Release.Channel == uup.Channel) is { } release)
+        {
+            if (Release == release)
+                OnReleaseChanged(release);
+            else
+                Release = release;
+        }
+    }
+
     public ObservableCollection<ReleaseChoice> Releases { get; } = [];
 
     public ObservableCollection<LanguageChoice> Languages { get; } = [];
@@ -92,7 +111,8 @@ public sealed partial class DownloadViewModel(EngineClient engine) : ObservableO
             foreach (var release in result.Releases)
                 Releases.Add(new ReleaseChoice(release, release.Title, Text.Format("UupReleaseDetail", release.Build, ChannelName(release.Channel))));
             _loadedAdvanced = advanced;
-            Release = Releases.FirstOrDefault(r => r.Release.Channel == previous) ?? Releases.FirstOrDefault();
+            var wanted = _pending?.Channel ?? previous;
+            Release = Releases.FirstOrDefault(r => r.Release.Channel == wanted) ?? Releases.FirstOrDefault();
         }
         finally
         {
@@ -104,7 +124,7 @@ public sealed partial class DownloadViewModel(EngineClient engine) : ObservableO
     async partial void OnReleaseChanged(ReleaseChoice? value)
     {
         OnPropertyChanged(nameof(CanDownload));
-        var previous = Language?.Code ?? CultureInfo.CurrentUICulture.Name;
+        var previous = _pending?.Language ?? Language?.Code ?? CultureInfo.CurrentUICulture.Name;
         Languages.Clear();
         Editions.Clear();
         Language = null;
@@ -136,7 +156,14 @@ public sealed partial class DownloadViewModel(EngineClient engine) : ObservableO
 
     partial void OnLanguageChanged(LanguageChoice? value)
     {
-        var chosen = Editions.Where(e => e.IsOn).Select(e => e.EditionId).ToHashSet();
+        var chosen = _pendingEditions is { } pending && value is not null
+            ? pending.ToHashSet(StringComparer.OrdinalIgnoreCase)
+            : Editions.Where(e => e.IsOn).Select(e => e.EditionId).ToHashSet();
+        if (value is not null)
+        {
+            _pending = null;
+            _pendingEditions = null;
+        }
         Editions.Clear();
         foreach (var edition in value?.Editions ?? [])
         {

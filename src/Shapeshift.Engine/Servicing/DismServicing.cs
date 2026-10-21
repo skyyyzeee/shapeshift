@@ -9,7 +9,7 @@ namespace Shapeshift.Engine.Servicing;
 /// Каждое монтирование помечается файлом <see cref="MountMarker"/> в папке сборки — по нему зависшие
 /// монтирования Shapeshift отличаются от чужих.
 /// </summary>
-public static class DismServicing
+public static partial class DismServicing
 {
     public const string MountMarker = ".shapeshift-mount";
 
@@ -90,10 +90,13 @@ public static class DismServicing
     /// </summary>
     /// <exception cref="OperationCanceledException">Отменили; образ отключён без сохранения.</exception>
     /// <exception cref="ServicingException">DISM не смог обслужить образ или пакет не подошёл.</exception>
+    /// <param name="cleanupComponents">
+    /// После пакетов — очистить хранилище компонентов (старые версии после накопительного обновления занимают гигабайты).
+    /// </param>
     public static void AddPackages(
         string wimPath, IReadOnlyList<int> imageIndices, IReadOnlyList<string> packages, string mountDirectory,
-        IBuildReporter reporter, CancellationToken ct) =>
-        Service(wimPath, imageIndices, mountDirectory, reporter, ct, (session, imageIndex, progress) =>
+        IBuildReporter reporter, CancellationToken ct, bool cleanupComponents = false) =>
+        Service(wimPath, imageIndices, mountDirectory, reporter, ct, cleanupComponents ? CleanupComponents : null, (session, imageIndex, progress) =>
         {
             for (var i = 0; i < packages.Count; i++)
             {
@@ -117,7 +120,13 @@ public static class DismServicing
     /// <param name="work">Сессия, номер образа и доля выполнения работы (0..1).</param>
     static void Service(
         string wimPath, IReadOnlyList<int> imageIndices, string mountDirectory, IBuildReporter reporter, CancellationToken ct,
-        Action<DismSession, int, Action<double>> work)
+        Action<DismSession, int, Action<double>> work) =>
+        Service(wimPath, imageIndices, mountDirectory, reporter, ct, null, work);
+
+    /// <param name="afterSession">Работа со смонтированным образом после закрытия сессии (например, dism.exe), до сохранения.</param>
+    static void Service(
+        string wimPath, IReadOnlyList<int> imageIndices, string mountDirectory, IBuildReporter reporter, CancellationToken ct,
+        Action<string, IBuildReporter, Action<double>, CancellationToken>? afterSession, Action<DismSession, int, Action<double>> work)
     {
         Directory.CreateDirectory(mountDirectory);
         File.WriteAllText(Path.Combine(Path.GetDirectoryName(mountDirectory.TrimEnd('\\'))!, MountMarker), wimPath);
@@ -145,8 +154,12 @@ public static class DismServicing
                             Report(0, 0.15, (double)p.Current / p.Total);
                     });
                     ct.ThrowIfCancellationRequested();
+                    // Работа — 70 %; если после неё ещё очистка — 45 % и 25 %.
+                    var workShare = afterSession is null ? 0.7 : 0.45;
                     using (var session = OpenSession(mountDirectory))
-                        work(session, imageIndices[i], fraction => Report(0.15, 0.7, fraction));
+                        work(session, imageIndices[i], fraction => Report(0.15, workShare, fraction));
+                    ct.ThrowIfCancellationRequested();
+                    afterSession?.Invoke(mountDirectory, reporter, fraction => Report(0.15 + workShare, 0.7 - workShare, fraction), ct);
                     commit = true;
                 }
                 finally
@@ -170,6 +183,62 @@ public static class DismServicing
             DismApi.Shutdown();
         }
     }
+
+    /// <summary>
+    /// <c>DISM /Cleanup-Image /StartComponentCleanup /ResetBase</c> по смонтированной папке: в DISM API такой функции
+    /// нет. Старые версии компонентов удаляются насовсем — обновление нельзя будет удалить, как и в образах Microsoft.
+    /// </summary>
+    static void CleanupComponents(string mountDirectory, IBuildReporter reporter, Action<double> progress, CancellationToken ct)
+    {
+        reporter.Log("Cleaning up superseded components");
+        var start = new System.Diagnostics.ProcessStartInfo(Path.Combine(Environment.SystemDirectory, "dism.exe"),
+            ["/English", $"/Image:{mountDirectory}", "/Cleanup-Image", "/StartComponentCleanup", "/ResetBase"])
+        {
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+        };
+        using var process = System.Diagnostics.Process.Start(start)!;
+        var lines = new List<string>();
+        process.ErrorDataReceived += (_, e) => { if (e.Data is { } line) lock (lines) lines.Add(line); };
+        process.BeginErrorReadLine();
+        // DISM рисует прогресс «[====   42.0%   ]» без перевода строки — читаем посимвольно.
+        var buffer = new System.Text.StringBuilder();
+        int c;
+        using (ct.Register(() => { try { process.Kill(entireProcessTree: true); } catch (InvalidOperationException) { } }))
+        {
+            while ((c = process.StandardOutput.Read()) >= 0)
+            {
+                if (c is '\r' or '\n' or ']')
+                {
+                    var text = buffer.ToString();
+                    buffer.Clear();
+                    if (PercentPattern().Match(text) is { Success: true } m &&
+                        double.TryParse(m.Groups[1].Value.Replace(',', '.'), System.Globalization.CultureInfo.InvariantCulture, out var percent))
+                        progress(percent / 100);
+                    else if (text.Trim().Length > 0)
+                        lock (lines) lines.Add(text.Trim());
+                }
+                else
+                {
+                    buffer.Append((char)c);
+                }
+            }
+            process.WaitForExit();
+        }
+        ct.ThrowIfCancellationRequested();
+        if (process.ExitCode != 0)
+        {
+            string details;
+            lock (lines)
+                details = string.Join(" ", lines.TakeLast(3));
+            throw new ServicingException($"DISM could not clean up components (exit code {process.ExitCode}): {details}");
+        }
+    }
+
+    [System.Text.RegularExpressions.GeneratedRegex(@"(\d+(?:[.,]\d+)?)%")]
+    private static partial System.Text.RegularExpressions.Regex PercentPattern();
 
     static DismSession OpenSession(string mountDirectory)
     {

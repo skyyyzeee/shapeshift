@@ -184,7 +184,9 @@ public static class BuildRunner
         if (updates.NetFramework is { } netFramework)
             packages.Add(Place(netFramework));
 
-        Servicing.DismServicing.AddPackages(MountableInstallImage(plan, reporter, ct), ServicedImages(plan), packages, plan.MountDirectory, reporter, ct);
+        // После накопительного обновления — очистка компонентов: иначе в образе остаются их старые версии (гигабайты).
+        Servicing.DismServicing.AddPackages(MountableInstallImage(plan, reporter, ct), ServicedImages(plan), packages, plan.MountDirectory, reporter, ct,
+            cleanupComponents: updates.Cumulative.Count > 0);
     }
 
     // Только выбранные редакции: экспорт в новый WIM рядом и замена старого. Без DISM и монтирования.

@@ -116,7 +116,18 @@ public sealed partial class WizardViewModel : ObservableObject
         if (profile.Source.IsoPath is { } source && source != Source.IsoPath)
         {
             Current = WizardStep.Source;
+            Source.IsDownloadMode = false;
             _ = Source.LoadAsync(source);
+        }
+        else if (profile.Source.Uup is { } uup)
+        {
+            // Выпуск из Windows Update: каналы Insider видны только в продвинутом режиме.
+            Current = WizardStep.Source;
+            if (uup.Channel is "beta" or "dev" or "canary")
+                AdvancedMode = true;
+            Download.ApplyProfile(uup, profile.Editions, profile.LatestUpdate);
+            Source.IsDownloadMode = true;
+            _ = Download.LoadAsync(AdvancedMode);
         }
     }
 

@@ -24,6 +24,17 @@ public sealed partial class SourcePage : Page
         base.OnNavigatedTo(e);
         FillPresets();
         SourceMode.SelectedItem = ViewModel.IsDownloadMode ? DownloadModeItem : IsoModeItem;
+        ViewModel.PropertyChanged += OnSourceChanged;
+    }
+
+    // Режим может смениться не вкладкой, а профилем (источник из Windows Update) — вкладка следует за ним.
+    void OnSourceChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(SourceViewModel.IsDownloadMode))
+            return;
+        var item = ViewModel.IsDownloadMode ? DownloadModeItem : IsoModeItem;
+        if (SourceMode.SelectedItem != item)
+            SourceMode.SelectedItem = item;
     }
 
     async void SourceMode_SelectionChanged(SelectorBar sender, SelectorBarSelectionChangedEventArgs args)
@@ -83,6 +94,7 @@ public sealed partial class SourcePage : Page
     protected override void OnNavigatedFrom(NavigationEventArgs e)
     {
         _presetsFilled = false;
+        ViewModel.PropertyChanged -= OnSourceChanged;
         base.OnNavigatedFrom(e);
     }
 
